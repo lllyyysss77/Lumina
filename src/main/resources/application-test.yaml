@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:lumina_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+  redis:
+    host: localhost
+    port: 6379
+    database: 1
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+logging:
+  level:
+    com.lumina: DEBUG
+    org.springframework.web: DEBUG
+    com.baomidou.mybatisplus: DEBUG
+
+lumina:
+  rate-limit:
+    enabled: false
+  auth:
+    jwt:
+      expiration: 3600000  # 1 hour for testing

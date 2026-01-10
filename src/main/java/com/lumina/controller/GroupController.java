@@ -1,10 +1,10 @@
 package com.lumina.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lumina.dto.ApiResponse;
 import com.lumina.entity.Group;
 import com.lumina.service.GroupService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -18,47 +18,56 @@ public class GroupController {
     private GroupService groupService;
 
     @GetMapping
-    public ResponseEntity<List<Group>> getAllGroups() {
+    public ApiResponse<List<Group>> getAllGroups() {
         List<Group> groups = groupService.list();
-        return ResponseEntity.ok(groups);
+        return ApiResponse.success(groups);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Group> getGroupById(@PathVariable Long id) {
+    public ApiResponse<Group> getGroupById(@PathVariable Long id) {
         Group group = groupService.getById(id);
         if (group == null) {
-            return ResponseEntity.notFound().build();
+            throw new IllegalArgumentException("Group not found with id: " + id);
         }
-        return ResponseEntity.ok(group);
+        return ApiResponse.success(group);
     }
 
     @PostMapping
-    public ResponseEntity<Group> createGroup(@RequestBody Group group) {
+    public ApiResponse<Group> createGroup(@RequestBody Group group) {
         group.setCreatedAt(LocalDateTime.now());
         group.setUpdatedAt(LocalDateTime.now());
         boolean success = groupService.save(group);
-        return success ? ResponseEntity.ok(group) : ResponseEntity.badRequest().build();
+        if (!success) {
+            throw new IllegalArgumentException("Failed to create group");
+        }
+        return ApiResponse.success(group);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Group> updateGroup(@PathVariable Long id, @RequestBody Group group) {
+    public ApiResponse<Group> updateGroup(@PathVariable Long id, @RequestBody Group group) {
         group.setId(id);
         group.setUpdatedAt(LocalDateTime.now());
         boolean success = groupService.updateById(group);
-        return success ? ResponseEntity.ok(group) : ResponseEntity.notFound().build();
+        if (!success) {
+            throw new IllegalArgumentException("Group not found with id: " + id);
+        }
+        return ApiResponse.success(group);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteGroup(@PathVariable Long id) {
+    public ApiResponse<Void> deleteGroup(@PathVariable Long id) {
         boolean success = groupService.removeById(id);
-        return success ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+        if (!success) {
+            throw new IllegalArgumentException("Group not found with id: " + id);
+        }
+        return ApiResponse.success(null);
     }
 
     @GetMapping("/page")
-    public ResponseEntity<Page<Group>> getGroupsByPage(
+    public ApiResponse<Page<Group>> getGroupsByPage(
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size) {
         Page<Group> page = groupService.page(new Page<>(current, size));
-        return ResponseEntity.ok(page);
+        return ApiResponse.success(page);
     }
 }

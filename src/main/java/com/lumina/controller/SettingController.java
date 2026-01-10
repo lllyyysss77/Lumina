@@ -1,10 +1,9 @@
 package com.lumina.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.lumina.dto.ApiResponse;
 import com.lumina.entity.Setting;
 import com.lumina.service.SettingService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -20,52 +19,61 @@ public class SettingController {
     private SettingService settingService;
 
     @GetMapping
-    public ResponseEntity<List<Setting>> getAllSettings() {
+    public ApiResponse<List<Setting>> getAllSettings() {
         List<Setting> settings = settingService.list();
-        return ResponseEntity.ok(settings);
+        return ApiResponse.success(settings);
     }
 
     @GetMapping("/{key}")
-    public ResponseEntity<Setting> getSettingByKey(@PathVariable String key) {
+    public ApiResponse<Setting> getSettingByKey(@PathVariable String key) {
         Setting setting = settingService.getById(key);
         if (setting == null) {
-            return ResponseEntity.notFound().build();
+            throw new IllegalArgumentException("Setting not found with key: " + key);
         }
-        return ResponseEntity.ok(setting);
+        return ApiResponse.success(setting);
     }
 
     @PostMapping
-    public ResponseEntity<Setting> createSetting(@RequestBody Setting setting) {
+    public ApiResponse<Setting> createSetting(@RequestBody Setting setting) {
         setting.setCreatedAt(LocalDateTime.now());
         setting.setUpdatedAt(LocalDateTime.now());
         boolean success = settingService.save(setting);
-        return success ? ResponseEntity.ok(setting) : ResponseEntity.badRequest().build();
+        if (!success) {
+            throw new IllegalArgumentException("Failed to create setting");
+        }
+        return ApiResponse.success(setting);
     }
 
     @PutMapping("/{key}")
-    public ResponseEntity<Setting> updateSetting(@PathVariable String key, @RequestBody Setting setting) {
+    public ApiResponse<Setting> updateSetting(@PathVariable String key, @RequestBody Setting setting) {
         setting.setSettingKey(key);
         setting.setUpdatedAt(LocalDateTime.now());
         boolean success = settingService.updateById(setting);
-        return success ? ResponseEntity.ok(setting) : ResponseEntity.notFound().build();
+        if (!success) {
+            throw new IllegalArgumentException("Setting not found with key: " + key);
+        }
+        return ApiResponse.success(setting);
     }
 
     @DeleteMapping("/{key}")
-    public ResponseEntity<Void> deleteSetting(@PathVariable String key) {
+    public ApiResponse<Void> deleteSetting(@PathVariable String key) {
         boolean success = settingService.removeById(key);
-        return success ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+        if (!success) {
+            throw new IllegalArgumentException("Setting not found with key: " + key);
+        }
+        return ApiResponse.success(null);
     }
 
     @GetMapping("/map")
-    public ResponseEntity<Map<String, String>> getSettingsAsMap() {
+    public ApiResponse<Map<String, String>> getSettingsAsMap() {
         List<Setting> settings = settingService.list();
         Map<String, String> settingsMap = settings.stream()
                 .collect(Collectors.toMap(Setting::getSettingKey, Setting::getSettingValue));
-        return ResponseEntity.ok(settingsMap);
+        return ApiResponse.success(settingsMap);
     }
 
     @PostMapping("/batch")
-    public ResponseEntity<Void> batchUpdateSettings(@RequestBody Map<String, String> settingsMap) {
+    public ApiResponse<Void> batchUpdateSettings(@RequestBody Map<String, String> settingsMap) {
         settingsMap.forEach((key, value) -> {
             Setting setting = new Setting();
             setting.setSettingKey(key);
@@ -73,6 +81,6 @@ public class SettingController {
             setting.setUpdatedAt(LocalDateTime.now());
             settingService.saveOrUpdate(setting);
         });
-        return ResponseEntity.ok().build();
+        return ApiResponse.success(null);
     }
 }

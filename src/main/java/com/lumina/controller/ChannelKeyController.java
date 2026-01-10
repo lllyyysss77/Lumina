@@ -2,10 +2,10 @@ package com.lumina.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lumina.dto.ApiResponse;
 import com.lumina.entity.ChannelKey;
 import com.lumina.service.ChannelKeyService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,63 +19,72 @@ public class ChannelKeyController {
     private ChannelKeyService channelKeyService;
 
     @GetMapping
-    public ResponseEntity<List<ChannelKey>> getAllChannelKeys() {
+    public ApiResponse<List<ChannelKey>> getAllChannelKeys() {
         List<ChannelKey> channelKeys = channelKeyService.list();
-        return ResponseEntity.ok(channelKeys);
+        return ApiResponse.success(channelKeys);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ChannelKey> getChannelKeyById(@PathVariable Long id) {
+    public ApiResponse<ChannelKey> getChannelKeyById(@PathVariable Long id) {
         ChannelKey channelKey = channelKeyService.getById(id);
         if (channelKey == null) {
-            return ResponseEntity.notFound().build();
+            throw new IllegalArgumentException("ChannelKey not found with id: " + id);
         }
-        return ResponseEntity.ok(channelKey);
+        return ApiResponse.success(channelKey);
     }
 
     @PostMapping
-    public ResponseEntity<ChannelKey> createChannelKey(@RequestBody ChannelKey channelKey) {
+    public ApiResponse<ChannelKey> createChannelKey(@RequestBody ChannelKey channelKey) {
         channelKey.setCreatedAt(LocalDateTime.now());
         channelKey.setUpdatedAt(LocalDateTime.now());
         boolean success = channelKeyService.save(channelKey);
-        return success ? ResponseEntity.ok(channelKey) : ResponseEntity.badRequest().build();
+        if (!success) {
+            throw new IllegalArgumentException("Failed to create channel key");
+        }
+        return ApiResponse.success(channelKey);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ChannelKey> updateChannelKey(@PathVariable Long id, @RequestBody ChannelKey channelKey) {
+    public ApiResponse<ChannelKey> updateChannelKey(@PathVariable Long id, @RequestBody ChannelKey channelKey) {
         channelKey.setId(id);
         channelKey.setUpdatedAt(LocalDateTime.now());
         boolean success = channelKeyService.updateById(channelKey);
-        return success ? ResponseEntity.ok(channelKey) : ResponseEntity.notFound().build();
+        if (!success) {
+            throw new IllegalArgumentException("ChannelKey not found with id: " + id);
+        }
+        return ApiResponse.success(channelKey);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteChannelKey(@PathVariable Long id) {
+    public ApiResponse<Void> deleteChannelKey(@PathVariable Long id) {
         boolean success = channelKeyService.removeById(id);
-        return success ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+        if (!success) {
+            throw new IllegalArgumentException("ChannelKey not found with id: " + id);
+        }
+        return ApiResponse.success(null);
     }
 
     @GetMapping("/page")
-    public ResponseEntity<Page<ChannelKey>> getChannelKeysByPage(
+    public ApiResponse<Page<ChannelKey>> getChannelKeysByPage(
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size) {
         Page<ChannelKey> page = channelKeyService.page(new Page<>(current, size));
-        return ResponseEntity.ok(page);
+        return ApiResponse.success(page);
     }
 
     @GetMapping("/channel/{channelId}")
-    public ResponseEntity<List<ChannelKey>> getChannelKeysByChannelId(@PathVariable Long channelId) {
+    public ApiResponse<List<ChannelKey>> getChannelKeysByChannelId(@PathVariable Long channelId) {
         QueryWrapper<ChannelKey> wrapper = new QueryWrapper<>();
         wrapper.eq("channel_id", channelId);
         List<ChannelKey> channelKeys = channelKeyService.list(wrapper);
-        return ResponseEntity.ok(channelKeys);
+        return ApiResponse.success(channelKeys);
     }
 
     @GetMapping("/enabled")
-    public ResponseEntity<List<ChannelKey>> getEnabledChannelKeys() {
+    public ApiResponse<List<ChannelKey>> getEnabledChannelKeys() {
         QueryWrapper<ChannelKey> wrapper = new QueryWrapper<>();
         wrapper.eq("is_enabled", true);
         List<ChannelKey> channelKeys = channelKeyService.list(wrapper);
-        return ResponseEntity.ok(channelKeys);
+        return ApiResponse.success(channelKeys);
     }
 }

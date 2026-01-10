@@ -2,10 +2,10 @@ package com.lumina.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lumina.dto.ApiResponse;
 import com.lumina.entity.User;
 import com.lumina.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,55 +19,56 @@ public class UserController {
     private UserService userService;
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userService.list();
-        return ResponseEntity.ok(users);
+    public ApiResponse<List<User>> getAllUsers() {
+        return ApiResponse.success(userService.list());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+    public ApiResponse<User> getUserById(@PathVariable Long id) {
         User user = userService.getById(id);
         if (user == null) {
-            return ResponseEntity.notFound().build();
+            throw new IllegalArgumentException("用户不存在");
         }
-        return ResponseEntity.ok(user);
+        return ApiResponse.success(user);
     }
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
+    public ApiResponse<User> createUser(@RequestBody User user) {
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-        boolean success = userService.save(user);
-        return success ? ResponseEntity.ok(user) : ResponseEntity.badRequest().build();
+        userService.save(user);
+        return ApiResponse.success("创建成功", user);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User user) {
+    public ApiResponse<User> updateUser(@PathVariable Long id, @RequestBody User user) {
         user.setId(id);
         user.setUpdatedAt(LocalDateTime.now());
-        boolean success = userService.updateById(user);
-        return success ? ResponseEntity.ok(user) : ResponseEntity.notFound().build();
+        userService.updateById(user);
+        return ApiResponse.success("更新成功", user);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        boolean success = userService.removeById(id);
-        return success ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    public ApiResponse<Void> deleteUser(@PathVariable Long id) {
+        userService.removeById(id);
+        return ApiResponse.success("删除成功", null);
     }
 
     @GetMapping("/page")
-    public ResponseEntity<Page<User>> getUsersByPage(
+    public ApiResponse<Page<User>> getUsersByPage(
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size) {
-        Page<User> page = userService.page(new Page<>(current, size));
-        return ResponseEntity.ok(page);
+        return ApiResponse.success(userService.page(new Page<>(current, size)));
     }
 
     @GetMapping("/username/{username}")
-    public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
+    public ApiResponse<User> getUserByUsername(@PathVariable String username) {
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         wrapper.eq("username", username);
         User user = userService.getOne(wrapper);
-        return user != null ? ResponseEntity.ok(user) : ResponseEntity.notFound().build();
+        if (user == null) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+        return ApiResponse.success(user);
     }
 }

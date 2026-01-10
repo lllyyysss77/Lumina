@@ -1,10 +1,10 @@
 package com.lumina.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.lumina.dto.ApiResponse;
 import com.lumina.entity.MigrationRecord;
 import com.lumina.service.MigrationRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -18,44 +18,50 @@ public class MigrationRecordController {
     private MigrationRecordService migrationRecordService;
 
     @GetMapping
-    public ResponseEntity<List<MigrationRecord>> getAllMigrationRecords() {
+    public ApiResponse<List<MigrationRecord>> getAllMigrationRecords() {
         QueryWrapper<MigrationRecord> wrapper = new QueryWrapper<>();
         wrapper.orderByDesc("version");
         List<MigrationRecord> records = migrationRecordService.list(wrapper);
-        return ResponseEntity.ok(records);
+        return ApiResponse.success(records);
     }
 
     @GetMapping("/{version}")
-    public ResponseEntity<MigrationRecord> getMigrationRecordByVersion(@PathVariable Integer version) {
+    public ApiResponse<MigrationRecord> getMigrationRecordByVersion(@PathVariable Integer version) {
         MigrationRecord record = migrationRecordService.getById(version);
         if (record == null) {
-            return ResponseEntity.notFound().build();
+            throw new IllegalArgumentException("MigrationRecord not found with version: " + version);
         }
-        return ResponseEntity.ok(record);
+        return ApiResponse.success(record);
     }
 
     @PostMapping
-    public ResponseEntity<MigrationRecord> createMigrationRecord(@RequestBody MigrationRecord record) {
+    public ApiResponse<MigrationRecord> createMigrationRecord(@RequestBody MigrationRecord record) {
         record.setExecutedAt(LocalDateTime.now());
         boolean success = migrationRecordService.save(record);
-        return success ? ResponseEntity.ok(record) : ResponseEntity.badRequest().build();
+        if (!success) {
+            throw new IllegalArgumentException("Failed to create migration record");
+        }
+        return ApiResponse.success(record);
     }
 
     @GetMapping("/latest")
-    public ResponseEntity<MigrationRecord> getLatestMigrationRecord() {
+    public ApiResponse<MigrationRecord> getLatestMigrationRecord() {
         QueryWrapper<MigrationRecord> wrapper = new QueryWrapper<>();
         wrapper.orderByDesc("version");
         wrapper.last("LIMIT 1");
         MigrationRecord record = migrationRecordService.getOne(wrapper);
-        return record != null ? ResponseEntity.ok(record) : ResponseEntity.notFound().build();
+        if (record == null) {
+            throw new IllegalArgumentException("No migration records found");
+        }
+        return ApiResponse.success(record);
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<MigrationRecord>> getMigrationRecordsByStatus(@PathVariable Integer status) {
+    public ApiResponse<List<MigrationRecord>> getMigrationRecordsByStatus(@PathVariable Integer status) {
         QueryWrapper<MigrationRecord> wrapper = new QueryWrapper<>();
         wrapper.eq("status", status);
         wrapper.orderByDesc("version");
         List<MigrationRecord> records = migrationRecordService.list(wrapper);
-        return ResponseEntity.ok(records);
+        return ApiResponse.success(records);
     }
 }

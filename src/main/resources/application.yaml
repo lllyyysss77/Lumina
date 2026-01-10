@@ -2,10 +2,13 @@ spring:
   application:
     name: lumina
 
+  profiles:
+    active: dev
+
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/lumina?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:mysql://localhost:3306/lumina?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: Zh@123123
     hikari:
@@ -17,6 +20,61 @@ spring:
       max-lifetime: 1800000
       connection-timeout: 30000
       connection-test-query: SELECT 1
+      leak-detection-threshold: 60000
+
+  # Jackson 配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: NON_NULL
+
+  # 服务器配置
+  server:
+    port: 8080
+    servlet:
+      context-path: /
+    tomcat:
+      uri-encoding: UTF-8
+      max-threads: 200
+      min-spare-threads: 10
+      accept-count: 100
+      max-connections: 8192
+    max-http-header-size: 8192
+
+  # Redis配置 (后续添加)
+  redis:
+    host: localhost
+    port: 6379
+    password:
+    database: 0
+    timeout: 6000ms
+    lettuce:
+      pool:
+        max-active: 200
+        max-wait: -1ms
+        max-idle: 10
+        min-idle: 0
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      file-size-threshold: 0
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  # CORS配置
+  cors:
+    allowed-origins: "*"
+    allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    allowed-headers: "*"
+    allow-credentials: true
+    max-age: 3600
 
 # MyBatis Plus配置
 mybatis-plus:
@@ -45,9 +103,75 @@ mybatis-plus:
     call-setters-on-nulls: true
     # 这个配置会将执行的sql打印出来，在开发或测试的时候可以用
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 缓存配置
+    cache-enabled: true
+    # 延迟加载
+    lazy-loading-enabled: true
+    # 积极延迟加载
+    aggressive-lazy-loading: false
+
+# Actuator监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,prometheus"
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
 # 日志配置
 logging:
   level:
     com.lumina: debug
     org.springframework.web: debug
+    org.springframework.security: debug
+    com.baomidou.mybatisplus: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/lumina.log
+    max-size: 100MB
+    max-history: 30
+
+# Lumina 特定配置
+lumina:
+  # 代理配置
+  proxy:
+    url:
+    enabled: false
+    timeout: 30000
+
+  # 统计配置
+  stats:
+    save-interval: 5  # 分钟
+    log-keep-days: 7
+
+  # 模型同步配置
+  sync:
+    llm-interval: 24  # 小时
+    model-info-interval: 24  # 小时
+
+  # 限流配置
+  rate-limit:
+    enabled: false
+    requests-per-minute: 1000
+
+  # 认证配置
+  auth:
+    jwt:
+      secret: lumina-jwt-secret-key-2024
+      expiration: 86400000  # 24小时，毫秒
+      refresh-expiration: 604800000  # 7天，毫秒
+
+  # API配置
+  api:
+    version: v1
+    prefix: /api/v1

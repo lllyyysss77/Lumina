@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/lumina?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: Zh@123123
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    com.lumina: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    com.baomidou.mybatisplus: DEBUG
+
+lumina:
+  rate-limit:
+    enabled: false
+  auth:
+    jwt:
+      expiration: 604800000  # 7天 for development

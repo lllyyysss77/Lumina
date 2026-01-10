@@ -2,10 +2,10 @@ package com.lumina.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lumina.dto.ApiResponse;
 import com.lumina.entity.Channel;
 import com.lumina.service.ChannelService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,63 +19,59 @@ public class ChannelController {
     private ChannelService channelService;
 
     @GetMapping
-    public ResponseEntity<List<Channel>> getAllChannels() {
-        List<Channel> channels = channelService.list();
-        return ResponseEntity.ok(channels);
+    public ApiResponse<List<Channel>> getAllChannels() {
+        return ApiResponse.success(channelService.list());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Channel> getChannelById(@PathVariable Long id) {
+    public ApiResponse<Channel> getChannelById(@PathVariable Long id) {
         Channel channel = channelService.getById(id);
         if (channel == null) {
-            return ResponseEntity.notFound().build();
+            throw new IllegalArgumentException("渠道不存在");
         }
-        return ResponseEntity.ok(channel);
+        return ApiResponse.success(channel);
     }
 
     @PostMapping
-    public ResponseEntity<Channel> createChannel(@RequestBody Channel channel) {
+    public ApiResponse<Channel> createChannel(@RequestBody Channel channel) {
         channel.setCreatedAt(LocalDateTime.now());
         channel.setUpdatedAt(LocalDateTime.now());
-        boolean success = channelService.save(channel);
-        return success ? ResponseEntity.ok(channel) : ResponseEntity.badRequest().build();
+        channelService.save(channel);
+        return ApiResponse.success("创建成功", channel);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Channel> updateChannel(@PathVariable Long id, @RequestBody Channel channel) {
+    public ApiResponse<Channel> updateChannel(@PathVariable Long id, @RequestBody Channel channel) {
         channel.setId(id);
         channel.setUpdatedAt(LocalDateTime.now());
-        boolean success = channelService.updateById(channel);
-        return success ? ResponseEntity.ok(channel) : ResponseEntity.notFound().build();
+        channelService.updateById(channel);
+        return ApiResponse.success("更新成功", channel);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteChannel(@PathVariable Long id) {
-        boolean success = channelService.removeById(id);
-        return success ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    public ApiResponse<Void> deleteChannel(@PathVariable Long id) {
+        channelService.removeById(id);
+        return ApiResponse.success("删除成功", null);
     }
 
     @GetMapping("/page")
-    public ResponseEntity<Page<Channel>> getChannelsByPage(
+    public ApiResponse<Page<Channel>> getChannelsByPage(
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size) {
-        Page<Channel> page = channelService.page(new Page<>(current, size));
-        return ResponseEntity.ok(page);
+        return ApiResponse.success(channelService.page(new Page<>(current, size)));
     }
 
     @GetMapping("/enabled")
-    public ResponseEntity<List<Channel>> getEnabledChannels() {
+    public ApiResponse<List<Channel>> getEnabledChannels() {
         QueryWrapper<Channel> wrapper = new QueryWrapper<>();
         wrapper.eq("is_enabled", true);
-        List<Channel> channels = channelService.list(wrapper);
-        return ResponseEntity.ok(channels);
+        return ApiResponse.success(channelService.list(wrapper));
     }
 
     @GetMapping("/type/{type}")
-    public ResponseEntity<List<Channel>> getChannelsByType(@PathVariable Integer type) {
+    public ApiResponse<List<Channel>> getChannelsByType(@PathVariable Integer type) {
         QueryWrapper<Channel> wrapper = new QueryWrapper<>();
         wrapper.eq("type", type);
-        List<Channel> channels = channelService.list(wrapper);
-        return ResponseEntity.ok(channels);
+        return ApiResponse.success(channelService.list(wrapper));
     }
 }

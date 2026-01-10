@@ -2,10 +2,10 @@ package com.lumina.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lumina.dto.ApiResponse;
 import com.lumina.entity.GroupItem;
 import com.lumina.service.GroupItemService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,63 +19,72 @@ public class GroupItemController {
     private GroupItemService groupItemService;
 
     @GetMapping
-    public ResponseEntity<List<GroupItem>> getAllGroupItems() {
+    public ApiResponse<List<GroupItem>> getAllGroupItems() {
         List<GroupItem> groupItems = groupItemService.list();
-        return ResponseEntity.ok(groupItems);
+        return ApiResponse.success(groupItems);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<GroupItem> getGroupItemById(@PathVariable Long id) {
+    public ApiResponse<GroupItem> getGroupItemById(@PathVariable Long id) {
         GroupItem groupItem = groupItemService.getById(id);
         if (groupItem == null) {
-            return ResponseEntity.notFound().build();
+            throw new IllegalArgumentException("GroupItem not found with id: " + id);
         }
-        return ResponseEntity.ok(groupItem);
+        return ApiResponse.success(groupItem);
     }
 
     @PostMapping
-    public ResponseEntity<GroupItem> createGroupItem(@RequestBody GroupItem groupItem) {
+    public ApiResponse<GroupItem> createGroupItem(@RequestBody GroupItem groupItem) {
         groupItem.setCreatedAt(LocalDateTime.now());
         groupItem.setUpdatedAt(LocalDateTime.now());
         boolean success = groupItemService.save(groupItem);
-        return success ? ResponseEntity.ok(groupItem) : ResponseEntity.badRequest().build();
+        if (!success) {
+            throw new IllegalArgumentException("Failed to create group item");
+        }
+        return ApiResponse.success(groupItem);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<GroupItem> updateGroupItem(@PathVariable Long id, @RequestBody GroupItem groupItem) {
+    public ApiResponse<GroupItem> updateGroupItem(@PathVariable Long id, @RequestBody GroupItem groupItem) {
         groupItem.setId(id);
         groupItem.setUpdatedAt(LocalDateTime.now());
         boolean success = groupItemService.updateById(groupItem);
-        return success ? ResponseEntity.ok(groupItem) : ResponseEntity.notFound().build();
+        if (!success) {
+            throw new IllegalArgumentException("GroupItem not found with id: " + id);
+        }
+        return ApiResponse.success(groupItem);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteGroupItem(@PathVariable Long id) {
+    public ApiResponse<Void> deleteGroupItem(@PathVariable Long id) {
         boolean success = groupItemService.removeById(id);
-        return success ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+        if (!success) {
+            throw new IllegalArgumentException("GroupItem not found with id: " + id);
+        }
+        return ApiResponse.success(null);
     }
 
     @GetMapping("/page")
-    public ResponseEntity<Page<GroupItem>> getGroupItemsByPage(
+    public ApiResponse<Page<GroupItem>> getGroupItemsByPage(
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size) {
         Page<GroupItem> page = groupItemService.page(new Page<>(current, size));
-        return ResponseEntity.ok(page);
+        return ApiResponse.success(page);
     }
 
     @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<GroupItem>> getGroupItemsByGroupId(@PathVariable Long groupId) {
+    public ApiResponse<List<GroupItem>> getGroupItemsByGroupId(@PathVariable Long groupId) {
         QueryWrapper<GroupItem> wrapper = new QueryWrapper<>();
         wrapper.eq("group_id", groupId);
         List<GroupItem> groupItems = groupItemService.list(wrapper);
-        return ResponseEntity.ok(groupItems);
+        return ApiResponse.success(groupItems);
     }
 
     @GetMapping("/channel/{channelId}")
-    public ResponseEntity<List<GroupItem>> getGroupItemsByChannelId(@PathVariable Long channelId) {
+    public ApiResponse<List<GroupItem>> getGroupItemsByChannelId(@PathVariable Long channelId) {
         QueryWrapper<GroupItem> wrapper = new QueryWrapper<>();
         wrapper.eq("channel_id", channelId);
         List<GroupItem> groupItems = groupItemService.list(wrapper);
-        return ResponseEntity.ok(groupItems);
+        return ApiResponse.success(groupItems);
     }
 }

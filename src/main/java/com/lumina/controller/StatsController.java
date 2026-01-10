@@ -1,9 +1,9 @@
 package com.lumina.controller;
 
+import com.lumina.dto.ApiResponse;
 import com.lumina.entity.*;
 import com.lumina.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -28,66 +28,71 @@ public class StatsController {
     private StatsApiKeyService statsApiKeyService;
 
     @GetMapping("/total")
-    public ResponseEntity<StatsTotal> getTotalStats() {
+    public ApiResponse<StatsTotal> getTotalStats() {
         StatsTotal stats = statsTotalService.getById(1);
-        return ResponseEntity.ok(stats);
+        return ApiResponse.success(stats);
     }
 
     @GetMapping("/hourly")
-    public ResponseEntity<List<StatsHourly>> getHourlyStats(@RequestParam String date) {
+    public ApiResponse<List<StatsHourly>> getHourlyStats(@RequestParam String date) {
         Map<String, Object> paramMap = new HashMap<>();
         paramMap.put("stat_date", date);
         List<StatsHourly> stats = statsHourlyService.listByMap(paramMap);
-        return ResponseEntity.ok(stats);
+        return ApiResponse.success(stats);
     }
 
     @GetMapping("/daily")
-    public ResponseEntity<List<StatsDaily>> getDailyStats(
+    public ApiResponse<List<StatsDaily>> getDailyStats(
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
         if (startDate != null && endDate != null) {
-            // Get stats for date range
-            return ResponseEntity.notFound().build();
+            throw new IllegalArgumentException("Date range query not implemented");
         }
         List<StatsDaily> stats = statsDailyService.list();
-        return ResponseEntity.ok(stats);
+        return ApiResponse.success(stats);
     }
 
     @GetMapping("/model/{modelName}")
-    public ResponseEntity<List<StatsModel>> getModelStats(@PathVariable String modelName) {
+    public ApiResponse<List<StatsModel>> getModelStats(@PathVariable String modelName) {
         Map<String, Object> paramMap = new HashMap<>();
         paramMap.put("model_name", modelName);
         List<StatsModel> stats = statsModelService.listByMap(paramMap);
-        return ResponseEntity.ok(stats);
+        return ApiResponse.success(stats);
     }
 
     @GetMapping("/channel/{channelId}")
-    public ResponseEntity<StatsChannel> getChannelStats(@PathVariable Long channelId) {
+    public ApiResponse<StatsChannel> getChannelStats(@PathVariable Long channelId) {
         StatsChannel stats = statsChannelService.getById(channelId);
-        return stats != null ? ResponseEntity.ok(stats) : ResponseEntity.notFound().build();
+        if (stats == null) {
+            throw new IllegalArgumentException("StatsChannel not found with id: " + channelId);
+        }
+        return ApiResponse.success(stats);
     }
 
     @GetMapping("/apikey/{apiKeyId}")
-    public ResponseEntity<StatsApiKey> getApiKeyStats(@PathVariable Long apiKeyId) {
+    public ApiResponse<StatsApiKey> getApiKeyStats(@PathVariable Long apiKeyId) {
         StatsApiKey stats = statsApiKeyService.getById(apiKeyId);
-        return stats != null ? ResponseEntity.ok(stats) : ResponseEntity.notFound().build();
+        if (stats == null) {
+            throw new IllegalArgumentException("StatsApiKey not found with id: " + apiKeyId);
+        }
+        return ApiResponse.success(stats);
     }
 
     @GetMapping("/all-models")
-    public ResponseEntity<List<StatsModel>> getAllModelStats() {
+    public ApiResponse<List<StatsModel>> getAllModelStats() {
         List<StatsModel> stats = statsModelService.list();
-        return ResponseEntity.ok(stats);
+        return ApiResponse.success(stats);
     }
 
     @GetMapping("/all-channels")
-    public ResponseEntity<List<StatsChannel>> getAllChannelStats() {
+    public ApiResponse<List<StatsChannel>> getAllChannelStats() {
         List<StatsChannel> stats = statsChannelService.list();
-        return ResponseEntity.ok(stats);
+        return ApiResponse.success(stats);
     }
 
     @GetMapping("/all-apikeys")
-    public ResponseEntity<List<StatsApiKey>> getAllApiKeyStats() {
+    public ApiResponse<List<StatsApiKey>> getAllApiKeyStats() {
         List<StatsApiKey> stats = statsApiKeyService.list();
-        return ResponseEntity.ok(stats);
+        return ApiResponse.success(stats);
     }
 }

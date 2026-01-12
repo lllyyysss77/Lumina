@@ -47,18 +47,19 @@ spring:
     max-http-header-size: 8192
 
   # Redis配置 (后续添加)
-  redis:
-    host: localhost
-    port: 6379
-    password:
-    database: 0
-    timeout: 6000ms
-    lettuce:
-      pool:
-        max-active: 200
-        max-wait: -1ms
-        max-idle: 10
-        min-idle: 0
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 0
+      timeout: 6000ms
+      lettuce:
+        pool:
+          max-active: 200
+          max-wait: -1ms
+          max-idle: 10
+          min-idle: 0
 
   # 文件上传配置
   servlet:
@@ -167,7 +168,7 @@ lumina:
   # 认证配置
   auth:
     jwt:
-      secret: lumina-jwt-secret-key-2024
+      secret: lumina-jwt-secret-key-2024-secure-token-generation-for-hs512-algorithm-with-minimum-512-bits-length
       expiration: 86400000  # 24小时，毫秒
       refresh-expiration: 604800000  # 7天，毫秒
 

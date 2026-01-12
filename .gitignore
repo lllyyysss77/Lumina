@@ -6,7 +6,7 @@ target/
 mvnw
 mvnw.cmd
 .gitattributes
-
+logs
 
 ### STS ###
 .apt_generated

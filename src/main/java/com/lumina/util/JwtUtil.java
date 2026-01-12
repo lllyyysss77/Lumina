@@ -9,6 +9,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -22,8 +24,32 @@ public class JwtUtil {
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
+    private volatile SecretKey signingKey;
+
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(luminaProperties.getAuth().getJwt().getSecret().getBytes());
+        if (signingKey == null) {
+            synchronized (this) {
+                if (signingKey == null) {
+                    // 使用配置的密钥字符串生成一个符合HS512要求的安全密钥
+                    String secret = luminaProperties.getAuth().getJwt().getSecret();
+                    
+                    // 使用SHA-256哈希处理配置的密钥，然后扩展到512位(64字节)以满足HS512要求
+                    try {
+                        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                        byte[] keyBytes = sha256.digest(secret.getBytes());
+                        
+                        // 创建一个64字节的数组来满足HS512的要求
+                        byte[] expandedKey = new byte[64];
+                        System.arraycopy(keyBytes, 0, expandedKey, 0, Math.min(keyBytes.length, 64));
+                        
+                        signingKey = Keys.hmacShaKeyFor(expandedKey);
+                    } catch (NoSuchAlgorithmException e) {
+                        throw new RuntimeException("Failed to generate signing key", e);
+                    }
+                }
+            }
+        }
+        return signingKey;
     }
 
     /**

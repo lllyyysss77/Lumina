@@ -14,13 +14,10 @@ public class Channel {
     private Boolean isEnabled;
     private String baseUrlList;
     private String modelName;
-    private String customModelName;
-    private Boolean useProxy;
     private Boolean autoSync;
     private Integer autoGroupMode;
     private String customHeaders;
     private String paramOverride;
-    private String proxyUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -8,6 +8,9 @@ import com.lumina.service.GroupService;
 import com.lumina.service.ProviderService;
 import com.lumina.service.RelayService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -31,7 +34,7 @@ public class RelayServiceImpl implements RelayService {
     private final ConcurrentHashMap<String, AtomicInteger> roundRobinCounters = new ConcurrentHashMap<>();
 
     @Override
-    public Flux<String> relay(String type, ObjectNode params, Boolean beta) {
+    public Object relay(String type, ObjectNode params, Boolean beta) {
         String modelGroupName = params.get("model").asText();
         ModelGroupConfig modelGroupConfig = groupService.getModelGroupConfig(modelGroupName);
         if (modelGroupConfig == null) {
@@ -39,11 +42,27 @@ public class RelayServiceImpl implements RelayService {
         }
         ModelGroupConfigItem decide = decide(modelGroupConfig);
         params.put("model", decide.getModelName());
-        return openAIChatCompletionsRequest.chat(
-                params,
-                decide.getApiKey(),
-                decide.getBaseUrl(),
-                beta);
+
+        boolean stream = params.has("stream") && params.get("stream").asBoolean();
+        if (stream) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_EVENT_STREAM)
+                    .body(openAIChatCompletionsRequest.streamChat(
+                            params,
+                            decide.getApiKey(),
+                            decide.getBaseUrl(),
+                            beta,
+                            type));
+        } else {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(openAIChatCompletionsRequest.normalChat(
+                            params,
+                            decide.getApiKey(),
+                            decide.getBaseUrl(),
+                            beta,
+                            type));
+        }
     }
 
     /**

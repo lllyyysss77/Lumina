@@ -3,7 +3,9 @@ package com.lumina.service;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lumina.dto.ModelGroupConfig;
 import com.lumina.dto.ModelGroupConfigItem;
+import com.lumina.state.CircuitBreaker;
 import com.lumina.state.ProviderRuntimeState;
+import com.lumina.state.ProviderScoreCalculator;
 import com.lumina.state.ProviderStateRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +17,6 @@ import reactor.core.publisher.Mono;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
@@ -23,56 +24,32 @@ import java.util.concurrent.ThreadLocalRandom;
 public class FailoverService {
 
     private final ProviderStateRegistry providerStateRegistry;
+    private final ProviderScoreCalculator scoreCalculator;
+    private final CircuitBreaker circuitBreaker;
 
     public ModelGroupConfigItem selectAvailableProvider(ModelGroupConfig modelGroupConfig) {
         List<ModelGroupConfigItem> candidates = modelGroupConfig.getItems()
                 .stream()
                 .filter(item -> {
-                    ProviderRuntimeState state = providerStateRegistry.get(
-                            generateProviderId(item),
-                            item.getWeight() != null ? item.getWeight() : 1
-                    );
-                    return state.isAvailable() && state.getCurrentWeight() > 0;
+                    ProviderRuntimeState stats = providerStateRegistry.get(generateProviderId(item));
+                    if (stats.getProviderName() == null) {
+                        stats.setProviderName(item.getProviderName());
+                    }
+                    return circuitBreaker.allowRequest(stats);
+                })
+                .sorted((a, b) -> {
+                    double sa = providerStateRegistry.get(generateProviderId(a)).getScore();
+                    double sb = providerStateRegistry.get(generateProviderId(b)).getScore();
+                    return Double.compare(sb, sa);
                 })
                 .toList();
 
         if (candidates.isEmpty()) {
-            throw new RuntimeException("没有可用的Provider（全部熔断或权重为0）");
+            throw new RuntimeException("所有Provider已熔断或不可用");
         }
 
-        return weightedRandomSelect(candidates);
-    }
-
-    private ModelGroupConfigItem weightedRandomSelect(List<ModelGroupConfigItem> candidates) {
-        int totalWeight = candidates.stream()
-                .mapToInt(item -> {
-                    ProviderRuntimeState state = providerStateRegistry.get(
-                            generateProviderId(item),
-                            item.getWeight() != null ? item.getWeight() : 1
-                    );
-                    return state.getCurrentWeight();
-                })
-                .sum();
-
-        if (totalWeight == 0) {
-            return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
-        }
-
-        int r = ThreadLocalRandom.current().nextInt(totalWeight);
-        int acc = 0;
-
-        for (ModelGroupConfigItem item : candidates) {
-            ProviderRuntimeState state = providerStateRegistry.get(
-                    generateProviderId(item),
-                    item.getWeight() != null ? item.getWeight() : 1
-            );
-            acc += state.getCurrentWeight();
-            if (r < acc) {
-                return item;
-            }
-        }
-
-        return candidates.get(candidates.size() - 1);
+        // 返回当前最优
+        return candidates.get(0);
     }
 
     public Mono<ObjectNode> executeWithFailoverMono(
@@ -94,21 +71,24 @@ public class FailoverService {
             return Mono.error(new RuntimeException("所有Provider都尝试过，仍然失败"));
         }
 
-        ProviderRuntimeState state = providerStateRegistry.get(providerId,
-                item.getWeight() != null ? item.getWeight() : 1);
+        ProviderRuntimeState state = providerStateRegistry.get(providerId);
 
-        log.debug("尝试使用Provider: {}, 权重: {}, 连续失败: {}",
-                providerId, state.getCurrentWeight(), state.getConsecutiveFailures());
+        log.debug("尝试使用Provider: {}, 当前评分: {}", providerId, state.getScore());
+
+        long startTime = System.currentTimeMillis();
 
         return callSupplier.get()
                 .doOnSuccess(response -> {
-                    state.recordSuccess();
-                    log.debug("Provider {} 调用成功，当前权重: {}", providerId, state.getCurrentWeight());
+                    long duration = System.currentTimeMillis() - startTime;
+                    scoreCalculator.update(state, true, duration);
+                    circuitBreaker.onSuccess(state);
+                    log.debug("Provider {} 调用成功，耗时: {}ms, 新评分: {}", providerId, duration, state.getScore());
                 })
                 .onErrorResume(error -> {
-                    log.warn("Provider {} 调用失败: {}, 连续失败: {}",
-                            providerId, error.getMessage(), state.getConsecutiveFailures());
-                    state.recordFailure();
+                    long duration = System.currentTimeMillis() - startTime;
+                    log.warn("Provider {} 调用失败: {}, 耗时: {}ms", providerId, error.getMessage(), duration);
+                    scoreCalculator.update(state, false, duration);
+                    circuitBreaker.onFailure(state);
                     return executeWithFailoverMono(callSupplier, group, tried);
                 });
     }
@@ -132,28 +112,34 @@ public class FailoverService {
             return Flux.error(new RuntimeException("所有Provider都尝试过，仍然失败"));
         }
 
-        ProviderRuntimeState state = providerStateRegistry.get(providerId,
-                item.getWeight() != null ? item.getWeight() : 1);
+        ProviderRuntimeState state = providerStateRegistry.get(providerId);
 
-        log.debug("尝试使用Provider(流式): {}, 权重: {}, 连续失败: {}",
-                providerId, state.getCurrentWeight(), state.getConsecutiveFailures());
+        log.debug("尝试使用Provider(流式): {}, 当前评分: {}", providerId, state.getScore());
 
+        long startTime = System.currentTimeMillis();
         java.util.concurrent.atomic.AtomicBoolean firstChunk = new java.util.concurrent.atomic.AtomicBoolean(true);
 
         return callSupplier.get()
                 .doOnNext(event -> firstChunk.compareAndSet(true, false))
                 .doOnComplete(() -> {
-                    state.recordSuccess();
-                    log.debug("Provider {} 流式调用完成，当前权重: {}", providerId, state.getCurrentWeight());
+                    long duration = System.currentTimeMillis() - startTime;
+                    scoreCalculator.update(state, true, duration);
+                    circuitBreaker.onSuccess(state);
+                    log.debug("Provider {} 流式调用完成，耗时: {}ms, 新评分: {}", providerId, duration, state.getScore());
                 })
                 .onErrorResume(error -> {
+                    long duration = System.currentTimeMillis() - startTime;
                     if (firstChunk.get()) {
-                        log.warn("Provider {} 流式调用首包失败: {}, 连续失败: {}",
-                                providerId, error.getMessage(), state.getConsecutiveFailures());
-                        state.recordFailure();
+                        log.warn("Provider {} 流式调用首包失败: {}, 耗时: {}ms", providerId, error.getMessage(), duration);
+                        scoreCalculator.update(state, false, duration);
+                        circuitBreaker.onFailure(state);
                         return executeWithFailoverFlux(callSupplier, group, tried);
                     } else {
                         log.error("Provider {} 流式传输中途失败: {}", providerId, error.getMessage());
+                        // 中途失败通常不作为重试的触发点，但可能也需要计入失败？
+                        // 暂时按原逻辑处理，不重试
+                        scoreCalculator.update(state, false, duration);
+                        circuitBreaker.onFailure(state);
                         return Flux.error(error);
                     }
                 });

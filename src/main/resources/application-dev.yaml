@@ -7,15 +7,14 @@ spring:
     host: localhost
     port: 6379
     database: 0
-  jpa:
-    show-sql: true
 
 logging:
   level:
     com.lumina: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.security: DEBUG
-    com.baomidou.mybatisplus: DEBUG
+    com.lumina.mapper: INFO
+    com.baomidou.mybatisplus: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
 
 lumina:
   rate-limit:

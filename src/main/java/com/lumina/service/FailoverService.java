@@ -48,8 +48,17 @@ public class FailoverService {
             throw new RuntimeException("所有Provider已熔断或不可用");
         }
 
-        // 返回当前最优
-        return candidates.get(0);
+        // 引入同分随机策略：找到所有评分与最高分相等的 Provider
+        double bestScore = providerStateRegistry.get(generateProviderId(candidates.get(0))).getScore();
+        List<ModelGroupConfigItem> topCandidates = candidates.stream()
+                .filter(item -> providerStateRegistry.get(generateProviderId(item)).getScore() >= bestScore)
+                .toList();
+
+        if (topCandidates.size() > 1) {
+            return topCandidates.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(topCandidates.size()));
+        }
+
+        return topCandidates.get(0);
     }
 
     public Mono<ObjectNode> executeWithFailoverMono(

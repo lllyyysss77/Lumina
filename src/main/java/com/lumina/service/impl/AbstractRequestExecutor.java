@@ -45,8 +45,17 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
     protected void handleUsage(RequestLogContext ctx, JsonNode node) {
         if (node != null && node.has("usage")) {
             JsonNode usage = node.get("usage");
+            // 兼容旧版 OpenAI 字段
             if (usage.has("prompt_tokens")) ctx.setInputTokens(usage.get("prompt_tokens").asInt());
             if (usage.has("completion_tokens")) ctx.setOutputTokens(usage.get("completion_tokens").asInt());
+            
+            // 兼容新版 /responses 接口字段
+            if (usage.has("input_tokens") && ctx.getInputTokens() == null) {
+                ctx.setInputTokens(usage.get("input_tokens").asInt());
+            }
+            if (usage.has("output_tokens") && ctx.getOutputTokens() == null) {
+                ctx.setOutputTokens(usage.get("output_tokens").asInt());
+            }
         }
     }
 

@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lumina.dto.ModelGroupConfigItem;
 import com.lumina.logging.RequestLogContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
+@Slf4j
 @Service
 public class OpenAiRequestExecutor extends AbstractRequestExecutor {
 
@@ -58,10 +61,10 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
                 })
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.TEXT_EVENT_STREAM)
-                .bodyValue(request)
-                .retrieve()
+                .bodyValue(request).retrieve()
                 .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {})
                 .doOnNext(event -> {
+                    System.out.println("[SSE] raw event: {}"+ event);
                     String data = event.data();
                     if (data == null) return;
                     if (ctx.getFirstTokenArrived().compareAndSet(false, true)) {
@@ -71,8 +74,14 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
                         ctx.getResponseBuffer().append(data);
                         try {
                             JsonNode chunk = objectMapper.readTree(data);
+                            // 尝试解析根路径的 usage (Chat Completions)
                             handleUsage(ctx, chunk);
-                        } catch (Exception ignored) {}
+                            // 尝试解析嵌套在 response 里的 usage (/v1/responses)
+                            if (chunk.has("response")) {
+                                handleUsage(ctx, chunk.get("response"));
+                            }
+                        } catch (Exception ignored) {
+                        }
                     }
                 })
                 .doOnError(err -> recordError(ctx, err))

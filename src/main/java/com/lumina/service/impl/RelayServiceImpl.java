@@ -34,18 +34,21 @@ public class RelayServiceImpl implements RelayService {
     }
 
     @Override
-    public Object relay(String type, ObjectNode params, Map<String, String> queryParams) {
+    public Mono<ResponseEntity<?>> relay(String type, ObjectNode params, Map<String, String> queryParams) {
         String modelGroupName = params.get("model").asText();
         ModelGroupConfig modelGroupConfig = groupService.getModelGroupConfig(modelGroupName);
         if (modelGroupConfig == null) {
-            return Flux.error(new RuntimeException("模型分组不存在"));
+            return Mono.error(new RuntimeException("模型分组不存在"));
         }
 
         boolean stream = params.has("stream") && params.get("stream").asBoolean();
         LlmRequestExecutor executor = getExecutor(type);
 
         if (stream) {
-            return ResponseEntity.ok()
+            // 返回 Mono<ResponseEntity<Flux<...>>>
+            // 这会告诉 WebFlux：响应头是 text/event-stream，Body 是一个流
+            return Mono.just(
+                ResponseEntity.ok()
                     .contentType(MediaType.TEXT_EVENT_STREAM)
                     .body(
                         failoverService.executeWithFailoverFlux(
@@ -62,22 +65,24 @@ public class RelayServiceImpl implements RelayService {
                             },
                             modelGroupConfig
                         )
-                    );
-        } else {
-            return failoverService.executeWithFailoverMono(
-                    () -> {
-                        ModelGroupConfigItem provider = failoverService.selectAvailableProvider(modelGroupConfig);
-                        ObjectNode requestParams = params.deepCopy();
-                        requestParams.put("model", provider.getModelName());
-                        return executor.executeNormal(
-                                requestParams,
-                                provider,
-                                queryParams,
-                                type
-                        );
-                    },
-                    modelGroupConfig
+                    )
             );
+        } else {
+            // 返回 Mono<ResponseEntity<ObjectNode>>
+            return failoverService.executeWithFailoverMono(
+                () -> {
+                    ModelGroupConfigItem provider = failoverService.selectAvailableProvider(modelGroupConfig);
+                    ObjectNode requestParams = params.deepCopy();
+                    requestParams.put("model", provider.getModelName());
+                    return executor.executeNormal(
+                            requestParams,
+                            provider,
+                            queryParams,
+                            type
+                    );
+                },
+                modelGroupConfig
+            ).map(ResponseEntity::ok);
         }
     }
 }

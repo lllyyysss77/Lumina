@@ -3,8 +3,8 @@ package com.lumina.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class CorsConfig {
@@ -18,11 +18,11 @@ public class CorsConfig {
         config.addAllowedOriginPattern("*");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
-        config.addAllowedHeader("Authorization");
-        config.addAllowedHeader("Content-Type");
+        config.addExposedHeader("Authorization");
         config.setMaxAge(3600L);
 
         source.registerCorsConfiguration("/api/**", config);
+        source.registerCorsConfiguration("/v1/**", config);
         source.registerCorsConfiguration("/actuator/**", config);
 
         return source;

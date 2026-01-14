@@ -1,26 +1,21 @@
 package com.lumina.service.impl;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.lumina.common.request.OpenAIChatCompletionsRequest;
 import com.lumina.dto.ModelGroupConfig;
 import com.lumina.dto.ModelGroupConfigItem;
-import com.lumina.service.FailoverService;
-import com.lumina.service.GroupService;
-import com.lumina.service.ProviderService;
-import com.lumina.service.RelayService;
+import com.lumina.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+import java.util.Map;
+
 @Service
 public class RelayServiceImpl implements RelayService {
-
-    @Autowired
-    private ProviderService providerService;
 
     @Autowired
     private GroupService groupService;
@@ -29,10 +24,17 @@ public class RelayServiceImpl implements RelayService {
     private FailoverService failoverService;
 
     @Autowired
-    private OpenAIChatCompletionsRequest openAIChatCompletionsRequest;
+    private List<LlmRequestExecutor> executors;
+
+    private LlmRequestExecutor getExecutor(String type) {
+        return executors.stream()
+                .filter(e -> e.supports(type))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("不支持的请求类型: " + type));
+    }
 
     @Override
-    public Object relay(String type, ObjectNode params, Boolean beta) {
+    public Object relay(String type, ObjectNode params, Map<String, String> queryParams) {
         String modelGroupName = params.get("model").asText();
         ModelGroupConfig modelGroupConfig = groupService.getModelGroupConfig(modelGroupName);
         if (modelGroupConfig == null) {
@@ -40,6 +42,7 @@ public class RelayServiceImpl implements RelayService {
         }
 
         boolean stream = params.has("stream") && params.get("stream").asBoolean();
+        LlmRequestExecutor executor = getExecutor(type);
 
         if (stream) {
             return ResponseEntity.ok()
@@ -50,34 +53,31 @@ public class RelayServiceImpl implements RelayService {
                                 ModelGroupConfigItem provider = failoverService.selectAvailableProvider(modelGroupConfig);
                                 ObjectNode requestParams = params.deepCopy();
                                 requestParams.put("model", provider.getModelName());
-                                return openAIChatCompletionsRequest.streamChat(
+                                return executor.executeStream(
                                         requestParams,
                                         provider,
-                                        beta,
-                                        type);
+                                        queryParams,
+                                        type
+                                );
                             },
                             modelGroupConfig
                         )
                     );
         } else {
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(
-                        failoverService.executeWithFailoverMono(
-                            () -> {
-                                ModelGroupConfigItem provider = failoverService.selectAvailableProvider(modelGroupConfig);
-                                ObjectNode requestParams = params.deepCopy();
-                                requestParams.put("model", provider.getModelName());
-                                return openAIChatCompletionsRequest.normalChat(
-                                        requestParams,
-                                        provider,
-                                        beta,
-                                        type);
-                            },
-                            modelGroupConfig
-                        )
-                    );
+            return failoverService.executeWithFailoverMono(
+                    () -> {
+                        ModelGroupConfigItem provider = failoverService.selectAvailableProvider(modelGroupConfig);
+                        ObjectNode requestParams = params.deepCopy();
+                        requestParams.put("model", provider.getModelName());
+                        return executor.executeNormal(
+                                requestParams,
+                                provider,
+                                queryParams,
+                                type
+                        );
+                    },
+                    modelGroupConfig
+            );
         }
     }
-
 }

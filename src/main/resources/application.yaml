@@ -33,6 +33,11 @@ spring:
       fail-on-unknown-properties: false
     default-property-inclusion: NON_NULL
 
+  # MVC 配置
+  mvc:
+    async:
+      request-timeout: 600000 # 10分钟
+
   # 服务器配置
   server:
     port: 8080

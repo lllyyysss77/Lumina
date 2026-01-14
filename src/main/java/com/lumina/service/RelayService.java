@@ -1,17 +1,8 @@
 package com.lumina.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.springframework.http.codec.ServerSentEvent;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import java.util.Map;
 
 public interface RelayService {
-    /**
-     * 中转 Anthropic 对话格式
-     * @param type
-     * @param params
-     * @return
-     */
-    Object relay(String type, ObjectNode params, Boolean beta);
+    Object relay(String type, ObjectNode params, Map<String, String> queryParams);
 }

@@ -7,6 +7,7 @@ mvnw
 mvnw.cmd
 .gitattributes
 logs
+.claude
 
 ### STS ###
 .apt_generated

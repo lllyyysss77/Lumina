@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Data
 public class RequestLogContext {
-    private Long id;
+    private String id;
     private String requestId;
 
     private Long startNano;

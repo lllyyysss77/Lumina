@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @TableName("request_logs")
 public class RequestLog {
     @TableId(type = IdType.INPUT)
-    private Long id;
+    private String id;
     private String requestId;
     private Long requestTime;
     private String requestType;

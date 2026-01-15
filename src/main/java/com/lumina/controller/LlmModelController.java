@@ -1,5 +1,6 @@
 package com.lumina.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lumina.dto.ApiResponse;
 import com.lumina.entity.LlmModel;
@@ -19,7 +20,8 @@ public class LlmModelController {
 
     @GetMapping
     public ApiResponse<List<LlmModel>> getAllLlmModels() {
-        List<LlmModel> models = llmModelService.list();
+        List<LlmModel> models = llmModelService.list(new LambdaQueryWrapper<LlmModel>()
+                .orderByDesc(LlmModel::getLastUpdatedAt));
         return ApiResponse.success(models);
     }
 
@@ -66,8 +68,21 @@ public class LlmModelController {
     @GetMapping("/page")
     public ApiResponse<Page<LlmModel>> getLlmModelsByPage(
             @RequestParam(defaultValue = "1") Integer current,
-            @RequestParam(defaultValue = "10") Integer size) {
-        Page<LlmModel> page = llmModelService.page(new Page<>(current, size));
+            @RequestParam(defaultValue = "10") Integer size,
+            String modelName) {
+        LambdaQueryWrapper<LlmModel> queryWrapper = new LambdaQueryWrapper<LlmModel>()
+                .orderByDesc(LlmModel::getLastUpdatedAt);
+        if (modelName != null) {
+            queryWrapper.like(LlmModel::getModelName, modelName);
+        }
+        Page<LlmModel> page = llmModelService.page(new Page<>(current, size), queryWrapper);
         return ApiResponse.success(page);
     }
+
+    @PostMapping("/sync")
+    public ApiResponse<Void> syncModels() {
+        llmModelService.syncModels();
+        return ApiResponse.success(null);
+    }
+
 }

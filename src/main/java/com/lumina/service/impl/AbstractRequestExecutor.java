@@ -29,7 +29,7 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
 
     protected RequestLogContext createLogContext(ObjectNode request, ModelGroupConfigItem provider, String type, boolean stream) {
         RequestLogContext ctx = new RequestLogContext();
-        ctx.setId(snowflakeIdGenerator.nextId());
+        ctx.setId(String.valueOf(snowflakeIdGenerator.nextId()));
         ctx.setProviderId(provider.getProviderId());
         ctx.setProviderName(provider.getProviderName());
         ctx.setRequestId(UUID.randomUUID().toString());
@@ -37,7 +37,7 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
         ctx.setRequestTime(System.currentTimeMillis() / 1000);
         ctx.setRequestType(type);
         ctx.setStream(stream);
-        ctx.setRequestModel(request.path("model").asText());
+        ctx.setRequestModel(provider.getModelName());
         ctx.setRequestContent(request.toPrettyString());
         return ctx;
     }

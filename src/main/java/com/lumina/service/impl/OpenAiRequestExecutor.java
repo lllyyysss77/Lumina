@@ -20,8 +20,8 @@ import java.util.Map;
 public class OpenAiRequestExecutor extends AbstractRequestExecutor {
 
     private static final Map<String, String> URI_MAP = Map.of(
-            "openai_chat_completions", "/chat/completions",
-            "openai_responses", "/responses"
+            "openai_chat_completions", "/v1/chat/completions",
+            "openai_responses", "/v1/responses"
     );
 
     @Override

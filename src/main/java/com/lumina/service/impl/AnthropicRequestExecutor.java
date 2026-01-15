@@ -25,7 +25,7 @@ public class AnthropicRequestExecutor extends AbstractRequestExecutor {
         RequestLogContext ctx = createLogContext(request, provider, type, false);
         return createWebClient(provider).post()
                 .uri(uriBuilder -> {
-                    uriBuilder.path("/messages");
+                    uriBuilder.path("/v1/messages");
                     queryParams.forEach(uriBuilder::queryParam);
                     return uriBuilder.build();
                 })
@@ -46,7 +46,7 @@ public class AnthropicRequestExecutor extends AbstractRequestExecutor {
         RequestLogContext ctx = createLogContext(request, provider, type, true);
         return createWebClient(provider).post()
                 .uri(uriBuilder -> {
-                    uriBuilder.path("/messages");
+                    uriBuilder.path("/v1/messages");
                     queryParams.forEach(uriBuilder::queryParam);
                     return uriBuilder.build();
                 })

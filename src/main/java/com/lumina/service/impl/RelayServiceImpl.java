@@ -54,8 +54,7 @@ public class RelayServiceImpl implements RelayService {
                             .contentType(MediaType.TEXT_EVENT_STREAM)
                             .body(
                                     failoverService.executeWithFailoverFlux(
-                                            () -> {
-                                                ModelGroupConfigItem provider = failoverService.selectAvailableProvider(modelGroupConfig);
+                                            (provider) -> {
                                                 ObjectNode requestParams = params.deepCopy();
                                                 requestParams.put("model", provider.getModelName());
                                                 return executor.executeStream(
@@ -73,8 +72,7 @@ public class RelayServiceImpl implements RelayService {
         } else {
             // 返回 Mono<ResponseEntity<ObjectNode>>
             return failoverService.executeWithFailoverMono(
-                    () -> {
-                        ModelGroupConfigItem provider = failoverService.selectAvailableProvider(modelGroupConfig);
+                    (provider) -> {
                         ObjectNode requestParams = params.deepCopy();
                         requestParams.put("model", provider.getModelName());
                         return executor.executeNormal(
@@ -112,8 +110,7 @@ public class RelayServiceImpl implements RelayService {
                             .contentType(MediaType.TEXT_EVENT_STREAM)
                             .body(
                                     failoverService.executeWithFailoverFlux(
-                                            () -> {
-                                                ModelGroupConfigItem provider = failoverService.selectAvailableProvider(modelGroupConfig);
+                                            (provider) -> {
                                                 ObjectNode requestParams = params.deepCopy();
                                                 return executor.executeStream(
                                                         requestParams,
@@ -130,8 +127,7 @@ public class RelayServiceImpl implements RelayService {
         } else {
             // 返回 Mono<ResponseEntity<ObjectNode>>
             return failoverService.executeWithFailoverMono(
-                    () -> {
-                        ModelGroupConfigItem provider = failoverService.selectAvailableProvider(modelGroupConfig);
+                    (provider) -> {
                         ObjectNode requestParams = params.deepCopy();
                         return executor.executeNormal(
                                 requestParams,

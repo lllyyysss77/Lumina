@@ -28,57 +28,72 @@ public class FailoverService {
     private final CircuitBreaker circuitBreaker;
 
     public ModelGroupConfigItem selectAvailableProvider(ModelGroupConfig modelGroupConfig) {
+        return selectAvailableProvider(modelGroupConfig, java.util.Collections.emptySet());
+    }
+
+    public ModelGroupConfigItem selectAvailableProvider(ModelGroupConfig modelGroupConfig, Set<String> excludeIds) {
         List<ModelGroupConfigItem> candidates = modelGroupConfig.getItems()
                 .stream()
                 .filter(item -> {
-                    ProviderRuntimeState stats = providerStateRegistry.get(generateProviderId(item));
+                    String id = generateProviderId(item);
+                    if (excludeIds.contains(id)) {
+                        return false;
+                    }
+                    ProviderRuntimeState stats = providerStateRegistry.get(id);
                     if (stats.getProviderName() == null) {
                         stats.setProviderName(item.getProviderName());
                     }
                     return circuitBreaker.allowRequest(stats);
                 })
-                .sorted((a, b) -> {
-                    double sa = providerStateRegistry.get(generateProviderId(a)).getScore();
-                    double sb = providerStateRegistry.get(generateProviderId(b)).getScore();
-                    return Double.compare(sb, sa);
-                })
                 .toList();
 
         if (candidates.isEmpty()) {
-            throw new RuntimeException("所有Provider已熔断或不可用");
+            throw new RuntimeException("所有Provider已熔断、不可用或已尝试过");
         }
 
-        // 引入同分随机策略：找到所有评分与最高分相等的 Provider
-        double bestScore = providerStateRegistry.get(generateProviderId(candidates.get(0))).getScore();
-        List<ModelGroupConfigItem> topCandidates = candidates.stream()
-                .filter(item -> providerStateRegistry.get(generateProviderId(item)).getScore() >= bestScore)
-                .toList();
+        // 权重随机策略：评分越高被随机到的概率越大
+        double totalScore = candidates.stream()
+                .mapToDouble(item -> Math.max(providerStateRegistry.get(generateProviderId(item)).getScore(), 0.0))
+                .sum();
 
-        if (topCandidates.size() > 1) {
-            return topCandidates.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(topCandidates.size()));
+        if (totalScore <= 0) {
+            // 如果所有评分都为 0，退化为等概率随机
+            return candidates.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(candidates.size()));
         }
 
-        return topCandidates.get(0);
+        double randomValue = java.util.concurrent.ThreadLocalRandom.current().nextDouble() * totalScore;
+        double cumulativeScore = 0;
+        for (ModelGroupConfigItem item : candidates) {
+            cumulativeScore += Math.max(providerStateRegistry.get(generateProviderId(item)).getScore(), 0.0);
+            if (randomValue <= cumulativeScore) {
+                return item;
+            }
+        }
+
+        return candidates.get(candidates.size() - 1);
     }
 
     public Mono<ObjectNode> executeWithFailoverMono(
-            java.util.function.Supplier<Mono<ObjectNode>> callSupplier,
+            java.util.function.Function<ModelGroupConfigItem, Mono<ObjectNode>> callFunction,
             ModelGroupConfig group
     ) {
-        return executeWithFailoverMono(callSupplier, group, new HashSet<>());
+        return executeWithFailoverMono(callFunction, group, new HashSet<>());
     }
 
     private Mono<ObjectNode> executeWithFailoverMono(
-            java.util.function.Supplier<Mono<ObjectNode>> callSupplier,
+            java.util.function.Function<ModelGroupConfigItem, Mono<ObjectNode>> callFunction,
             ModelGroupConfig group,
             Set<String> tried
     ) {
-        ModelGroupConfigItem item = selectAvailableProvider(group);
-        String providerId = generateProviderId(item);
-
-        if (!tried.add(providerId)) {
-            return Mono.error(new RuntimeException("所有Provider都尝试过，仍然失败"));
+        ModelGroupConfigItem item;
+        try {
+            item = selectAvailableProvider(group, tried);
+        } catch (Exception e) {
+            return Mono.error(e);
         }
+        
+        String providerId = generateProviderId(item);
+        tried.add(providerId);
 
         ProviderRuntimeState state = providerStateRegistry.get(providerId);
 
@@ -86,7 +101,7 @@ public class FailoverService {
 
         long startTime = System.currentTimeMillis();
 
-        return callSupplier.get()
+        return callFunction.apply(item)
                 .doOnSuccess(response -> {
                     long duration = System.currentTimeMillis() - startTime;
                     scoreCalculator.update(state, true, duration);
@@ -98,28 +113,31 @@ public class FailoverService {
                     log.warn("Provider {} 调用失败: {}, 耗时: {}ms", providerId, error.getMessage(), duration);
                     scoreCalculator.update(state, false, duration);
                     circuitBreaker.onFailure(state);
-                    return executeWithFailoverMono(callSupplier, group, tried);
+                    return executeWithFailoverMono(callFunction, group, tried);
                 });
     }
 
     public Flux<ServerSentEvent<String>> executeWithFailoverFlux(
-            java.util.function.Supplier<Flux<ServerSentEvent<String>>> callSupplier,
+            java.util.function.Function<ModelGroupConfigItem, Flux<ServerSentEvent<String>>> callFunction,
             ModelGroupConfig group
     ) {
-        return executeWithFailoverFlux(callSupplier, group, new HashSet<>());
+        return executeWithFailoverFlux(callFunction, group, new HashSet<>());
     }
 
     private Flux<ServerSentEvent<String>> executeWithFailoverFlux(
-            java.util.function.Supplier<Flux<ServerSentEvent<String>>> callSupplier,
+            java.util.function.Function<ModelGroupConfigItem, Flux<ServerSentEvent<String>>> callFunction,
             ModelGroupConfig group,
             Set<String> tried
     ) {
-        ModelGroupConfigItem item = selectAvailableProvider(group);
-        String providerId = generateProviderId(item);
-
-        if (!tried.add(providerId)) {
-            return Flux.error(new RuntimeException("所有Provider都尝试过，仍然失败"));
+        ModelGroupConfigItem item;
+        try {
+            item = selectAvailableProvider(group, tried);
+        } catch (Exception e) {
+            return Flux.error(e);
         }
+
+        String providerId = generateProviderId(item);
+        tried.add(providerId);
 
         ProviderRuntimeState state = providerStateRegistry.get(providerId);
 
@@ -128,7 +146,7 @@ public class FailoverService {
         long startTime = System.currentTimeMillis();
         java.util.concurrent.atomic.AtomicBoolean firstChunk = new java.util.concurrent.atomic.AtomicBoolean(true);
 
-        return callSupplier.get()
+        return callFunction.apply(item)
                 .doOnNext(event -> firstChunk.compareAndSet(true, false))
                 .doOnComplete(() -> {
                     long duration = System.currentTimeMillis() - startTime;
@@ -142,11 +160,9 @@ public class FailoverService {
                         log.warn("Provider {} 流式调用首包失败: {}, 耗时: {}ms", providerId, error.getMessage(), duration);
                         scoreCalculator.update(state, false, duration);
                         circuitBreaker.onFailure(state);
-                        return executeWithFailoverFlux(callSupplier, group, tried);
+                        return executeWithFailoverFlux(callFunction, group, tried);
                     } else {
                         log.error("Provider {} 流式传输中途失败: {}", providerId, error.getMessage());
-                        // 中途失败通常不作为重试的触发点，但可能也需要计入失败？
-                        // 暂时按原逻辑处理，不重试
                         scoreCalculator.update(state, false, duration);
                         circuitBreaker.onFailure(state);
                         return Flux.error(error);

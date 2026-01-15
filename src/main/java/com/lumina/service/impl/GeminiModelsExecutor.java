@@ -25,7 +25,7 @@ public class GeminiModelsExecutor extends AbstractRequestExecutor {
         RequestLogContext ctx = createLogContext(request, provider, type, false);
         return createWebClient(provider).post()
                 .uri(uriBuilder -> {
-                    uriBuilder.path("/models" + (!modelAction.isEmpty() ? "/" + modelAction : ""));
+                    uriBuilder.path("/v1beta/models" + (!modelAction.isEmpty() ? "/" + modelAction : ""));
                     queryParams.forEach(uriBuilder::queryParam);
                     return uriBuilder.build();
                 })
@@ -46,7 +46,7 @@ public class GeminiModelsExecutor extends AbstractRequestExecutor {
         RequestLogContext ctx = createLogContext(request, provider, type, true);
         return createWebClient(provider).post()
                 .uri(uriBuilder -> {
-                    uriBuilder.path("/models" + (!modelAction.isEmpty() ? "/" + modelAction : ""));
+                    uriBuilder.path("/v1beta/models" + (!modelAction.isEmpty() ? "/" + modelAction : ""));
                     queryParams.forEach(uriBuilder::queryParam);
                     return uriBuilder.build();
                 })

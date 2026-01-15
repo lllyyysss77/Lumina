@@ -105,8 +105,8 @@ public class RelayServiceImpl implements RelayService {
         LlmRequestExecutor executor = getExecutor(type);
 
         if (stream) {
-            // 返回 Mono<ResponseEntity<Flux<...>>>
-            // 这会告诉 WebFlux：响应头是 text/event-stream，Body 是一个流
+            // 返回 Mono<ResponseEntity<Flux<String>>>
+            // 手动拼接 "data: " 前缀以确保冒号后有空格，并以 \n\n 结尾，兼容严格的 SSE 解析器
             return Mono.just(
                     ResponseEntity.ok()
                             .contentType(MediaType.TEXT_EVENT_STREAM)
@@ -124,7 +124,7 @@ public class RelayServiceImpl implements RelayService {
                                                 );
                                             },
                                             modelGroupConfig
-                                    )
+                                    ).map(sse -> " " + sse.data())
                             )
             );
         } else {

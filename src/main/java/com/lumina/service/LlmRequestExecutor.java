@@ -16,6 +16,7 @@ public interface LlmRequestExecutor {
             ObjectNode request,
             ModelGroupConfigItem provider,
             Map<String, String> queryParams,
+            String modelAction,
             String type
     );
 
@@ -23,6 +24,7 @@ public interface LlmRequestExecutor {
             ObjectNode request,
             ModelGroupConfigItem provider,
             Map<String, String> queryParams,
+            String modelAction,
             String type
     );
 }

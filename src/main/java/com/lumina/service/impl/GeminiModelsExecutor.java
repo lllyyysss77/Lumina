@@ -13,19 +13,19 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 @Service
-public class AnthropicRequestExecutor extends AbstractRequestExecutor {
+public class GeminiModelsExecutor extends AbstractRequestExecutor {
 
     @Override
     public boolean supports(String type) {
-        return "anthropic_messages".equals(type);
+        return "gemini_models".equals(type);
     }
 
     @Override
-    public Mono<ObjectNode> executeNormal(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams,String modelAction, String type) {
+    public Mono<ObjectNode> executeNormal(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type) {
         RequestLogContext ctx = createLogContext(request, provider, type, false);
         return createWebClient(provider).post()
                 .uri(uriBuilder -> {
-                    uriBuilder.path("/messages");
+                    uriBuilder.path("/models" + (!modelAction.isEmpty() ? "/" + modelAction : ""));
                     queryParams.forEach(uriBuilder::queryParam);
                     return uriBuilder.build();
                 })
@@ -35,18 +35,18 @@ public class AnthropicRequestExecutor extends AbstractRequestExecutor {
                 .retrieve()
                 .bodyToMono(ObjectNode.class)
                 .doOnNext(resp -> {
-                    handleUsage(ctx, resp); 
+                    handleUsage(ctx, resp);
                     recordSuccess(ctx, resp.toString());
                 })
                 .doOnError(err -> recordError(ctx, err));
     }
 
     @Override
-    public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams,String modelAction, String type) {
+    public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type) {
         RequestLogContext ctx = createLogContext(request, provider, type, true);
         return createWebClient(provider).post()
                 .uri(uriBuilder -> {
-                    uriBuilder.path("/messages");
+                    uriBuilder.path("/models" + (!modelAction.isEmpty() ? "/" + modelAction : ""));
                     queryParams.forEach(uriBuilder::queryParam);
                     return uriBuilder.build();
                 })
@@ -55,6 +55,7 @@ public class AnthropicRequestExecutor extends AbstractRequestExecutor {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {})
+                .log("SSE-FLOW")
                 .doOnNext(event -> {
                     String data = event.data();
                     if (data == null) return;

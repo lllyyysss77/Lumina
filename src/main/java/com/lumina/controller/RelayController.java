@@ -44,4 +44,15 @@ public class RelayController {
             @RequestParam Map<String, String> allParams) {
         return relayService.relay("openai_responses", params, allParams);
     }
+
+    @PostMapping(
+            value = "/v1beta/models/{modelAction}",
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    public Mono<ResponseEntity<?>> createModels(
+            @PathVariable String modelAction,
+            @RequestBody ObjectNode params,
+            @RequestParam Map<String, String> allParams) {
+        return relayService.relay("gemini_models", modelAction,params, allParams);
+    }
 }

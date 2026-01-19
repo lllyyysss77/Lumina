@@ -5,6 +5,7 @@
     <resultMap id="modelGroupConfigResultMap" type="com.lumina.dto.ModelGroupConfig">
         <result column="name" property="name"/>
         <result column="balance_mode" property="balanceMode"/>
+        <result column="first_token_timeout" property="firstTokenTimeout"/>
         <collection property="items" ofType="com.lumina.dto.ModelGroupConfigItem">
             <result column="provider_id" property="providerId"/>
             <result column="provider_name" property="providerName"/>
@@ -32,6 +33,7 @@
     <select id="getModelGroupByName" resultMap="modelGroupConfigResultMap">
         SELECT mg.`name`,
                mg.balance_mode,
+               mg.first_token_timeout,
                mgi.model_name,
                mgi.weight,
                p.base_url,
@@ -39,10 +41,11 @@
                p.id AS provider_id,
                p.`name` AS provider_name
         FROM model_groups mg
-                 JOIN model_group_items mgi ON mg.id = mgi.group_id
-                 JOIN providers p ON p.id = mgi.provider_id
+        JOIN model_group_items mgi ON mg.id = mgi.group_id
+        JOIN providers p ON p.id = mgi.provider_id
         WHERE mg.`name` = #{modelGroupName}
         AND p.is_enabled = 1
+        AND FIND_IN_SET(mgi.model_name, p.model_name) > 0
         </select>
 
     <select id="getGroupsByPage" resultMap="groupResultMap">
@@ -54,7 +57,7 @@
         SELECT g.*,
                p.name AS providerName
         FROM model_group_items g
-                 JOIN providers p ON p.id = g.provider_id
+        JOIN providers p ON p.id = g.provider_id
         WHERE g.group_id = #{id}
         AND p.is_enabled = 1
     </select>

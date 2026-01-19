@@ -13,5 +13,7 @@ public class ModelGroupConfig {
 
     private Integer balanceMode;
 
+    private Integer firstTokenTimeout;
+
     private List<ModelGroupConfigItem> items;
 }

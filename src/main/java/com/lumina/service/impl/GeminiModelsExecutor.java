@@ -21,7 +21,7 @@ public class GeminiModelsExecutor extends AbstractRequestExecutor {
     }
 
     @Override
-    public Mono<ObjectNode> executeNormal(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type) {
+    public Mono<ObjectNode> executeNormal(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
         RequestLogContext ctx = createLogContext(request, provider, type, false);
         return createWebClient(provider).post()
                 .uri(uriBuilder -> {
@@ -42,7 +42,7 @@ public class GeminiModelsExecutor extends AbstractRequestExecutor {
     }
 
     @Override
-    public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type) {
+    public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
         RequestLogContext ctx = createLogContext(request, provider, type, true);
         return createWebClient(provider).post()
                 .uri(uriBuilder -> {

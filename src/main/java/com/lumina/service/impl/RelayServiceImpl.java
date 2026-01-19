@@ -43,6 +43,7 @@ public class RelayServiceImpl implements RelayService {
             return Mono.error(new RuntimeException("模型分组不存在"));
         }
 
+        Integer timeoutMs = modelGroupConfig.getFirstTokenTimeout();
         boolean stream = params.has("stream") && params.get("stream").asBoolean();
         LlmRequestExecutor executor = getExecutor(type);
 
@@ -62,10 +63,12 @@ public class RelayServiceImpl implements RelayService {
                                                         provider,
                                                         queryParams,
                                                         "",
-                                                        type
+                                                        type,
+                                                        timeoutMs
                                                 );
                                             },
-                                            modelGroupConfig
+                                            modelGroupConfig,
+                                            timeoutMs
                                     )
                             )
             );
@@ -80,10 +83,12 @@ public class RelayServiceImpl implements RelayService {
                                 provider,
                                 queryParams,
                                 "",
-                                type
+                                type,
+                                timeoutMs
                         );
                     },
-                    modelGroupConfig
+                    modelGroupConfig,
+                    timeoutMs
             ).map(ResponseEntity::ok);
         }
     }
@@ -99,6 +104,7 @@ public class RelayServiceImpl implements RelayService {
             return Mono.error(new RuntimeException("模型分组不存在"));
         }
 
+        Integer timeoutMs = modelGroupConfig.getFirstTokenTimeout();
         boolean stream = action.equalsIgnoreCase("streamGenerateContent");
         LlmRequestExecutor executor = getExecutor(type);
 
@@ -117,10 +123,12 @@ public class RelayServiceImpl implements RelayService {
                                                         provider,
                                                         queryParams,
                                                         provider.getModelName() + ":" + action,
-                                                        type
+                                                        type,
+                                                        timeoutMs
                                                 );
                                             },
-                                            modelGroupConfig
+                                            modelGroupConfig,
+                                            timeoutMs
                                     ).map(sse -> " " + sse.data())
                             )
             );
@@ -134,10 +142,12 @@ public class RelayServiceImpl implements RelayService {
                                 provider,
                                 queryParams,
                                 provider.getModelName() + ":" + action,
-                                type
+                                type,
+                                timeoutMs
                         );
                     },
-                    modelGroupConfig
+                    modelGroupConfig,
+                    timeoutMs
             ).map(ResponseEntity::ok);
         }
     }

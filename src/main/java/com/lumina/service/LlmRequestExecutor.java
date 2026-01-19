@@ -17,7 +17,8 @@ public interface LlmRequestExecutor {
             ModelGroupConfigItem provider,
             Map<String, String> queryParams,
             String modelAction,
-            String type
+            String type,
+            Integer timeoutMs
     );
 
     Flux<ServerSentEvent<String>> executeStream(
@@ -25,6 +26,7 @@ public interface LlmRequestExecutor {
             ModelGroupConfigItem provider,
             Map<String, String> queryParams,
             String modelAction,
-            String type
+            String type,
+            Integer timeoutMs
     );
 }

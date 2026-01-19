@@ -3,6 +3,7 @@ package com.lumina.filter;
 import com.lumina.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -16,6 +17,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @Component
+@Order(0)
 public class JwtAuthenticationFilter implements WebFilter {
 
     @Autowired
@@ -26,6 +28,13 @@ public class JwtAuthenticationFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+        String path = exchange.getRequest().getPath().value();
+
+        // 跳过 /v1/** 和 /v1beta/** 路径，这些路径使用 ApiKey 认证
+        if (path.startsWith("/v1/") || path.startsWith("/v1beta/")) {
+            return chain.filter(exchange);
+        }
+
         String jwt = getJwtFromRequest(exchange);
 
         if (StringUtils.hasText(jwt) && jwtUtil.validateToken(jwt)) {
@@ -39,9 +48,9 @@ public class JwtAuthenticationFilter implements WebFilter {
                                         null,
                                         userDetails.getAuthorities()
                                 );
-                        
+
                         log.debug("Set reactive authentication for user: {}", username);
-                        
+
                         // 在 WebFlux 中，安全上下文存储在 Reactor Context 中
                         return chain.filter(exchange)
                                 .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication));

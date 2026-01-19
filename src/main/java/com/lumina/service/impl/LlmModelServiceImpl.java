@@ -1,6 +1,8 @@
 package com.lumina.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lumina.dto.ModelDevDTO;
 import com.lumina.entity.LlmModel;
@@ -79,5 +81,10 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModel> i
             // Save new models
             this.saveBatch(models);
         }
+    }
+
+    @Override
+    public Page<LlmModel> queryPage(Page<Object> page, LambdaQueryWrapper<LlmModel> queryWrapper) {
+        return baseMapper.queryPage(page, queryWrapper);
     }
 }

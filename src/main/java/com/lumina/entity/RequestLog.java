@@ -23,7 +23,7 @@ public class RequestLog {
     private Integer firstTokenTime;
     private Integer firstTokenMs;
     private Integer totalTime;
-    private Integer total_time_ms;
+    private Integer totalTimeMs;
     private BigDecimal cost;
     private String status;
     private String errorStage;

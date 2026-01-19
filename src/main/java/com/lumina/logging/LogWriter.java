@@ -46,7 +46,7 @@ public class LogWriter {
         log.setFirstTokenTime(ctx.getFirstTokenTime());
         log.setFirstTokenMs(ctx.getFirstTokenMs());
         log.setTotalTime(ctx.getTotalTime());
-        log.setTotal_time_ms(ctx.getTotalTimeMs());
+        log.setTotalTimeMs(ctx.getTotalTimeMs());
         log.setCost(ctx.getCost());
         log.setStatus(ctx.getStatus());
         log.setErrorStage(ctx.getErrorStage());

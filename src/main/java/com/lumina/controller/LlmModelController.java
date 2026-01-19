@@ -75,7 +75,7 @@ public class LlmModelController {
         if (modelName != null) {
             queryWrapper.like(LlmModel::getModelName, modelName);
         }
-        Page<LlmModel> page = llmModelService.page(new Page<>(current, size), queryWrapper);
+        Page<LlmModel> page = llmModelService.queryPage(new Page<>(current, size), queryWrapper);
         return ApiResponse.success(page);
     }
 

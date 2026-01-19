@@ -27,9 +27,9 @@ public class RequestLogController {
             @RequestParam(defaultValue = "10") Integer size) {
         Page<RequestLog> page = requestLogService.page(new Page<>(current, size),
                 new LambdaQueryWrapper<RequestLog>()
-                        .select(RequestLog::getId, RequestLog::getRequestTime,RequestLog::getStatus,
+                        .select(RequestLog::getId, RequestLog::getRequestTime,RequestLog::getStatus,RequestLog::getProviderName,
                                 RequestLog::getRequestModelName, RequestLog::getActualModelName, RequestLog::getFirstTokenMs,
-                                RequestLog::getInputTokens,RequestLog::getOutputTokens,RequestLog::getRetryCount)
+                                RequestLog::getInputTokens,RequestLog::getOutputTokens,RequestLog::getRetryCount,RequestLog::getCost)
                         .orderByDesc(RequestLog::getRequestTime));
         return ApiResponse.success(page);
     }

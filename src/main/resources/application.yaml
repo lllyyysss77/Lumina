@@ -154,27 +154,6 @@ logging:
 
 # Lumina 特定配置
 lumina:
-  # 代理配置
-  proxy:
-    url:
-    enabled: false
-    timeout: 30000
-
-  # 统计配置
-  stats:
-    save-interval: 5  # 分钟
-    log-keep-days: 7
-
-  # 模型同步配置
-  sync:
-    llm-interval: 24  # 小时
-    model-info-interval: 24  # 小时
-
-  # 限流配置
-  rate-limit:
-    enabled: false
-    requests-per-minute: 1000
-
   # 认证配置
   auth:
     jwt:

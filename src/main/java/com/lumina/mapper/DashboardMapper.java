@@ -14,19 +14,18 @@ import java.util.List;
 public interface DashboardMapper {
 
     /**
-     * 获取仪表盘概览统计数据
+     * 获取全部仪表盘概览统计数据（无时间限制）
      */
     @Select("SELECT " +
             "COUNT(*) as totalRequests, " +
             "COALESCE(SUM(cost), 0) as totalCost, " +
             "COALESCE(AVG(total_time_ms), 0) as avgLatency, " +
             "COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as successRate " +
-            "FROM request_logs " +
-            "WHERE created_at >= #{startTime}")
-    DashboardOverviewDto getOverviewStats(@Param("startTime") String startTime);
+            "FROM request_logs")
+    DashboardOverviewDto getAllOverviewStats();
 
     /**
-     * 获取上一周期的统计数据（用于计算增长率）
+     * 获取指定日期范围的统计数据（用于计算当天/前一天数据）
      */
     @Select("SELECT " +
             "COUNT(*) as totalRequests, " +
@@ -35,7 +34,7 @@ public interface DashboardMapper {
             "COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as successRate " +
             "FROM request_logs " +
             "WHERE created_at >= #{startTime} AND created_at < #{endTime}")
-    DashboardOverviewDto getPreviousPeriodStats(@Param("startTime") String startTime, @Param("endTime") String endTime);
+    DashboardOverviewDto getDateRangeStats(@Param("startTime") String startTime, @Param("endTime") String endTime);
 
     /**
      * 获取24小时请求流量数据
@@ -77,9 +76,8 @@ public interface DashboardMapper {
             "COALESCE(AVG(total_time_ms), 0) as avgLatency, " +
             "COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as successRate " +
             "FROM request_logs " +
-            "WHERE created_at >= #{startTime} AND provider_id IS NOT NULL " +
             "GROUP BY provider_id, provider_name " +
             "ORDER BY callCount DESC " +
             "LIMIT #{limit}")
-    List<ProviderStatsDto> getProviderStats(@Param("startTime") String startTime, @Param("limit") Integer limit);
+    List<ProviderStatsDto> getProviderStats(@Param("limit") Integer limit);
 }

@@ -19,44 +19,63 @@ public class DashboardService {
     @Autowired
     private DashboardMapper dashboardMapper;
 
-    @Autowired
-    private ProviderMapper providerMapper;
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
      * 获取仪表盘概览统计
+     * 总请求数、预估总费用、平均延迟、成功率统计全部数据
+     * 增长率/变化率基于当天对比前一天的数据
      */
     public DashboardOverviewDto getOverview() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime last24Hours = now.minusHours(24);
-        LocalDateTime previous24Hours = now.minusHours(48);
+        // 获取全部统计数据
+        DashboardOverviewDto allStats = dashboardMapper.getAllOverviewStats();
 
-        DashboardOverviewDto current = dashboardMapper.getOverviewStats(last24Hours.format(FORMATTER));
-        DashboardOverviewDto previous = dashboardMapper.getPreviousPeriodStats(
-                previous24Hours.format(FORMATTER),
-                last24Hours.format(FORMATTER)
+        // 计算当天和前一天的日期范围
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime todayStart = now.toLocalDate().atStartOfDay();
+        LocalDateTime yesterdayStart = todayStart.minusDays(1);
+
+        // 获取当天的统计数据（用于计算增长率）
+        DashboardOverviewDto todayStats = dashboardMapper.getDateRangeStats(
+                todayStart.format(FORMATTER),
+                now.format(FORMATTER)
         );
 
-        if (current != null) {
-            if (previous != null && previous.getTotalRequests() > 0) {
-                current.setRequestGrowthRate(
-                        ((current.getTotalRequests() - previous.getTotalRequests()) * 100.0) / previous.getTotalRequests()
+        // 获取前一天的统计数据（用于计算增长率）
+        DashboardOverviewDto yesterdayStats = dashboardMapper.getDateRangeStats(
+                yesterdayStart.format(FORMATTER),
+                todayStart.format(FORMATTER)
+        );
+
+        if (allStats != null) {
+            // 计算增长率/变化率（当天 vs 前一天）
+            if (yesterdayStats != null && yesterdayStats.getTotalRequests() > 0) {
+                allStats.setRequestGrowthRate(
+                        ((todayStats.getTotalRequests() - yesterdayStats.getTotalRequests()) * 100.0) / yesterdayStats.getTotalRequests()
                 );
-                current.setCostGrowthRate(
-                        ((current.getTotalCost().doubleValue() - previous.getTotalCost().doubleValue()) * 100.0) / previous.getTotalCost().doubleValue()
-                );
-                current.setLatencyChange(current.getAvgLatency() - previous.getAvgLatency());
-                current.setSuccessRateChange(current.getSuccessRate() - previous.getSuccessRate());
             } else {
-                current.setRequestGrowthRate(0.0);
-                current.setCostGrowthRate(0.0);
-                current.setLatencyChange(0.0);
-                current.setSuccessRateChange(0.0);
+                allStats.setRequestGrowthRate(todayStats != null && todayStats.getTotalRequests() > 0 ? 100.0 : 0.0);
+            }
+
+            if (yesterdayStats != null && yesterdayStats.getTotalCost().doubleValue() > 0) {
+                allStats.setCostGrowthRate(
+                        ((todayStats.getTotalCost().doubleValue() - yesterdayStats.getTotalCost().doubleValue()) * 100.0) / yesterdayStats.getTotalCost().doubleValue()
+                );
+            } else {
+                allStats.setCostGrowthRate(todayStats != null && todayStats.getTotalCost().doubleValue() > 0 ? 100.0 : 0.0);
+            }
+
+            if (yesterdayStats != null) {
+                allStats.setLatencyChange(todayStats.getAvgLatency() - yesterdayStats.getAvgLatency());
+                allStats.setSuccessRateChange(todayStats.getSuccessRate() - yesterdayStats.getSuccessRate());
+            } else {
+                allStats.setLatencyChange(0.0);
+                allStats.setSuccessRateChange(0.0);
             }
         }
 
-        return current;
+        return allStats;
     }
 
     /**
@@ -97,8 +116,7 @@ public class DashboardService {
             limit = 10;
         }
 
-        LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
-        List<ProviderStatsDto> statsList = dashboardMapper.getProviderStats(last24Hours.format(FORMATTER), limit);
+        List<ProviderStatsDto> statsList = dashboardMapper.getProviderStats(limit);
 
         for (int i = 0; i < statsList.size(); i++) {
             ProviderStatsDto stats = statsList.get(i);

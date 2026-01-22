@@ -6,6 +6,9 @@ RUN mvn clean package -DskipTests
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
+RUN apk add --no-cache redis
 COPY --from=build /app/target/*.jar app.jar
+COPY startup.sh ./
+RUN chmod +x startup.sh
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["./startup.sh"]

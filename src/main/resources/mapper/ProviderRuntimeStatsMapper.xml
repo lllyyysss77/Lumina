@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lumina.mapper.ProviderRuntimeStatsMapper">
+
+    <!-- upsert - MySQL -->
+    <insert id="upsert" databaseId="mysql">
+        INSERT INTO provider_runtime_stats (provider_id, provider_name, success_rate_ema, latency_ema_ms, score, total_requests, success_requests, failure_requests, circuit_state, circuit_opened_at, updated_at)
+        VALUES (#{providerId}, #{providerName}, #{successRateEma}, #{latencyEmaMs}, #{score}, #{totalRequests}, #{successRequests}, #{failureRequests}, #{circuitState}, #{circuitOpenedAt}, #{updatedAt})
+        ON DUPLICATE KEY UPDATE
+            provider_name = VALUES(provider_name),
+            success_rate_ema = VALUES(success_rate_ema),
+            latency_ema_ms = VALUES(latency_ema_ms),
+            score = VALUES(score),
+            total_requests = VALUES(total_requests),
+            success_requests = VALUES(success_requests),
+            failure_requests = VALUES(failure_requests),
+            circuit_state = VALUES(circuit_state),
+            circuit_opened_at = VALUES(circuit_opened_at),
+            updated_at = VALUES(updated_at)
+    </insert>
+
+    <!-- upsert - SQLite -->
+    <insert id="upsert" databaseId="sqlite">
+        INSERT OR REPLACE INTO provider_runtime_stats (provider_id, provider_name, success_rate_ema, latency_ema_ms, score, total_requests, success_requests, failure_requests, circuit_state, circuit_opened_at, updated_at)
+        VALUES (#{providerId}, #{providerName}, #{successRateEma}, #{latencyEmaMs}, #{score}, #{totalRequests}, #{successRequests}, #{failureRequests}, #{circuitState}, #{circuitOpenedAt}, #{updatedAt})
+    </insert>
+
+    <!-- deleteByProviderId - 通用 SQL -->
+    <delete id="deleteByProviderId">
+        DELETE FROM provider_runtime_stats WHERE provider_id = #{providerId}
+    </delete>
+
+    <!-- deleteNotInProviderIds - 通用 SQL -->
+    <delete id="deleteNotInProviderIds">
+        DELETE FROM provider_runtime_stats
+        <where>
+            <if test="validProviderIds != null and validProviderIds.size() > 0">
+                provider_id NOT IN
+                <foreach collection="validProviderIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+    </delete>
+
+</mapper>

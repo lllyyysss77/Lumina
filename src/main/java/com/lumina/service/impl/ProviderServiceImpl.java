@@ -21,7 +21,7 @@ public class ProviderServiceImpl extends ServiceImpl<ProviderMapper, Provider> i
     @Override
     public List<String> getModels(Provider provider) {
         // 对接接口
-        String url = provider.getBaseUrl() + "/models";
+        String url = provider.getBaseUrl() + "/v1/models";
         JsonNode res = restClient.get()
                 .uri(url)
                 .header("Authorization", provider.getApiKey())

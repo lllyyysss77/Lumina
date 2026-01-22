@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lumina.mapper.DashboardMapper">
+
+    <!-- getAllOverviewStats - MySQL -->
+    <select id="getAllOverviewStats" resultType="com.lumina.dto.DashboardOverviewDto" databaseId="mysql">
+        SELECT
+            COUNT(*) as totalRequests,
+            COALESCE(SUM(cost), 0) as totalCost,
+            COALESCE(AVG(total_time_ms), 0) as avgLatency,
+            COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as successRate
+        FROM request_logs
+    </select>
+
+    <!-- getAllOverviewStats - SQLite -->
+    <select id="getAllOverviewStats" resultType="com.lumina.dto.DashboardOverviewDto" databaseId="sqlite">
+        SELECT
+            COUNT(*) as totalRequests,
+            COALESCE(SUM(cost), 0) as totalCost,
+            COALESCE(AVG(total_time_ms), 0) as avgLatency,
+            COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as successRate
+        FROM request_logs
+    </select>
+
+    <!-- getDateRangeStats - MySQL -->
+    <select id="getDateRangeStats" resultType="com.lumina.dto.DashboardOverviewDto" databaseId="mysql">
+        SELECT
+            COUNT(*) as totalRequests,
+            COALESCE(SUM(cost), 0) as totalCost,
+            COALESCE(AVG(total_time_ms), 0) as avgLatency,
+            COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as successRate
+        FROM request_logs
+        WHERE created_at &gt;= #{startTime} AND created_at &lt; #{endTime}
+    </select>
+
+    <!-- getDateRangeStats - SQLite -->
+    <select id="getDateRangeStats" resultType="com.lumina.dto.DashboardOverviewDto" databaseId="sqlite">
+        SELECT
+            COUNT(*) as totalRequests,
+            COALESCE(SUM(cost), 0) as totalCost,
+            COALESCE(AVG(total_time_ms), 0) as avgLatency,
+            COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as successRate
+        FROM request_logs
+        WHERE created_at &gt;= #{startTime} AND created_at &lt; #{endTime}
+    </select>
+
+    <!-- getRequestTraffic - MySQL -->
+    <select id="getRequestTraffic" resultType="com.lumina.dto.RequestTrafficDto" databaseId="mysql">
+        SELECT
+            HOUR(created_at) as hour,
+            COUNT(*) as requestCount,
+            UNIX_TIMESTAMP(DATE_FORMAT(MIN(created_at), '%Y-%m-%d %H:00:00')) * 1000 as timestamp
+        FROM request_logs
+        WHERE created_at &gt;= #{startTime}
+        GROUP BY HOUR(created_at), DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00')
+        ORDER BY hour
+    </select>
+
+    <!-- getRequestTraffic - SQLite -->
+    <select id="getRequestTraffic" resultType="com.lumina.dto.RequestTrafficDto" databaseId="sqlite">
+        SELECT
+            CAST(strftime('%H', created_at) AS INTEGER) as hour,
+            COUNT(*) as requestCount,
+            CAST(strftime('%s', strftime('%Y-%m-%d %H:00:00', MIN(created_at))) AS INTEGER) * 1000 as timestamp
+        FROM request_logs
+        WHERE created_at &gt;= #{startTime}
+        GROUP BY strftime('%Y-%m-%d %H', created_at)
+        ORDER BY hour
+    </select>
+
+    <!-- getModelTokenUsage - MySQL -->
+    <select id="getModelTokenUsage" resultType="com.lumina.dto.ModelTokenUsageDto" databaseId="mysql">
+        SELECT
+            actual_model_name as modelName,
+            COALESCE(SUM(input_tokens), 0) as inputTokens,
+            COALESCE(SUM(output_tokens), 0) as outputTokens,
+            COALESCE(SUM(input_tokens + output_tokens), 0) as totalTokens,
+            COUNT(*) as requestCount
+        FROM request_logs
+        WHERE created_at &gt;= #{startTime} AND actual_model_name IS NOT NULL
+        GROUP BY actual_model_name
+        ORDER BY totalTokens DESC
+        LIMIT 10
+    </select>
+
+    <!-- getModelTokenUsage - SQLite -->
+    <select id="getModelTokenUsage" resultType="com.lumina.dto.ModelTokenUsageDto" databaseId="sqlite">
+        SELECT
+            actual_model_name as modelName,
+            COALESCE(SUM(input_tokens), 0) as inputTokens,
+            COALESCE(SUM(output_tokens), 0) as outputTokens,
+            COALESCE(SUM(input_tokens + output_tokens), 0) as totalTokens,
+            COUNT(*) as requestCount
+        FROM request_logs
+        WHERE created_at &gt;= #{startTime} AND actual_model_name IS NOT NULL
+        GROUP BY actual_model_name
+        ORDER BY totalTokens DESC
+        LIMIT 10
+    </select>
+
+    <!-- getProviderStats - MySQL -->
+    <select id="getProviderStats" resultType="com.lumina.dto.ProviderStatsDto" databaseId="mysql">
+        SELECT
+            provider_id as providerId,
+            provider_name as providerName,
+            COUNT(*) as callCount,
+            COALESCE(SUM(cost), 0) as estimatedCost,
+            COALESCE(AVG(total_time_ms), 0) as avgLatency,
+            COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as successRate
+        FROM request_logs
+        GROUP BY provider_id, provider_name
+        ORDER BY callCount DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- getProviderStats - SQLite -->
+    <select id="getProviderStats" resultType="com.lumina.dto.ProviderStatsDto" databaseId="sqlite">
+        SELECT
+            provider_id as providerId,
+            provider_name as providerName,
+            COUNT(*) as callCount,
+            COALESCE(SUM(cost), 0) as estimatedCost,
+            COALESCE(AVG(total_time_ms), 0) as avgLatency,
+            COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as successRate
+        FROM request_logs
+        GROUP BY provider_id, provider_name
+        ORDER BY callCount DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

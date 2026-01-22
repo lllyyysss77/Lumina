@@ -5,12 +5,14 @@ spring:
   profiles:
     active: dev
 
-  # 数据库配置
+  # 数据库配置 (支持 MySQL 和 SQLite)
+  # 使用 MySQL: 设置 SPRING_DATASOURCE_URL=jdbc:mysql://...
+  # 使用 SQLite: 设置 SPRING_DATASOURCE_URL=jdbc:sqlite:./data/lumina.db
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/lumina?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: Zh@123123
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:com.mysql.cj.jdbc.Driver}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/lumina?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:Zh@123123}
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20
@@ -113,7 +115,7 @@ mybatis-plus:
     # 如果查询结果中包含空值的列，则 MyBatis 在映射的时候，不会映射这个字段
     call-setters-on-nulls: true
     # 这个配置会将执行的sql打印出来，在开发或测试的时候可以用
-#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     # 缓存配置
     cache-enabled: true
     # 延迟加载

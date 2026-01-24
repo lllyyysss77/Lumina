@@ -11,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.reactive.resource.NoResourceFoundException;
 import org.springframework.web.server.ServerWebInputException;
 
 import java.util.HashMap;
@@ -65,6 +66,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(ApiResponse.error(400, ex.getMessage()));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFoundException(NoResourceFoundException ex) {
+        log.debug("Static resource not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error(404, "资源未找到"));
     }
 
     @ExceptionHandler(Exception.class)

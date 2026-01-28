@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Provider, ProviderType } from '../types';
-import { Plus, MoreHorizontal, CheckCircle2, AlertCircle, Trash2, Key, RefreshCcw, X, Save, Edit2, Activity, DownloadCloud, Loader2, AlertTriangle, Check } from 'lucide-react';
+import { Plus, MoreHorizontal, CheckCircle2, AlertCircle, Trash2, Key, RefreshCcw, X, Save, Edit2, Activity, DownloadCloud, Loader2, AlertTriangle, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { providerService } from '../services/providerService';
 
@@ -46,6 +46,12 @@ export const Providers: React.FC = () => {
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    size: 6,
+    total: 0,
+    pages: 0
+  });
   
   // UI States for Custom Modals & Toasts
   const [toast, setToast] = useState<{show: boolean, message: string, type: 'success' | 'error' | 'info'}>({ show: false, message: '', type: 'success' });
@@ -74,11 +80,17 @@ export const Providers: React.FC = () => {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   };
 
-  const fetchProviders = async () => {
+  const fetchProviders = async (page: number = pagination.current, size: number = pagination.size) => {
     setIsLoading(true);
     try {
-      const data = await providerService.getPage();
-      setProviders(data);
+      const data = await providerService.getPage(page, size);
+      setProviders(data.records);
+      setPagination({
+        current: data.current,
+        size: data.size,
+        total: data.total,
+        pages: data.pages
+      });
     } catch (error) {
       console.error("Failed to fetch providers:", error);
       showToast('Failed to load providers', 'error');
@@ -90,6 +102,17 @@ export const Providers: React.FC = () => {
   useEffect(() => {
     fetchProviders();
   }, []);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= pagination.pages) {
+      fetchProviders(newPage, pagination.size);
+    }
+  };
+
+  const handleSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSize = parseInt(e.target.value);
+    fetchProviders(1, newSize);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -360,13 +383,25 @@ export const Providers: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900">{t('providers.title')}</h1>
           <p className="text-slate-500 mt-1">{t('providers.subtitle')}</p>
         </div>
-        <button
+        <div className="flex items-center gap-3">
+          <select
+            value={pagination.size}
+            onChange={handleSizeChange}
+            className="block w-32 pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg border bg-white"
+          >
+            <option value="6">6 / page</option>
+            <option value="12">12 / page</option>
+            <option value="24">24 / page</option>
+            <option value="50">50 / page</option>
+          </select>
+          <button
             onClick={handleOpenAdd}
             className="flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors shadow-sm shadow-indigo-200"
-        >
-          <Plus size={18} className="mr-2" />
-          {t('providers.addChannel')}
-        </button>
+          >
+            <Plus size={18} className="mr-2" />
+            {t('providers.addProvider')}
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -374,6 +409,7 @@ export const Providers: React.FC = () => {
            <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-1 gap-4">
           {providers.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
@@ -383,19 +419,19 @@ export const Providers: React.FC = () => {
              providers.map((provider) => (
             <div key={provider.id} className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow relative">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                
+
                 <div className="flex items-start gap-3 sm:gap-4 w-full overflow-hidden">
                   <div className={`w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold border ${getProviderBadge(provider.type)}`}>
                     {getProviderLabel(provider.type).substring(0, 2).toUpperCase()}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-1">
                       <h3 className="font-semibold text-slate-900 text-base sm:text-lg truncate max-w-full">{provider.name}</h3>
-                      
+
                       {/* List Toggle Switch */}
                       <div className="flex items-center space-x-2 pl-2 border-l border-slate-200 shrink-0">
-                          <StatusSwitch 
+                          <StatusSwitch
                               checked={provider.status === 'active'}
                               onChange={() => handleToggleStatus(provider.id, provider.status)}
                           />
@@ -404,9 +440,9 @@ export const Providers: React.FC = () => {
                           </span>
                       </div>
                     </div>
-                    
+
                     <div className="text-xs sm:text-sm text-slate-500 mt-1 font-mono break-all leading-relaxed">{provider.baseUrl}</div>
-                    
+
                     <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-slate-500">
                       <span className="flex items-center bg-slate-50 px-2 py-1 rounded border border-slate-100 font-mono whitespace-nowrap">
                           <Key size={12} className="mr-1.5 flex-shrink-0" />
@@ -424,21 +460,21 @@ export const Providers: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 relative border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0">
-                  <button 
+                  <button
                       onClick={() => handleOpenEdit(provider)}
                       className="flex-1 sm:flex-none flex items-center justify-center px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
                   >
                       <Edit2 size={16} className="mr-2 sm:hidden" />
                       {t('common.edit')}
                   </button>
-                  <button 
+                  <button
                       onClick={(e) => handleDeleteClick(provider.id, provider.name, e)}
                       className="flex-1 sm:flex-none flex items-center justify-center p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 sm:border-transparent rounded-lg transition-colors"
                   >
                       <Trash2 size={18} />
                   </button>
                   <div className="relative flex-1 sm:flex-none">
-                      <button 
+                      <button
                           onClick={() => setActiveMenuId(activeMenuId === provider.id ? null : provider.id)}
                           className={`w-full sm:w-auto flex items-center justify-center p-2 rounded-lg transition-colors border border-slate-200 sm:border-transparent ${activeMenuId === provider.id ? 'bg-slate-100 text-slate-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
                       >
@@ -447,19 +483,19 @@ export const Providers: React.FC = () => {
                       {/* More Dropdown */}
                       {activeMenuId === provider.id && (
                           <div ref={menuRef} className="absolute right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mb-0 sm:mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-100 z-10 py-1">
-                              <button 
+                              <button
                                   onClick={() => handleTestConnection(provider.id)}
                                   className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center"
                               >
                                   <Activity size={14} className="mr-2" />
-                                  {t('channels.more.testConnection')}
+                                  {t('providers.more.testConnection')}
                               </button>
-                              <button 
+                              <button
                                   onClick={() => handleSyncModels(provider.id)}
                                   className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center"
                               >
                                   <DownloadCloud size={14} className="mr-2" />
-                                  {t('channels.more.syncModels')}
+                                  {t('providers.more.syncModels')}
                               </button>
                           </div>
                       )}
@@ -470,6 +506,59 @@ export const Providers: React.FC = () => {
             </div>
           )))}
         </div>
+
+        {/* Pagination Controls */}
+        {providers.length > 0 && (
+          <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(pagination.current - 1)}
+                disabled={pagination.current === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t('logs.pagination.prev')}
+              </button>
+              <button
+                onClick={() => handlePageChange(pagination.current + 1)}
+                disabled={pagination.current >= pagination.pages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t('logs.pagination.next')}
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-slate-700">
+                  {t('logs.pagination.showing')} <span className="font-medium">{pagination.total > 0 ? (pagination.current - 1) * pagination.size + 1 : 0}</span> {t('logs.pagination.to')} <span className="font-medium">{Math.min(pagination.current * pagination.size, pagination.total)}</span> {t('logs.pagination.of')} <span className="font-medium">{pagination.total}</span> {t('logs.pagination.results')}
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => handlePageChange(pagination.current - 1)}
+                    disabled={pagination.current === 1 || isLoading}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Previous</span>
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="relative inline-flex items-center px-4 py-2 border border-slate-300 bg-white text-sm font-medium text-slate-700">
+                    {pagination.current} / {pagination.pages || 1}
+                  </span>
+                  <button
+                    onClick={() => handlePageChange(pagination.current + 1)}
+                    disabled={pagination.current >= pagination.pages || isLoading}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Next</span>
+                    <ChevronRight size={16} />
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       {/* Add/Edit Modal */}

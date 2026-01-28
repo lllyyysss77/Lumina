@@ -14,6 +14,14 @@ interface ProviderDTO {
   updatedAt?: string;
 }
 
+export interface ProviderPageResponse {
+  records: Provider[];
+  total: number;
+  size: number;
+  current: number;
+  pages: number;
+}
+
 export const providerService = {
   // Fetch paginated list of providers
   async getList(): Promise<Provider[]> {
@@ -37,11 +45,11 @@ export const providerService = {
   },
 
   // Fetch paginated list of providers
-  async getPage(current = 1, size = 100): Promise<Provider[]> {
+  async getPage(current = 1, size = 6): Promise<ProviderPageResponse> {
     const response = await api.get<any>('/providers/page', { params: { current, size } });
 
     if (response.code === 200 && response.data && Array.isArray(response.data.records)) {
-      return response.data.records.map((item: any) => ({
+      const records = response.data.records.map((item: any) => ({
         id: String(item.id),
         name: item.name,
         type: item.type as ProviderType,
@@ -53,8 +61,22 @@ export const providerService = {
         status: item.isEnabled ? 'active' : 'inactive',
         autoSync: item.autoSync
       }));
+
+      return {
+        records,
+        total: response.data.total,
+        size: response.data.size,
+        current: response.data.current,
+        pages: response.data.pages
+      };
     }
-    return [];
+    return {
+      records: [],
+      total: 0,
+      size: size,
+      current: 1,
+      pages: 0
+    };
   },
 
   // Create a new provider

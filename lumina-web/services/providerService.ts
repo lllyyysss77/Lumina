@@ -23,58 +23,43 @@ export interface ProviderPageResponse {
 }
 
 export const providerService = {
-  // Fetch paginated list of providers
-  async getList(): Promise<Provider[]> {
-    const response = await api.get<any>('/providers');
-    
-    if (response.code === 200 && response.data && Array.isArray(response.data)) {
-      return response.data.map((item: any) => ({
-        id: String(item.id),
-        name: item.name,
-        type: item.type as ProviderType,
-        baseUrl: item.baseUrl,
-        // Map directly to string, default to empty
-        apiKey: item.apiKey || '', 
-        models: item.modelName ? item.modelName.split(',') : [],
-        latency: 0, // Latency is not provided in the basic CRUD API
-        status: item.isEnabled ? 'active' : 'inactive',
-        autoSync: item.autoSync
-      }));
-    }
-    return [];
+  // Fetch simple list (backward compatibility for Groups)
+  async getList(current = 1, size = 100): Promise<Provider[]> {
+    const data = await this.getPage(current, size);
+    return data.records;
   },
 
-  // Fetch paginated list of providers
-  async getPage(current = 1, size = 6): Promise<ProviderPageResponse> {
+  // Fetch paginated list with metadata
+  async getPage(current = 1, size = 10): Promise<ProviderPageResponse> {
     const response = await api.get<any>('/providers/page', { params: { current, size } });
-
-    if (response.code === 200 && response.data && Array.isArray(response.data.records)) {
-      const records = response.data.records.map((item: any) => ({
+    
+    if (response.code === 200 && response.data) {
+       const records = (response.data.records || []).map((item: any) => ({
         id: String(item.id),
         name: item.name,
         type: item.type as ProviderType,
         baseUrl: item.baseUrl,
-        // Map directly to string, default to empty
-        apiKey: item.apiKey || '',
+        apiKey: item.apiKey || '', 
         models: item.modelName ? item.modelName.split(',') : [],
-        latency: 0, // Latency is not provided in the basic CRUD API
+        latency: 0, 
         status: item.isEnabled ? 'active' : 'inactive',
         autoSync: item.autoSync
       }));
 
       return {
         records,
-        total: response.data.total,
-        size: response.data.size,
-        current: response.data.current,
-        pages: response.data.pages
+        total: response.data.total || 0,
+        size: response.data.size || size,
+        current: response.data.current || current,
+        pages: response.data.pages || 0
       };
     }
+
     return {
       records: [],
       total: 0,
-      size: size,
-      current: 1,
+      size,
+      current,
       pages: 0
     };
   },

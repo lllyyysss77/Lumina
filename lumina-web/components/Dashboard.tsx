@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
   BarChart,
   Bar
 } from 'recharts';
@@ -14,8 +14,8 @@ import { ArrowUpRight, ArrowDownRight, Zap, Coins, Clock, Activity } from 'lucid
 import { useLanguage } from './LanguageContext';
 import { dashboardService, ProviderStats } from '../services/dashboardService';
 import { DashboardOverview } from '../types';
-import { SkeletonStatCard, SkeletonChart } from './Skeleton';
-import { AnimatedStatCard, AnimatedTableRow } from './Animated';
+import { DashboardSkeleton } from './Skeletons';
+import { SlideInItem } from './Animations';
 
 const StatCard: React.FC<{
   title: string;
@@ -26,7 +26,7 @@ const StatCard: React.FC<{
   icon: React.ElementType;
   colorClass: string;
 }> = ({ title, value, trend, trendDirection, trendPositive, icon: Icon, colorClass }) => (
-  <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
+  <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md hover:-translate-y-1 duration-300">
     <div className="flex items-center justify-between mb-4">
       <div className={`p-2 rounded-lg ${colorClass} bg-opacity-10 dark:bg-opacity-20`}>
         <Icon size={20} />
@@ -205,150 +205,135 @@ export const Dashboard: React.FC = () => {
     successRateChange: 0
   };
 
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('dashboard.title')}</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">{t('dashboard.subtitle')}</p>
-      </div>
+      <SlideInItem>
+        <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('dashboard.title')}</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('dashboard.subtitle')}</p>
+        </div>
+      </SlideInItem>
 
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {isLoading ? (
-          <>
-            <SkeletonStatCard />
-            <SkeletonStatCard />
-            <SkeletonStatCard />
-            <SkeletonStatCard />
-          </>
-        ) : (
-          <>
-            <AnimatedStatCard index={0}>
-              <StatCard
-                title={t('dashboard.totalRequests')}
-                value={safeOverview.totalRequests.toLocaleString()}
-                trend={`${safeOverview.requestGrowthRate.toFixed(1)}%`}
-                trendDirection={safeOverview.requestGrowthRate >= 0 ? 'up' : 'down'}
-                trendPositive={safeOverview.requestGrowthRate >= 0}
-                icon={Zap}
-                colorClass="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-              />
-            </AnimatedStatCard>
-            <AnimatedStatCard index={1}>
-              <StatCard
-                title={t('dashboard.totalCost')}
-                value={`$${safeOverview.totalCost.toFixed(4)}`}
-                trend={`${safeOverview.costGrowthRate.toFixed(1)}%`}
-                trendDirection={safeOverview.costGrowthRate >= 0 ? 'up' : 'down'}
-                trendPositive={true}
-                icon={Coins}
-                colorClass="bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
-              />
-            </AnimatedStatCard>
-            <AnimatedStatCard index={2}>
-              <StatCard
-                title={t('dashboard.avgLatency')}
-                value={`${safeOverview.avgLatency.toFixed(0)}ms`}
-                trend={`${Math.abs(safeOverview.latencyChange).toFixed(0)}ms`}
-                trendDirection={safeOverview.latencyChange >= 0 ? 'up' : 'down'}
-                trendPositive={safeOverview.latencyChange <= 0}
-                icon={Clock}
-                colorClass="bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
-              />
-            </AnimatedStatCard>
-            <AnimatedStatCard index={3}>
-              <StatCard
-                title={t('dashboard.successRate')}
-                value={`${safeOverview.successRate.toFixed(1)}%`}
-                trend={`${safeOverview.successRateChange.toFixed(1)}%`}
-                trendDirection={safeOverview.successRateChange >= 0 ? 'up' : 'down'}
-                trendPositive={safeOverview.successRateChange >= 0}
-                icon={Activity}
-                colorClass="bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-              />
-            </AnimatedStatCard>
-          </>
-        )}
+        {[
+          {
+            title: t('dashboard.totalRequests'),
+            value: safeOverview.totalRequests.toLocaleString(),
+            trend: `${safeOverview.requestGrowthRate.toFixed(1)}%`,
+            trendDirection: safeOverview.requestGrowthRate >= 0 ? 'up' : 'down' as 'up'|'down',
+            trendPositive: safeOverview.requestGrowthRate >= 0,
+            icon: Zap,
+            colorClass: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+          },
+          {
+            title: t('dashboard.totalCost'),
+            value: `$${safeOverview.totalCost.toFixed(4)}`,
+            trend: `${safeOverview.costGrowthRate.toFixed(1)}%`,
+            trendDirection: safeOverview.costGrowthRate >= 0 ? 'up' : 'down' as 'up'|'down',
+            trendPositive: true,
+            icon: Coins,
+            colorClass: "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+          },
+          {
+            title: t('dashboard.avgLatency'),
+            value: `${safeOverview.avgLatency.toFixed(0)}ms`,
+            trend: `${Math.abs(safeOverview.latencyChange).toFixed(0)}ms`,
+            trendDirection: safeOverview.latencyChange >= 0 ? 'up' : 'down' as 'up'|'down',
+            trendPositive: safeOverview.latencyChange <= 0,
+            icon: Clock,
+            colorClass: "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+          },
+          {
+            title: t('dashboard.successRate'),
+            value: `${safeOverview.successRate.toFixed(1)}%`,
+            trend: `${safeOverview.successRateChange.toFixed(1)}%`,
+            trendDirection: safeOverview.successRateChange >= 0 ? 'up' : 'down' as 'up'|'down',
+            trendPositive: safeOverview.successRateChange >= 0,
+            icon: Activity,
+            colorClass: "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+          }
+        ].map((item, index) => (
+            <SlideInItem key={index} index={index} delay={index * 100}>
+                <StatCard {...item} />
+            </SlideInItem>
+        ))}
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <SlideInItem delay={400} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Traffic Chart */}
-        {isLoading ? (
-          <SkeletonChart className="lg:col-span-2" />
-        ) : (
-          <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 animate-in fade-in duration-400">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">{t('dashboard.traffic')}</h3>
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trafficData}>
-                  <defs>
-                    <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />
-                  <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: '8px',
-                      border: 'none',
-                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                      backgroundColor: '#fff',
-                      color: '#000'
-                    }}
-                  />
-                  <Area type="monotone" dataKey="requests" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorRequests)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">{t('dashboard.traffic')}</h3>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trafficData}>
+                <defs>
+                  <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />
+                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                <Tooltip 
+                  contentStyle={{
+                    borderRadius: '8px', 
+                    border: 'none', 
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    backgroundColor: '#fff',
+                    color: '#000'
+                  }} 
+                />
+                <Area type="monotone" dataKey="requests" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorRequests)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-        )}
+        </div>
 
         {/* Top Models Chart */}
-        {isLoading ? (
-          <SkeletonChart />
-        ) : (
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 animate-in fade-in duration-400" style={{ animationDelay: '100ms' }}>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">{t('dashboard.tokenUsage')}</h3>
-             <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={modelUsageData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />
-                  <XAxis type="number" hide />
-                  <YAxis
-                    dataKey="name"
-                    type="category"
-                    width={140}
-                    tick={{fill: '#64748b', fontSize: 12}}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 18)}...` : value}
-                  />
-                  <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', color: '#000'}} />
-                  <Bar dataKey="tokens" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={32} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">{t('dashboard.tokenUsage')}</h3>
+           <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={modelUsageData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />
+                <XAxis type="number" hide />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  width={140} 
+                  tick={{fill: '#64748b', fontSize: 12}} 
+                  axisLine={false} 
+                  tickLine={false}
+                  tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 18)}...` : value}
+                />
+                <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', color: '#000'}} />
+                <Bar dataKey="tokens" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        )}
-      </div>
+        </div>
+      </SlideInItem>
       
       {/* Provider Ranking Table with Metric Switcher */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+      <SlideInItem delay={600} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h3 className="font-semibold text-slate-900 dark:text-white">{t('dashboard.ranking.title')}</h3>
-
+            
             <div className="flex p-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg overflow-x-auto max-w-full">
                 {metrics.map((m) => (
                     <button
                         key={m}
                         onClick={() => setMetric(m)}
                         className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-all ${
-                            metric === m
-                            ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                            metric === m 
+                            ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' 
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                         }`}
                     >
@@ -378,7 +363,7 @@ export const Dashboard: React.FC = () => {
                         sortedData.map((provider, index) => {
                             const statusInfo = getStatusInfo(provider, metric);
                             return (
-                                <AnimatedTableRow key={provider.providerId} index={index}>
+                                <tr key={provider.providerId} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
                                     <td className="px-6 py-3 font-medium text-slate-500 dark:text-slate-400">#{index + 1}</td>
                                     <td className="px-6 py-3 font-medium text-slate-800 dark:text-slate-200">
                                         {provider.providerName}
@@ -387,8 +372,8 @@ export const Dashboard: React.FC = () => {
                                         <div className="flex items-center gap-3">
                                             <span className="font-mono w-20">{formatValue(provider)}</span>
                                             <div className="w-24 bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden hidden sm:block">
-                                                <div
-                                                    className={`h-full ${getProgressBarColor(provider)}`}
+                                                <div 
+                                                    className={`h-full ${getProgressBarColor(provider)}`} 
                                                     style={{ width: getProgressBarWidth(provider, maxValue) }}
                                                 ></div>
                                             </div>
@@ -403,14 +388,14 @@ export const Dashboard: React.FC = () => {
                                             <span className="text-slate-400">-</span>
                                         )}
                                     </td>
-                                </AnimatedTableRow>
+                                </tr>
                             );
                         })
                     )}
                 </tbody>
             </table>
         </div>
-      </div>
+      </SlideInItem>
     </div>
   );
 };

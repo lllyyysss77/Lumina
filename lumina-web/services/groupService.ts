@@ -40,13 +40,21 @@ const MODE_MAP_TO_BACKEND: Record<string, number> = {
   [LoadBalanceMode.SAPR]: 5,
 };
 
+export interface GroupPageResponse {
+  records: Group[];
+  total: number;
+  size: number;
+  current: number;
+  pages: number;
+}
+
 export const groupService = {
-  // Fetch paginated list of groups
-  async getList(current = 1, size = 100): Promise<Group[]> {
+  // Fetch paginated list of groups with metadata
+  async getPage(current = 1, size = 10): Promise<GroupPageResponse> {
     const response = await api.get<any>('/groups/page', { params: { current, size } });
     
-    if (response.code === 200 && response.data && Array.isArray(response.data.records)) {
-      return response.data.records.map((item: GroupDTO) => ({
+    if (response.code === 200 && response.data) {
+      const records = (response.data.records || []).map((item: GroupDTO) => ({
         id: String(item.id),
         name: item.name,
         mode: MODE_MAP_TO_FRONTEND[item.balanceMode] || LoadBalanceMode.ROUND_ROBIN,
@@ -56,8 +64,29 @@ export const groupService = {
         })),
         firstTokenTimeout: item.firstTokenTimeout || 3000, 
       }));
+
+      return {
+        records,
+        total: response.data.total || 0,
+        size: response.data.size || size,
+        current: response.data.current || current,
+        pages: response.data.pages || 0
+      };
     }
-    return [];
+    
+    return {
+      records: [],
+      total: 0,
+      size,
+      current,
+      pages: 0
+    };
+  },
+
+  // Backward compatibility: Fetch simple list
+  async getList(current = 1, size = 100): Promise<Group[]> {
+    const data = await this.getPage(current, size);
+    return data.records;
   },
 
   // Create a new group

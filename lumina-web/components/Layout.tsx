@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import {
-  LayoutDashboard,
-  Network,
-  Layers,
-  DollarSign,
-  ScrollText,
-  Settings,
-  Menu,
+import { 
+  LayoutDashboard, 
+  Network, 
+  Layers, 
+  DollarSign, 
+  ScrollText, 
+  Settings, 
+  Menu, 
   X,
   Zap,
   LogOut
@@ -14,9 +14,7 @@ import {
 import { ViewState } from '../types';
 import { useLanguage } from './LanguageContext';
 import { useAuth } from './AuthContext';
-
-// 声明全局变量类型
-declare const __APP_VERSION__: string;
+import { PageTransition } from './Animations';
 
 interface LayoutProps {
   currentView: ViewState;
@@ -78,7 +76,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onChangeView, child
                     </div>
                     <div className="flex flex-col overflow-hidden">
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[80px]">{user?.username || 'Admin'}</span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400">v{__APP_VERSION__}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">v0.2.3</span>
                     </div>
                 </div>
                 <button 
@@ -160,7 +158,9 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onChangeView, child
         {/* Scrollable Content */}
         <div className="flex-1 overflow-auto p-4 md:p-6 scroll-smooth">
           <div className="max-w-[1600px] mx-auto w-full">
-            {children}
+            <PageTransition key={currentView}>
+                {children}
+            </PageTransition>
           </div>
         </div>
       </main>

@@ -18,112 +18,25 @@
               }
             },
             animation: {
-              shimmer: 'shimmer 1.5s infinite',
-              'fade-in': 'fadeIn 0.3s ease-out',
-              'fade-out': 'fadeOut 0.2s ease-in',
-              'slide-in-from-top': 'slideInFromTop 0.3s ease-out',
-              'slide-in-from-bottom': 'slideInFromBottom 0.3s ease-out',
-              'slide-in-from-left': 'slideInFromLeft 0.3s ease-out',
-              'slide-in-from-right': 'slideInFromRight 0.3s ease-out',
-              'slide-out-to-top': 'slideOutToTop 0.2s ease-in',
-              'slide-out-to-bottom': 'slideOutToBottom 0.2s ease-in',
-              'slide-out-to-left': 'slideOutToLeft 0.2s ease-in',
-              'slide-out-to-right': 'slideOutToRight 0.2s ease-in',
-              'zoom-in': 'zoomIn 0.2s ease-out',
-              'zoom-out': 'zoomOut 0.2s ease-in',
-              'scale-in': 'scaleIn 0.2s ease-out',
-              'scale-out': 'scaleOut 0.2s ease-in',
-              'bounce-soft': 'bounceSoft 0.5s ease-out',
-              'pulse-soft': 'pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'fade-in': 'fadeIn 0.5s ease-out',
+              'slide-up': 'slideUp 0.5s ease-out forwards',
+              'shimmer': 'shimmer 2s linear infinite',
+              'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
             keyframes: {
-              shimmer: {
-                '0%': { transform: 'translateX(-100%)' },
-                '100%': { transform: 'translateX(100%)' },
-              },
               fadeIn: {
                 '0%': { opacity: '0' },
                 '100%': { opacity: '1' },
               },
-              fadeOut: {
-                '0%': { opacity: '1' },
-                '100%': { opacity: '0' },
+              slideUp: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
               },
-              slideInFromTop: {
-                '0%': { transform: 'translateY(-10px)', opacity: '0' },
-                '100%': { transform: 'translateY(0)', opacity: '1' },
-              },
-              slideInFromBottom: {
-                '0%': { transform: 'translateY(10px)', opacity: '0' },
-                '100%': { transform: 'translateY(0)', opacity: '1' },
-              },
-              slideInFromLeft: {
-                '0%': { transform: 'translateX(-10px)', opacity: '0' },
-                '100%': { transform: 'translateX(0)', opacity: '1' },
-              },
-              slideInFromRight: {
-                '0%': { transform: 'translateX(10px)', opacity: '0' },
-                '100%': { transform: 'translateX(0)', opacity: '1' },
-              },
-              slideOutToTop: {
-                '0%': { transform: 'translateY(0)', opacity: '1' },
-                '100%': { transform: 'translateY(-10px)', opacity: '0' },
-              },
-              slideOutToBottom: {
-                '0%': { transform: 'translateY(0)', opacity: '1' },
-                '100%': { transform: 'translateY(10px)', opacity: '0' },
-              },
-              slideOutToLeft: {
-                '0%': { transform: 'translateX(0)', opacity: '1' },
-                '100%': { transform: 'translateX(-10px)', opacity: '0' },
-              },
-              slideOutToRight: {
-                '0%': { transform: 'translateX(0)', opacity: '1' },
-                '100%': { transform: 'translateX(10px)', opacity: '0' },
-              },
-              zoomIn: {
-                '0%': { transform: 'scale(0.95)', opacity: '0' },
-                '100%': { transform: 'scale(1)', opacity: '1' },
-              },
-              zoomOut: {
-                '0%': { transform: 'scale(1)', opacity: '1' },
-                '100%': { transform: 'scale(0.95)', opacity: '0' },
-              },
-              scaleIn: {
-                '0%': { transform: 'scale(0.9)', opacity: '0' },
-                '100%': { transform: 'scale(1)', opacity: '1' },
-              },
-              scaleOut: {
-                '0%': { transform: 'scale(1)', opacity: '1' },
-                '100%': { transform: 'scale(0.9)', opacity: '0' },
-              },
-              bounceSoft: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-5px)' },
-              },
-              pulseSoft: {
-                '0%, 100%': { opacity: '1' },
-                '50%': { opacity: '0.7' },
-              },
-              wave: {
-                '0%, 100%': { transform: 'scaleY(0.5)' },
-                '50%': { transform: 'scaleY(1)' },
-              },
-              threeDots: {
-                '0%, 80%, 100%': { transform: 'scale(0)' },
-                '40%': { transform: 'scale(1)' },
-              },
-            },
-            transitionTimingFunction: {
-              'ease-out-smooth': 'cubic-bezier(0.16, 1, 0.3, 1)',
-              'ease-in-smooth': 'cubic-bezier(0.7, 0, 0.84, 1)',
-              'bounce-smooth': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-            },
-            transitionDuration: {
-              '150': '150ms',
-              '400': '400ms',
-              '500': '500ms',
-            },
+              shimmer: {
+                '0%': { backgroundPosition: '-1000px 0' },
+                '100%': { backgroundPosition: '1000px 0' },
+              }
+            }
           }
         }
       }
@@ -157,38 +70,6 @@
       }
       .dark ::-webkit-scrollbar-thumb:hover {
         background: #64748b;
-      }
-
-      /* Performance optimization for animations */
-      .animate-spin,
-      .animate-pulse,
-      .hover\:scale-110:hover,
-      .active\:scale-95:active,
-      .transition-transform,
-      .transition-all {
-        will-change: transform;
-      }
-
-      .animate-in,
-      .animate-out,
-      .fade-in,
-      .fade-out,
-      .slide-in-from-right,
-      .slide-out-to-right,
-      .zoom-in-95 {
-        will-change: opacity, transform;
-      }
-
-      /* Reduced motion support for accessibility */
-      @media (prefers-reduced-motion: reduce) {
-        *,
-        *::before,
-        *::after {
-          animation-duration: 0.01ms !important;
-          animation-iteration-count: 1 !important;
-          transition-duration: 0.01ms !important;
-          scroll-behavior: auto !important;
-        }
       }
     </style>
   <script type="importmap">

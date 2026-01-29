@@ -107,15 +107,7 @@ class HttpClient {
         } else {
            errorData = await response.text();
         }
-
-        // Handle 401 Unauthorized - clear auth and reload
-        if (response.status === 401) {
-          localStorage.removeItem('lumina_token');
-          localStorage.removeItem('lumina_user');
-          // Reload page to trigger redirect to login
-          window.location.reload();
-        }
-
+        
         throw new RequestError(response.status, response.statusText, errorData);
       }
 

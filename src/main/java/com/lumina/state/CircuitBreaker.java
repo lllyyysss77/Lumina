@@ -29,7 +29,7 @@ public class CircuitBreaker {
         // 如果评分太低或连续失败次数多（这里简单用 failureRequests 计数，实际可能需要连续失败计数）
         // 这里的 failureRequests 在 onSuccess 会被清零，所以其实可以代表“当前阶段失败次数”
         if (stats.getFailureRequests().get() >= FAILURE_THRESHOLD
-                || stats.getScore() < 40) {
+                && stats.getScore() < 40) {
 
             stats.setCircuitState(CircuitState.OPEN);
             stats.setCircuitOpenedAt(System.currentTimeMillis());

@@ -158,6 +158,38 @@
       .dark ::-webkit-scrollbar-thumb:hover {
         background: #64748b;
       }
+
+      /* Performance optimization for animations */
+      .animate-spin,
+      .animate-pulse,
+      .hover\:scale-110:hover,
+      .active\:scale-95:active,
+      .transition-transform,
+      .transition-all {
+        will-change: transform;
+      }
+
+      .animate-in,
+      .animate-out,
+      .fade-in,
+      .fade-out,
+      .slide-in-from-right,
+      .slide-out-to-right,
+      .zoom-in-95 {
+        will-change: opacity, transform;
+      }
+
+      /* Reduced motion support for accessibility */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
     </style>
   <script type="importmap">
 {

@@ -5,6 +5,8 @@ import { useLanguage } from './LanguageContext';
 import { providerService } from '../services/providerService';
 import { SkeletonProviderCard } from './Skeleton';
 import { AnimatedProviderCard } from './Animated';
+import { useToast, ToastContainer } from './Toast';
+import { DeleteModal } from './Modal';
 
 const StatusSwitch = ({ checked, onChange, disabled = false, label }: { checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean, label?: string }) => (
   <div className="flex items-center cursor-pointer" onClick={(e) => {
@@ -55,8 +57,7 @@ export const Providers: React.FC = () => {
     pages: 0
   });
   
-  // UI States for Custom Modals & Toasts
-  const [toast, setToast] = useState<{show: boolean, message: string, type: 'success' | 'error' | 'info'}>({ show: false, message: '', type: 'success' });
+  // UI States for Delete Modal
   const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, id: string | null, name: string}>({ isOpen: false, id: null, name: '' });
 
   // Form State
@@ -76,11 +77,7 @@ export const Providers: React.FC = () => {
   const modelsInputRef = useRef<HTMLInputElement>(null);
 
   const { t } = useLanguage();
-
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
-  };
+  const { success, error, info, toasts, removeToast } = useToast();
 
   const fetchProviders = async (page: number = pagination.current, size: number = pagination.size) => {
     setIsLoading(true);
@@ -95,7 +92,7 @@ export const Providers: React.FC = () => {
       });
     } catch (error) {
       console.error("Failed to fetch providers:", error);
-      showToast('Failed to load providers', 'error');
+      error('Failed to load providers');
     } finally {
       setIsLoading(false);
     }
@@ -163,11 +160,11 @@ export const Providers: React.FC = () => {
     
     try {
       await providerService.delete(deleteModal.id);
-      showToast('Provider deleted successfully', 'success');
+      success('Provider deleted successfully');
       fetchProviders();
     } catch (error) {
       console.error("Failed to delete provider:", error);
-      showToast('Failed to delete provider', 'error');
+      error('Failed to delete provider');
     } finally {
       setDeleteModal({ isOpen: false, id: null, name: '' });
     }
@@ -188,7 +185,7 @@ export const Providers: React.FC = () => {
       console.error("Failed to update status:", error);
       // Revert on failure
       setProviders(providers.map(c => c.id === id ? { ...c, status: currentStatus } : c));
-      showToast('Failed to update status', 'error');
+      error('Failed to update status');
     }
   };
 
@@ -206,19 +203,19 @@ export const Providers: React.FC = () => {
 
     // Form Validation
     if (!formData.name?.trim()) {
-      showToast(t('providers.validation.name'), 'error');
+      error(t('providers.validation.name'));
       return;
     }
     if (!formData.baseUrl?.trim()) {
-      showToast(t('providers.validation.baseUrl'), 'error');
+      error(t('providers.validation.baseUrl'));
       return;
     }
     if (!formData.apiKey?.trim()) {
-      showToast(t('providers.validation.apiKey'), 'error');
+      error(t('providers.validation.apiKey'));
       return;
     }
     if (currentModels.length === 0) {
-      showToast(t('providers.validation.models'), 'error');
+      error(t('providers.validation.models'));
       return;
     }
 
@@ -230,16 +227,16 @@ export const Providers: React.FC = () => {
     try {
       if (editingProvider) {
         await providerService.update(editingProvider.id, payload);
-        showToast('Provider updated successfully', 'success');
+        success('Provider updated successfully');
       } else {
         await providerService.create(payload);
-        showToast('Provider created successfully', 'success');
+        success('Provider created successfully');
       }
       setIsModalOpen(false);
       fetchProviders();
     } catch (error) {
       console.error("Failed to save provider:", error);
-      showToast('Failed to save provider', 'error');
+      error('Failed to save provider');
     }
   };
 
@@ -260,7 +257,7 @@ export const Providers: React.FC = () => {
       const latency = Math.floor(Math.random() * 500) + 50;
       setProviders(providers.map(c => c.id === id ? { ...c, latency } : c));
       setActiveMenuId(null);
-      showToast(`Connection active. Latency: ${latency}ms`, 'success');
+      success(`Connection active. Latency: ${latency}ms`);
   };
 
   const handleSyncModels = async (id: string) => {
@@ -268,7 +265,7 @@ export const Providers: React.FC = () => {
       if (!provider) return;
 
       setActiveMenuId(null);
-      showToast('Syncing models...', 'info');
+      info('Syncing models...');
 
       try {
         const models = await providerService.syncModels(provider.baseUrl, provider.apiKey);
@@ -276,11 +273,11 @@ export const Providers: React.FC = () => {
         // Update the provider with the new models
         await providerService.update(provider.id, { ...provider, models });
 
-        showToast(`Synced ${models.length} models`, 'success');
+        success(`Synced ${models.length} models`);
         fetchProviders();
       } catch (error) {
         console.error("Sync failed", error);
-        showToast('Failed to sync models', 'error');
+        error('Failed to sync models');
       }
   };
 
@@ -317,7 +314,7 @@ export const Providers: React.FC = () => {
 
   const handleSyncModelsFromForm = async () => {
     if (!formData.baseUrl || !formData.apiKey) {
-       showToast(t('providers.validation.baseUrl') + ' / ' + t('providers.validation.apiKey'), 'error');
+       error(t('providers.validation.baseUrl') + ' / ' + t('providers.validation.apiKey'));
        return;
     }
 
@@ -326,10 +323,10 @@ export const Providers: React.FC = () => {
         const models = await providerService.syncModels(formData.baseUrl, formData.apiKey);
         setFormData(prev => ({ ...prev, models }));
         setModelsInput('');
-        showToast('Models synchronized successfully', 'success');
+        success('Models synchronized successfully');
     } catch (error) {
         console.error(error);
-        showToast('Failed to sync models', 'error');
+        error('Failed to sync models');
     } finally {
         setIsSyncing(false);
     }
@@ -337,48 +334,16 @@ export const Providers: React.FC = () => {
 
   return (
     <div className="space-y-6 relative">
-      {/* Toast Notification */}
-      {toast.show && (
-          <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-lg shadow-lg border flex items-center animate-in slide-in-from-right duration-300 ${
-              toast.type === 'success' ? 'bg-white border-green-200 text-green-700' : 
-              toast.type === 'error' ? 'bg-white border-red-200 text-red-700' :
-              'bg-white border-blue-200 text-blue-700'
-          }`}>
-              {toast.type === 'success' ? <CheckCircle2 size={18} className="mr-2" /> : 
-               toast.type === 'error' ? <AlertCircle size={18} className="mr-2" /> :
-               <Activity size={18} className="mr-2" />}
-              <span className="text-sm font-medium">{toast.message}</span>
-          </div>
-      )}
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
 
       {/* Delete Confirmation Modal */}
-      {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-4 text-red-600">
-                    <AlertTriangle size={24} />
-                </div>
-                <h3 className="text-lg font-bold text-center text-slate-900 mb-2">Delete Provider?</h3>
-                <p className="text-center text-slate-500 text-sm mb-6">
-                    Are you sure you want to delete <span className="font-semibold text-slate-700">{deleteModal.name}</span>? This action cannot be undone.
-                </p>
-                <div className="flex space-x-3">
-                    <button 
-                        onClick={() => setDeleteModal({isOpen: false, id: null, name: ''})}
-                        className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors"
-                    >
-                        {t('common.cancel')}
-                    </button>
-                    <button 
-                        onClick={confirmDelete}
-                        className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-                    >
-                        {t('common.delete')}
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, name: '' })}
+        onConfirm={confirmDelete}
+        itemName={deleteModal.name}
+      />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

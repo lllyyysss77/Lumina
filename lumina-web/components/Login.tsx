@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { Zap, Loader2, AlertCircle } from 'lucide-react';
+import { BrandLoader } from './Loading';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
@@ -45,20 +46,20 @@ export const Login: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
+        <div className="flex justify-center animate-in fade-in zoom-in-95 duration-500">
             <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
                 <Zap size={28} fill="currentColor" />
             </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 tracking-tight">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 tracking-tight animate-in fade-in slide-in-from-bottom duration-500" style={{ animationDelay: '100ms' }}>
           Lumina Gateway
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-600">
+        <p className="mt-2 text-center text-sm text-slate-600 animate-in fade-in slide-in-from-bottom duration-500" style={{ animationDelay: '200ms' }}>
           Sign in to manage your LLM aggregation
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md animate-in fade-in zoom-in-95 duration-500" style={{ animationDelay: '300ms' }}>
         <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-xl sm:px-10 border border-slate-100">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (

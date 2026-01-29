@@ -5,9 +5,11 @@ import { modelService } from '../services/modelService';
 import { ModelPrice } from '../types';
 import { SkeletonPricingCard } from './Skeleton';
 import { AnimatedPricingCard } from './Animated';
+import { useToast, ToastContainer } from './Toast';
 
 export const Pricing: React.FC = () => {
   const { t } = useLanguage();
+  const { success, error, toasts, removeToast } = useToast();
   
   // State
   const [models, setModels] = useState<ModelPrice[]>([]);
@@ -20,14 +22,6 @@ export const Pricing: React.FC = () => {
     pages: 0
   });
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Toast State
-  const [toast, setToast] = useState<{show: boolean, message: string, type: 'success' | 'error' | 'info'}>({ show: false, message: '', type: 'success' });
-
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
-  };
 
   // Fetch Models
   const fetchModels = async (page: number, size: number, keyword: string) => {
@@ -52,11 +46,11 @@ export const Pricing: React.FC = () => {
     setIsSyncing(true);
     try {
         await modelService.sync();
-        showToast(t('pricing.syncSuccess'), 'success');
+        success(t('pricing.syncSuccess'));
         fetchModels(1, pagination.size, searchTerm); // Refresh list
     } catch (error) {
         console.error("Sync failed", error);
-        showToast(t('pricing.syncFail'), 'error');
+        error(t('pricing.syncFail'));
     } finally {
         setIsSyncing(false);
     }
@@ -89,19 +83,8 @@ export const Pricing: React.FC = () => {
 
   return (
     <div className="space-y-6 relative">
-      {/* Toast Notification */}
-      {toast.show && (
-          <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-lg shadow-lg border flex items-center animate-in slide-in-from-right duration-300 ${
-              toast.type === 'success' ? 'bg-white border-green-200 text-green-700' : 
-              toast.type === 'error' ? 'bg-white border-red-200 text-red-700' :
-              'bg-white border-blue-200 text-blue-700'
-          }`}>
-              {toast.type === 'success' ? <CheckCircle2 size={18} className="mr-2" /> : 
-               toast.type === 'error' ? <AlertCircle size={18} className="mr-2" /> :
-               <Activity size={18} className="mr-2" />}
-              <span className="text-sm font-medium">{toast.message}</span>
-          </div>
-      )}
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

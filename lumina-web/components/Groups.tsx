@@ -6,6 +6,7 @@ import { groupService } from '../services/groupService';
 import { providerService } from '../services/providerService';
 import { SkeletonGroupCard } from './Skeleton';
 import { AnimatedGroupCard } from './Animated';
+import { DeleteModal } from './Modal';
 
 export const Groups: React.FC = () => {
   const { t } = useLanguage();
@@ -198,33 +199,12 @@ export const Groups: React.FC = () => {
       </div>
 
       {/* Delete Confirmation Modal */}
-      {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-4 text-red-600">
-                    <AlertTriangle size={24} />
-                </div>
-                <h3 className="text-lg font-bold text-center text-slate-900 mb-2">Delete Group?</h3>
-                <p className="text-center text-slate-500 text-sm mb-6">
-                    Are you sure you want to delete <span className="font-semibold text-slate-700">{deleteModal.name}</span>? This action cannot be undone.
-                </p>
-                <div className="flex space-x-3">
-                    <button 
-                        onClick={() => setDeleteModal({isOpen: false, id: null, name: ''})}
-                        className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors"
-                    >
-                        {t('common.cancel')}
-                    </button>
-                    <button 
-                        onClick={confirmDelete}
-                        className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-                    >
-                        {t('common.delete')}
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, name: '' })}
+        onConfirm={confirmDelete}
+        itemName={deleteModal.name}
+      />
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">

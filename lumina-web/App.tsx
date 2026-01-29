@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Layout } from './components/Layout';
-import { Dashboard } from './components/Dashboard';
-import { Providers } from './components/Providers';
-import { Groups } from './components/Groups';
-import { Settings } from './components/Settings';
-import { Logs } from './components/Logs';
-import { Pricing } from './components/Pricing';
 import { Login } from './components/Login';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ViewState } from './types';
 import { LanguageProvider, useLanguage } from './components/LanguageContext';
 import { ThemeProvider } from './components/ThemeContext';
 import { Loader2 } from 'lucide-react';
+import { FullPageLoader } from './components/Loading';
+
+// Lazy load page components for code splitting
+const Dashboard = lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const Providers = lazy(() => import('./components/Providers').then(m => ({ default: m.Providers })));
+const Groups = lazy(() => import('./components/Groups').then(m => ({ default: m.Groups })));
+const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const Logs = lazy(() => import('./components/Logs').then(m => ({ default: m.Logs })));
+const Pricing = lazy(() => import('./components/Pricing').then(m => ({ default: m.Pricing })));
 
 // Page transition wrapper component
 const PageTransition: React.FC<{ children: React.ReactNode; key: string }> = ({ children, key }) => (
@@ -28,14 +31,7 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-          <p className="text-slate-500 text-sm animate-pulse">Loading...</p>
-        </div>
-      </div>
-    );
+    return <FullPageLoader message="Loading..." />;
   }
 
   if (!isAuthenticated) {
@@ -63,7 +59,9 @@ const AppContent: React.FC = () => {
 
   return (
     <Layout currentView={currentView} onChangeView={setCurrentView}>
-      {renderView()}
+      <Suspense fallback={<FullPageLoader message="Loading page..." />}>
+        {renderView()}
+      </Suspense>
     </Layout>
   );
 };

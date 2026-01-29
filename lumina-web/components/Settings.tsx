@@ -6,19 +6,14 @@ import { userService } from '../services/userService';
 import { AccessToken } from '../types';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
+import { FadeInList } from './Animated';
+import { useToast, ToastContainer } from './Toast';
 
 export const Settings: React.FC = () => {
   const { t, language, setLanguage } = useLanguage();
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
-
-  // Toast State
-  const [toast, setToast] = useState<{show: boolean, message: string, type: 'success' | 'error' | 'info'}>({ show: false, message: '', type: 'success' });
-  
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
-  };
+  const { success, error, info, toasts, removeToast } = useToast();
 
   // Account Settings State
   const [username, setUsername] = useState(user?.username || '');
@@ -69,7 +64,7 @@ export const Settings: React.FC = () => {
       fetchTokens(); // Refresh list
     } catch (error) {
       console.error("Failed to create token", error);
-      showToast('Failed to create token', 'error');
+      error('Failed to create token');
     } finally {
       setIsCreatingToken(false);
       setNewTokenName('');
@@ -81,17 +76,17 @@ export const Settings: React.FC = () => {
       await tokenService.delete(id);
       setRevokeId(null);
       fetchTokens();
-      showToast('Token revoked successfully', 'success');
+      success('Token revoked successfully');
     } catch (error) {
       console.error("Failed to revoke token", error);
-      showToast('Failed to revoke token', 'error');
+      error('Failed to revoke token');
     }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password && password !== confirmPassword) {
-        showToast(t('settings.passwordsDoNotMatch'), 'error');
+        error(t('settings.passwordsDoNotMatch'));
         return;
     }
 
@@ -102,7 +97,7 @@ export const Settings: React.FC = () => {
             originalPassword: originalPassword || undefined,
             password: password || undefined
         });
-        showToast(t('settings.updateSuccess'), 'success');
+        success(t('settings.updateSuccess'));
         
         // Delay logout slightly to show success message
         setTimeout(async () => {
@@ -111,7 +106,7 @@ export const Settings: React.FC = () => {
 
     } catch (error: any) {
         console.error("Failed to update profile", error);
-        showToast(error.message || 'Failed to update profile', 'error');
+        error(error.message || 'Failed to update profile');
         setIsUpdatingProfile(false);
     }
   };
@@ -130,19 +125,8 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="max-w-6xl space-y-8 relative">
-       {/* Toast Notification */}
-       {toast.show && (
-          <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-lg shadow-lg border flex items-center animate-in slide-in-from-right duration-300 ${
-              toast.type === 'success' ? 'bg-white border-green-200 text-green-700 dark:bg-slate-800 dark:border-green-900 dark:text-green-400' : 
-              toast.type === 'error' ? 'bg-white border-red-200 text-red-700 dark:bg-slate-800 dark:border-red-900 dark:text-red-400' :
-              'bg-white border-blue-200 text-blue-700 dark:bg-slate-800 dark:border-blue-900 dark:text-blue-400'
-          }`}>
-              {toast.type === 'success' ? <CheckCircle2 size={18} className="mr-2" /> : 
-               toast.type === 'error' ? <AlertCircle size={18} className="mr-2" /> :
-               <Activity size={18} className="mr-2" />}
-              <span className="text-sm font-medium">{toast.message}</span>
-          </div>
-      )}
+       {/* Toast Container */}
+       <ToastContainer toasts={toasts} onClose={removeToast} />
 
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('settings.title')}</h1>
@@ -152,7 +136,7 @@ export const Settings: React.FC = () => {
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm divide-y divide-slate-100 dark:divide-slate-700">
 
         {/* Section: Language */}
-        <div className="p-4 sm:p-6">
+        <div className="p-4 sm:p-6 animate-in fade-in slide-in-from-top duration-300" style={{ animationDelay: '0ms' }}>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex items-start space-x-4">
               <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg flex-shrink-0">
@@ -191,7 +175,7 @@ export const Settings: React.FC = () => {
         </div>
 
         {/* Section: Account Settings */}
-        <div className="p-4 sm:p-6">
+        <div className="p-4 sm:p-6 animate-in fade-in slide-in-from-top duration-300" style={{ animationDelay: '50ms' }}>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex items-start space-x-4 w-full">
               <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg flex-shrink-0">
@@ -262,7 +246,7 @@ export const Settings: React.FC = () => {
         </div>
 
         {/* Section: Security */}
-        <div className="p-4 sm:p-6">
+        <div className="p-4 sm:p-6 animate-in fade-in slide-in-from-top duration-300" style={{ animationDelay: '100ms' }}>
            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex items-start space-x-4">
               <div className="p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg flex-shrink-0">
@@ -287,7 +271,7 @@ export const Settings: React.FC = () => {
         </div>
 
         {/* Section: Theme */}
-        <div className="p-4 sm:p-6">
+        <div className="p-4 sm:p-6 animate-in fade-in slide-in-from-top duration-300" style={{ animationDelay: '150ms' }}>
            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex items-start space-x-4">
               <div className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg flex-shrink-0">

@@ -145,7 +145,7 @@ java -jar lumina.jar --spring.profiles.active=sqlite
 
 ### SQLite 模式（零依赖）
 
-**docker-compose-sqlite.yml**
+**docker-compose.yml**
 ```yaml
 services:
   app:
@@ -153,7 +153,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:sqlite:/app/data/lumina.db
       SPRING_DATASOURCE_DRIVER: org.sqlite.JDBC
     volumes:
-      - lumina-sqlite-data:/app/data
+      - ./data:/app/data
 ```
 
 **特点：**
@@ -168,7 +168,7 @@ docker-compose -f docker-compose.yml up -d
 
 ### MySQL 模式（完整部署）
 
-**docker-compose.yml**
+**docker-compose-mysql.yml**
 ```yaml
 services:
   mysql:
@@ -184,7 +184,7 @@ services:
 
 **启动命令：**
 ```bash
-docker-compose up -d
+docker-compose -f docker-compose-mysql.yml up -d
 ```
 
 ---
@@ -281,5 +281,5 @@ INFO  c.l.config.DataSourceConfig - Detected SQLite database
 - `src/main/resources/db/migration/lumina_sqlite.sql` - SQLite 初始化脚本
 - `src/main/java/com/lumina/config/DataSourceConfig.java` - 数据源配置
 - `src/main/java/com/lumina/config/DatabaseInitializer.java` - SQLite 自动初始化
-- `docker-compose.yml` - MySQL 部署配置
-- `docker-compose-sqlite.yml` - SQLite 部署配置（零依赖）
+- `docker-compose.yml` - SQLite 部署配置（零依赖）
+- `docker-compose-mysql.yml` - MySQL 部署配置

@@ -109,3 +109,38 @@ export interface LoginResponse {
     username: string;
   };
 }
+
+// Circuit Breaker Types
+
+export type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+
+export interface CircuitBreakerStatus {
+  providerId: string;
+  providerName: string;
+  circuitState: CircuitState;
+  circuitOpenedAt?: number;
+  nextProbeAt?: number;
+  openAttempt?: number;
+  score: number;
+  errorRate: number;
+  slowRate: number;
+  consecutiveFailures: number;
+  totalRequests: number;
+  successRequests: number;
+  failureRequests: number;
+  currentConcurrent: number;
+  maxConcurrent: number;
+  bulkheadRejectedCount: number;
+  probeRemaining?: number;
+  halfOpenSuccessCount?: number;
+  halfOpenFailureCount?: number;
+  manuallyControlled: boolean;
+  manualControlReason?: string | null;
+}
+
+export interface CircuitBreakerControlRequest {
+  providerId: string;
+  targetState: CircuitState;
+  reason?: string;
+  durationMs?: number;
+}

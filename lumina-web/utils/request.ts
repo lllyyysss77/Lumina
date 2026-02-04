@@ -107,6 +107,18 @@ class HttpClient {
         } else {
            errorData = await response.text();
         }
+
+        // Handle 401 Unauthorized
+        // If the request was authenticated (not skipAuth) and failed with 401,
+        // it means the session is invalid/expired.
+        if (response.status === 401 && !skipAuth) {
+          localStorage.removeItem('lumina_token');
+          localStorage.removeItem('lumina_user');
+          // Reloading the page will trigger App.tsx to check auth state and render Login component
+          window.location.reload();
+          // Throw error to stop current execution flow
+          throw new RequestError(response.status, 'Session Expired', errorData);
+        }
         
         throw new RequestError(response.status, response.statusText, errorData);
       }

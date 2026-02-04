@@ -23,9 +23,17 @@ public class ApiKeyAuthenticationFilter implements WebFilter {
     @Autowired
     private ApiKeyService apiKeyService;
 
-    private static final String X_GOOG_API_KEY = "x-goog-api-key";
-    private static final String AUTHORIZATION = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+
+    // 常见的 API Key 请求头名称列表（按优先级顺序）
+    private static final String[] API_KEY_HEADER_NAMES = {
+        "Authorization",           // Bearer token 格式
+        "X-API-Key",               // Cherry Studio 等
+        "X-Api-Key",               // 大小写变体
+        "x-goog-api-key",          // Gemini API
+        "api-key",                 // 其他客户端
+        "API-Key"                  // 大小写变体
+    };
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -36,7 +44,7 @@ public class ApiKeyAuthenticationFilter implements WebFilter {
             return chain.filter(exchange);
         }
 
-        String apiKey = extractApiKey(exchange, path);
+        String apiKey = extractApiKey(exchange);
 
         if (!StringUtils.hasText(apiKey)) {
             log.warn("Missing API key for path: {}", path);
@@ -59,20 +67,33 @@ public class ApiKeyAuthenticationFilter implements WebFilter {
                 });
     }
 
-    private String extractApiKey(ServerWebExchange exchange, String path) {
-        // /v1beta/** 使用 x-goog-api-key
-        if (path.startsWith("/v1beta/")) {
-            return exchange.getRequest().getHeaders().getFirst(X_GOOG_API_KEY);
-        }
-
-        // /v1/** 使用 Authorization 请求头（Bearer token 格式）
-        if (path.startsWith("/v1/")) {
-            String authorization = exchange.getRequest().getHeaders().getFirst(AUTHORIZATION);
-            if (StringUtils.hasText(authorization) && authorization.startsWith(BEARER_PREFIX)) {
-                return authorization.substring(BEARER_PREFIX.length());
+    /**
+     * 从请求中提取 API Key
+     * 支持多种请求头格式，按优先级顺序尝试
+     */
+    private String extractApiKey(ServerWebExchange exchange) {
+        for (String headerName : API_KEY_HEADER_NAMES) {
+            String headerValue = exchange.getRequest().getHeaders().getFirst(headerName);
+            if (StringUtils.hasText(headerValue)) {
+                // Authorization 头需要去掉 "Bearer " 前缀
+                if (headerName.equalsIgnoreCase("Authorization")) {
+                    if (headerValue.startsWith(BEARER_PREFIX)) {
+                        String apiKey = headerValue.substring(BEARER_PREFIX.length()).trim();
+                        if (StringUtils.hasText(apiKey)) {
+                            log.debug("Extracted API key from Authorization header");
+                            return apiKey;
+                        }
+                    }
+                } else {
+                    // 其他头直接使用其值（去除首尾空格）
+                    String apiKey = headerValue.trim();
+                    if (StringUtils.hasText(apiKey)) {
+                        log.debug("Extracted API key from {} header", headerName);
+                        return apiKey;
+                    }
+                }
             }
         }
-
         return null;
     }
 

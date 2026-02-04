@@ -76,10 +76,10 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
         // 3. 处理 Gemini 的 "usageMetadata" 字段
         if (node.has("usageMetadata")) {
             JsonNode usage = node.get("usageMetadata");
-            if (usage.has("promptTokenCount") && ctx.getInputTokens() == null) {
+            if (usage.has("promptTokenCount") && (ctx.getInputTokens() == null || ctx.getInputTokens() == 0)) {
                 ctx.setInputTokens(usage.get("promptTokenCount").asInt());
             }
-            if (usage.has("candidatesTokenCount") && ctx.getOutputTokens() == null) {
+            if (usage.has("candidatesTokenCount") && (ctx.getOutputTokens() == null || ctx.getOutputTokens() == 0)) {
                 ctx.setOutputTokens(usage.get("candidatesTokenCount").asInt());
             }
         }
@@ -92,18 +92,18 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
 
     private void parseUsageNode(RequestLogContext ctx, JsonNode usage) {
         // 兼容旧版 OpenAI 字段
-        if (usage.has("prompt_tokens") && ctx.getInputTokens() == null) {
+        if (usage.has("prompt_tokens") && (ctx.getInputTokens() == null || ctx.getInputTokens() == 0)) {
             ctx.setInputTokens(usage.get("prompt_tokens").asInt());
         }
-        if (usage.has("completion_tokens") && ctx.getOutputTokens() == null) {
+        if (usage.has("completion_tokens") && (ctx.getOutputTokens() == null || ctx.getOutputTokens() == 0)) {
             ctx.setOutputTokens(usage.get("completion_tokens").asInt());
         }
 
         // 兼容新版 /responses 接口字段 或 Anthropic 字段
-        if (usage.has("input_tokens") && ctx.getInputTokens() == null) {
+        if (usage.has("input_tokens") && (ctx.getInputTokens() == null || ctx.getInputTokens() == 0)) {
             ctx.setInputTokens(usage.get("input_tokens").asInt());
         }
-        if (usage.has("output_tokens") && ctx.getOutputTokens() == null) {
+        if (usage.has("output_tokens") && (ctx.getOutputTokens() == null || ctx.getOutputTokens() == 0)) {
             ctx.setOutputTokens(usage.get("output_tokens").asInt());
         }
     }
@@ -164,9 +164,11 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
     }
 
     protected WebClient createWebClient(ModelGroupConfigItem provider) {
+        String apiKey = provider.getApiKey();
+        String authHeader = apiKey.startsWith("Bearer ") ? apiKey : "Bearer " + apiKey;
         return WebClient.builder()
                 .baseUrl(provider.getBaseUrl())
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + provider.getApiKey())
+                .defaultHeader(HttpHeaders.AUTHORIZATION, authHeader)
                 .build();
     }
 

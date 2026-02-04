@@ -80,10 +80,46 @@ public class DashboardService {
 
     /**
      * 获取24小时请求流量
+     * 返回完整的 0-23 小时数据，没有数据的小时显示为 0
      */
     public List<RequestTrafficDto> getRequestTraffic() {
-        LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
-        return dashboardMapper.getRequestTraffic(last24Hours.format(FORMATTER));
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime last24Hours = now.minusHours(24);
+
+        // 从数据库获取有数据的小时
+        List<RequestTrafficDto> dbResults = dashboardMapper.getRequestTraffic(last24Hours.format(FORMATTER));
+
+        // 创建一个 Map 用于快速查找，key 为小时数
+        java.util.Map<Integer, RequestTrafficDto> dataMap = new java.util.HashMap<>();
+        for (RequestTrafficDto dto : dbResults) {
+            dataMap.put(dto.getHour(), dto);
+        }
+
+        // 构建完整的 0-23 小时数据
+        List<RequestTrafficDto> result = new java.util.ArrayList<>();
+        LocalDateTime currentHour = last24Hours.withMinute(0).withSecond(0).withNano(0);
+
+        for (int i = 0; i < 24; i++) {
+            int hour = currentHour.getHour();
+            long timestamp = currentHour.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+            RequestTrafficDto dto = dataMap.get(hour);
+            if (dto != null) {
+                // 有数据，使用数据库返回的数据
+                result.add(dto);
+            } else {
+                // 没有数据，创建一个 requestCount 为 0 的数据点
+                result.add(RequestTrafficDto.builder()
+                        .hour(hour)
+                        .requestCount(0L)
+                        .timestamp(timestamp)
+                        .build());
+            }
+
+            currentHour = currentHour.plusHours(1);
+        }
+
+        return result;
     }
 
     /**

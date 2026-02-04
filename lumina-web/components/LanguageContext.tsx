@@ -42,6 +42,69 @@ const translations = {
       settings: '设置中心',
       systemHealthy: '系统正常',
     },
+    login: {
+      nav: {
+        login: '登录',
+        getStarted: '开始使用'
+      },
+      hero: {
+        tagline: 'Lumina 开源网关 v{{version}} 已发布',
+        titleLine1: '开源',
+        titleLine2: 'AI 模型',
+        titleLine3: '网关',
+        subtitle: '支持 OpenAI、Anthropic、Gemini 统一中继。内置熔断机制与智能故障转移，支持 Docker 开箱即用。',
+        startBtn: '立即开始',
+        docBtn: '查看文档'
+      },
+      features: {
+        title: '核心功能',
+        subtitle: '提供 AI 模型中继的基础能力。',
+        unifiedGateway: {
+          title: '统一 API 中继',
+          desc: '支持 OpenAI, Anthropic, Gemini 标准接口中继，涵盖 Chat, Messages 及 Models API，支持流式响应。'
+        },
+        loadBalancing: {
+          title: '智能故障转移',
+          desc: '基于 Top-K Softmax 算法的加权选择，支持连接超时、限流等场景的自动重试与故障切换。'
+        },
+        security: {
+          title: '认证与鉴权',
+          desc: '管理后台采用 JWT 安全认证，API 调用支持多维度 Key 管理及启用/禁用控制。'
+        },
+        observability: {
+          title: '可观测性',
+          desc: '实时监控请求流量、Token 消耗及费用统计。提供完整的请求日志记录与熔断器状态监控。'
+        },
+        modelMapping: {
+          title: '模型分组',
+          desc: '支持模型名称精确匹配自动路由，分组内可配置多个 Provider 作为备份。'
+        },
+        circuitBreaking: {
+          title: '熔断机制',
+          desc: '基于错误率与慢调用的多维触发，支持指数退避自愈探测 (Half-Open) 与并发控制 (Bulkhead)。'
+        }
+      },
+      footer: {
+        text: '开源 AI 模型网关。',
+        rights: '保留所有权利。'
+      },
+      modal: {
+        welcome: '欢迎回来',
+        signinDesc: '登录以管理您的 AI 网关',
+        username: '用户名',
+        password: '密码',
+        signinBtn: '登录',
+        authenticating: '验证中...',
+        systemInfo: 'Lumina Gateway System • 仅限授权访问',
+        placeholderUser: '请输入用户名',
+        placeholderPass: '请输入密码'
+      },
+      errors: {
+          missingCreds: '请输入用户名和密码。',
+          failed: '登录失败。请检查您的凭据。',
+          network: '无法连接到服务器。请检查您的网络连接。'
+      }
+    },
     dashboard: {
       title: '仪表盘概览',
       subtitle: 'LLM 网关实时监控',
@@ -236,6 +299,36 @@ const translations = {
         copied: '已复制',
         copyWarning: '请务必立即复制此令牌。出于安全原因，它将不会再次显示。',
         confirmRevoke: '确定要撤销此令牌吗？任何使用此令牌的应用程序将立即无法访问。'
+      },
+      circuitBreaker: {
+        title: '熔断器管控',
+        desc: '实时监控与手动干预各供应商的熔断状态。',
+        refresh: '刷新状态',
+        table: {
+          provider: '供应商',
+          state: '熔断状态',
+          score: '健康分',
+          stats: '统计 (错误/慢调用)',
+          control: '手动管控'
+        },
+        states: {
+          CLOSED: '正常 (CLOSED)',
+          OPEN: '熔断 (OPEN)',
+          HALF_OPEN: '探测 (HALF_OPEN)'
+        },
+        controlModal: {
+          title: '手动控制熔断器',
+          targetState: '目标状态',
+          reason: '操作原因',
+          reasonPlaceholder: '请输入操作原因 (用于审计)',
+          duration: '熔断持续时间 (毫秒)',
+          confirm: '确认操作',
+          manualActive: '手动控制中'
+        },
+        actions: {
+          manage: '管控',
+          release: '释放控制'
+        }
       }
     }
   },
@@ -277,6 +370,69 @@ const translations = {
       logs: 'Logs',
       settings: 'Settings',
       systemHealthy: 'System Healthy',
+    },
+    login: {
+      nav: {
+        login: 'Login',
+        getStarted: 'Get Started'
+      },
+      hero: {
+        tagline: 'Lumina Open Source Gateway v{{version}}',
+        titleLine1: 'Open Source',
+        titleLine2: 'AI Model',
+        titleLine3: 'Gateway',
+        subtitle: 'Unified relay for OpenAI, Anthropic, Gemini. Built-in circuit breaking and smart failover. Docker ready out of the box.',
+        startBtn: 'Start Using Now',
+        docBtn: 'View Documentation'
+      },
+      features: {
+        title: 'Core Features',
+        subtitle: 'Essential capabilities for AI model relay.',
+        unifiedGateway: {
+          title: 'Unified API Relay',
+          desc: 'Supports standard OpenAI, Anthropic, and Gemini formats including Chat, Messages, and Models APIs with streaming.'
+        },
+        loadBalancing: {
+          title: 'Smart Failover',
+          desc: 'Top-K Softmax weighted selection with automatic retry and failover for timeouts, rate limits, and errors.'
+        },
+        security: {
+          title: 'Authentication',
+          desc: 'Secure JWT for admin dashboard. API Keys support multi-dimensional management and enable/disable controls.'
+        },
+        observability: {
+          title: 'Observability',
+          desc: 'Real-time monitoring of traffic, token usage, and costs. Complete request logging and circuit breaker status monitoring.'
+        },
+        modelMapping: {
+          title: 'Model Grouping',
+          desc: 'Supports automatic routing via exact model name matching. Configure multiple Providers within a group for backup.'
+        },
+        circuitBreaking: {
+          title: 'Circuit Breaking',
+          desc: 'Multi-dimensional triggers based on error rates and slow calls. Supports exponential backoff self-healing and Bulkhead concurrency control.'
+        }
+      },
+      footer: {
+        text: 'Open Source AI Model Gateway.',
+        rights: 'All rights reserved.'
+      },
+      modal: {
+        welcome: 'Welcome Back',
+        signinDesc: 'Sign in to manage your AI Gateway',
+        username: 'Username',
+        password: 'Password',
+        signinBtn: 'Sign In',
+        authenticating: 'Authenticating...',
+        systemInfo: 'Lumina Gateway System • Restricted Access',
+        placeholderUser: 'admin',
+        placeholderPass: '••••••••'
+      },
+      errors: {
+          missingCreds: 'Please enter both username and password.',
+          failed: 'Login failed. Please check your credentials.',
+          network: 'Unable to connect to the server. Please check your network connection.'
+      }
     },
     dashboard: {
       title: 'Dashboard Overview',
@@ -472,6 +628,36 @@ const translations = {
         copied: 'Copied',
         copyWarning: 'Make sure to copy this token now. You won’t be able to see it again!',
         confirmRevoke: 'Are you sure you want to revoke this token? Any applications using it will lose access immediately.'
+      },
+      circuitBreaker: {
+        title: 'Circuit Breaker Management',
+        desc: 'Real-time monitoring and manual intervention of provider circuit statuses.',
+        refresh: 'Refresh Status',
+        table: {
+          provider: 'Provider',
+          state: 'State',
+          score: 'Score',
+          stats: 'Stats (Error/Slow)',
+          control: 'Control'
+        },
+        states: {
+          CLOSED: 'Normal (CLOSED)',
+          OPEN: 'Open (OPEN)',
+          HALF_OPEN: 'Probe (HALF_OPEN)'
+        },
+        controlModal: {
+          title: 'Manual Circuit Control',
+          targetState: 'Target State',
+          reason: 'Reason',
+          reasonPlaceholder: 'Enter reason for operation (for audit)',
+          duration: 'Duration (ms)',
+          confirm: 'Confirm',
+          manualActive: 'Manually Controlled'
+        },
+        actions: {
+          manage: 'Manage',
+          release: 'Release'
+        }
       }
     }
   }
@@ -480,7 +666,7 @@ const translations = {
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -489,7 +675,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Default to Chinese ('zh')
   const [language, setLanguage] = useState<Language>('zh');
 
-  const t = (key: string) => {
+  const t = (key: string, params?: Record<string, string | number>) => {
     const keys = key.split('.');
     let value: any = translations[language];
     for (const k of keys) {
@@ -499,7 +685,14 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         return key; // Return key if translation not found
       }
     }
-    return value as string;
+
+    let str = value as string;
+    if (params) {
+      Object.entries(params).forEach(([key, val]) => {
+        str = str.replace(`{{${key}}}`, String(val));
+      });
+    }
+    return str;
   };
 
   return (

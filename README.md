@@ -8,17 +8,41 @@ Lumina 是一个高性能、轻量级的 LLM API 网关服务，旨在为多个 
 
 ## 🚀 功能特性
 
-- **多提供商支持**：原生支持 Anthropic (Claude)、OpenAI (GPT)、Google (Gemini) 等主流提供商。
-- **统一 API 接口**：提供与 OpenAI/Anthropic/Gemini 兼容的标准端点，无缝替换原有接口。
-- **流式响应 (SSE)**：全异步架构支持流式输出，确保极致的响应速度。
-- **智能负载均衡**：基于提供商状态和评分的智能路由。
-- **高可用机制**：内置断路器 (Circuit Breaker) 和自动故障转移，检测到提供商异常时自动切换。
-- **灵活的权限管理**：
-  - 基于 JWT 的管理员后台认证。
-  - 支持多 key 管理。
-- **可视化管理界面**：基于 React + Vite 的现代化控制台，直观管理模型、分组和日志。
-- **高性能架构**：基于 Spring WebFlux 响应式编程模型，单实例即可处理高并发请求。
-- **零依赖部署**：支持 SQLite 且 Docker 镜像内置 Redis，实现“开箱即用”。
+
+- **统一 API 中继**：支持 OpenAI、Anthropic、Gemini 的标准 API 格式
+  - OpenAI Chat Completions (`/v1/chat/completions`)
+  - OpenAI Responses API (`/v1/responses`)
+  - Anthropic Messages API (`/v1/messages`)
+  - Gemini Models API (`/v1beta/models/*`)
+  - 支持流式（SSE）和非流式响应
+
+- **模型分组与路由**：
+  - 支持模型名称精确匹配，自动路由到指定分组
+  - 智能负载均衡：基于 Provider 评分的 Top-K Softmax 加权选择
+  - 分组内可配置多个 Provider 作为备份
+
+- **熔断器机制**：
+  - 基于错误率、连续失败次数、慢调用率的多维度触发
+  - 自动熔断状态管理：CLOSED（正常）→ OPEN（熔断）→ HALF_OPEN（探测）
+  - 指数退避恢复策略，支持自动探测和恢复
+  - 并发控制（Bulkhead），每个 Provider 可配置最大并发数
+
+- **智能故障转移**：
+  - 基于 Provider 评分的 Top-K Softmax 加权选择
+  - 支持连接超时、HTTP 错误、限流等场景的自动重试
+  - 可配置最大重试次数
+
+- **可观测性**：
+  - 实时仪表盘：请求总量、费用统计、平均延迟、成功率
+  - 24 小时流量趋势图
+  - 模型 Token 使用统计
+  - 供应商排名（按调用次数、费用、延迟、成功率）
+  - 完整请求日志记录（含 Token 计数、费用、延迟、错误信息）
+  - 熔断器状态监控 API
+
+- **认证与鉴权**：
+  - 管理后台：JWT 认证（有效期 24 小时）
+  - API 调用：API Key 认证（支持启用/禁用控制）
 
 ## 🛠️ 技术栈
 

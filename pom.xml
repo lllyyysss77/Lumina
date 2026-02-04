@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.lumina</groupId>
 	<artifactId>lumina</artifactId>
-	<version>0.2.3</version>
+	<version>0.2.9</version>
 	<name>lumina</name>
 	<description>lumina</description>
 	<url/>

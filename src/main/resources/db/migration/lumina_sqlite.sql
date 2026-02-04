@@ -121,6 +121,9 @@ CREATE TABLE IF NOT EXISTS `provider_runtime_stats` (
   `failure_requests` INTEGER NOT NULL DEFAULT 0,
   `circuit_state` TEXT NOT NULL DEFAULT 'CLOSED',
   `circuit_opened_at` INTEGER NOT NULL DEFAULT 0,
+  `consecutive_failures` INTEGER DEFAULT NULL,
+  `open_attempt` INTEGER DEFAULT NULL,
+  `next_probe_at` INTEGER DEFAULT NULL,
   `updated_at` DATETIME NOT NULL DEFAULT (datetime('now'))
 );
 

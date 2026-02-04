@@ -16,9 +16,9 @@ FROM eclipse-temurin:17-jre-alpine
 LABEL version="0.1.0"
 LABEL description="Lumina - High-performance LLM API Gateway"
 WORKDIR /app
-RUN apk add --no-cache redis
+RUN apk add --no-cache redis dos2unix
 COPY --from=build /app/target/*.jar app.jar
 COPY startup.sh ./
-RUN chmod +x startup.sh
+RUN dos2unix startup.sh && chmod +x startup.sh
 EXPOSE 8080
 ENTRYPOINT ["./startup.sh"]

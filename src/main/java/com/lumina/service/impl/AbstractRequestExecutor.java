@@ -115,7 +115,7 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
 
         try {
             LlmModel model = llmModelService.getOne(new LambdaQueryWrapper<LlmModel>()
-                    .eq(LlmModel::getModelName, ctx.getRequestModel())
+                    .eq(LlmModel::getModelName, ctx.getActualModel())
                     .orderByDesc(LlmModel::getInputPrice)
                     .last("limit 1"));
             if (model == null) {

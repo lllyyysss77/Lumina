@@ -126,16 +126,16 @@ export const Dashboard: React.FC = () => {
 
   const getProgressBarColor = (item: ProviderStats) => {
       if (metric === 'successRate') {
-          if (item.successRate >= 99) return 'bg-emerald-500';
-          if (item.successRate >= 95) return 'bg-amber-500'; 
-          return 'bg-red-500';
+          if (item.successRate >= 99) return 'bg-emerald-400';
+          if (item.successRate >= 95) return 'bg-amber-400'; 
+          return 'bg-red-400';
       }
       if (metric === 'latency') {
-          if (item.avgLatency <= 1000) return 'bg-emerald-500';
-          if (item.avgLatency <= 3000) return 'bg-amber-500';
-          return 'bg-red-500';
+          if (item.avgLatency <= 1000) return 'bg-emerald-400';
+          if (item.avgLatency <= 3000) return 'bg-amber-400';
+          return 'bg-red-400';
       }
-      return 'bg-gray-800 dark:bg-gray-200'; // Monochrome bar for standard stats
+      return 'bg-gray-400 dark:bg-gray-500'; // Softer gray for standard stats
   }
 
   const getProgressBarWidth = (item: ProviderStats, maxVal: number) => {
@@ -313,7 +313,7 @@ export const Dashboard: React.FC = () => {
                     contentStyle={{borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', backgroundColor: '#fff', color: '#000'}}
                 />
                 <Bar dataKey="tokens" radius={[0, 4, 4, 0]}>
-                    {modelUsageData.map((entry, index) => (
+                    {modelUsageData.map((_, index) => (
                          <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#4B5563' : '#9CA3AF'} />
                     ))}
                 </Bar>
@@ -383,7 +383,7 @@ export const Dashboard: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         {statusInfo ? (
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${statusInfo.className}`}>
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${statusInfo.className} border border-transparent dark:border-white/5`}>
                                                 {statusInfo.label}
                                             </span>
                                         ) : (

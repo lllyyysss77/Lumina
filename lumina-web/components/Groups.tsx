@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Group, LoadBalanceMode, Provider } from '../types';
-import { Layers, Shuffle, ArrowRightLeft, Scale, PlayCircle, Plus, Settings2, Trash2, X, Save, Check, ChevronDown, ChevronRight, AlertTriangle, Loader2, Search, Filter, Activity, Target, Clock, ArrowRight } from 'lucide-react';
+import { Layers, Shuffle, ArrowRightLeft, Scale, PlayCircle, Plus, Settings2, Trash2, X, Save, Check, ChevronDown, ChevronRight, AlertTriangle, Loader2, Search, Activity, Target, Clock } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { groupService } from '../services/groupService';
 import { providerService } from '../services/providerService';

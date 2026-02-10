@@ -1,19 +1,6 @@
 import { api } from '../utils/request';
 import { Provider, ProviderType } from '../types';
 
-interface ProviderDTO {
-  id: number;
-  name: string;
-  type: number;
-  isEnabled: boolean;
-  baseUrl: string;
-  modelName: string;
-  autoSync: boolean;
-  apiKey?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface ProviderPageResponse {
   records: Provider[];
   total: number;

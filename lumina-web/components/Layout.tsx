@@ -9,8 +9,7 @@ import {
   Menu, 
   X,
   Zap,
-  LogOut,
-  ChevronRight
+  LogOut
 } from 'lucide-react';
 import { ViewState } from '../types';
 import { useLanguage } from './LanguageContext';

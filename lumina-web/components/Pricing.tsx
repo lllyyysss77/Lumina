@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, BrainCircuit, Wrench, RefreshCw, Database, Cpu, Calendar, CheckCircle2, AlertCircle, Activity, Tag } from 'lucide-react';
+import { Search, BrainCircuit, Wrench, RefreshCw, Database, Cpu, Calendar, CheckCircle2, AlertCircle, Activity, Tag } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { modelService } from '../services/modelService';
 import { ModelPrice } from '../types';

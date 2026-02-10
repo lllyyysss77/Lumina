@@ -9,7 +9,7 @@ import { Pricing } from './components/Pricing';
 import { Login } from './components/Login';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ViewState } from './types';
-import { LanguageProvider, useLanguage } from './components/LanguageContext';
+import { LanguageProvider } from './components/LanguageContext';
 import { ThemeProvider } from './components/ThemeContext';
 import { Loader2 } from 'lucide-react';
 

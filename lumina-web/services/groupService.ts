@@ -1,5 +1,5 @@
 import { api } from '../utils/request';
-import { Group, LoadBalanceMode, GroupTarget } from '../types';
+import { Group, LoadBalanceMode } from '../types';
 
 // Backend DTO interfaces
 interface GroupItemDTO {

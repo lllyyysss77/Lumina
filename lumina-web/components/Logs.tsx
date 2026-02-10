@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Download, Loader2, ChevronLeft, ChevronRight, X, Copy, Check, Eye, RefreshCw, Clock, ScrollText } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { logService, LogDetail } from '../services/logService';
 import { LogEntry } from '../types';
 import { TableSkeleton } from './Skeletons';
-import { SlideInItem } from './Animations';
 
 export const Logs: React.FC = () => {
   const { t } = useLanguage();
@@ -243,7 +242,7 @@ export const Logs: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                logs.map((log, index) => (
+                                logs.map((log) => (
                                     <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors animate-fade-in group">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2.5 py-0.5 inline-flex text-[10px] font-bold uppercase tracking-wide rounded-full border ${

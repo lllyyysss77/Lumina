@@ -17,7 +17,7 @@ const StatusSwitch = ({ checked, onChange, disabled = false, label }: { checked:
         role="switch"
         aria-checked={checked}
         className={`${
-        checked ? 'bg-green-500 shadow-sm' : 'bg-gray-200 dark:bg-gray-700'
+        checked ? 'bg-emerald-500 shadow-sm' : 'bg-gray-200 dark:bg-gray-700'
         } relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none disabled:opacity-50`}
     >
         <span
@@ -27,7 +27,7 @@ const StatusSwitch = ({ checked, onChange, disabled = false, label }: { checked:
         } pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
         />
     </button>
-    {label && <span className={`ml-2 text-xs font-medium transition-colors ${checked ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>{label}</span>}
+    {label && <span className={`ml-2 text-xs font-medium transition-colors ${checked ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>{label}</span>}
   </div>
 );
 
@@ -249,15 +249,15 @@ export const Providers: React.FC = () => {
     switch (type) {
       case ProviderType.OPENAI_CHAT: 
       case ProviderType.OPENAI_RESPONSE:
-        return 'bg-emerald-500';
+        return 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30';
       case ProviderType.ANTHROPIC: 
-        return 'bg-amber-500';
+        return 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30';
       case ProviderType.GEMINI: 
-        return 'bg-blue-500';
+        return 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/30';
       case ProviderType.NEW_API: 
-        return 'bg-indigo-500';
+        return 'bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-900/30';
       default: 
-        return 'bg-gray-500';
+        return 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
     }
   };
 
@@ -345,10 +345,10 @@ export const Providers: React.FC = () => {
     <div className="space-y-6 relative flex flex-col h-full">
       {/* Toast Notification */}
       {toast.show && (
-          <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-float border flex items-center animate-in slide-in-from-right duration-300 ${
-              toast.type === 'success' ? 'bg-white border-green-100 text-green-700 dark:bg-[#1a1a1a] dark:border-green-900/50 dark:text-green-400' : 
-              toast.type === 'error' ? 'bg-white border-red-100 text-red-700 dark:bg-[#1a1a1a] dark:border-red-900/50 dark:text-red-400' :
-              'bg-white border-blue-100 text-blue-700 dark:bg-[#1a1a1a] dark:border-blue-900/50 dark:text-blue-400'
+          <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-float border flex items-center animate-in slide-in-from-right duration-300 backdrop-blur-md ${
+              toast.type === 'success' ? 'bg-white border-green-200 text-green-700 dark:bg-[#1a1a1a] dark:border-green-900 dark:text-green-400' : 
+              toast.type === 'error' ? 'bg-white border-red-200 text-red-700 dark:bg-[#1a1a1a] dark:border-red-900 dark:text-red-400' :
+              'bg-white border-blue-200 text-blue-700 dark:bg-[#1a1a1a] dark:border-blue-900 dark:text-blue-400'
           }`}>
               {toast.type === 'success' ? <CheckCircle2 size={18} className="mr-2" /> : 
                toast.type === 'error' ? <AlertTriangle size={18} className="mr-2" /> :
@@ -420,7 +420,7 @@ export const Providers: React.FC = () => {
                             
                             {/* Left Section: Icon & Info */}
                             <div className="flex items-start gap-5 w-full overflow-hidden">
-                                <div className={`w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-lg font-bold shadow-sm ${getProviderIconStyle(provider.type)}`}>
+                                <div className={`w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-lg font-bold shadow-sm border ${getProviderIconStyle(provider.type)}`}>
                                     {getProviderLabel(provider.type).substring(0, 2).toUpperCase()}
                                 </div>
                                 
@@ -449,7 +449,7 @@ export const Providers: React.FC = () => {
                                             </span>
                                         </div>
                                         <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-100 dark:border-gray-700/50">
-                                            <Activity size={12} className={`mr-1.5 ${provider.latency < 200 ? 'text-green-500' : 'text-amber-500'}`} />
+                                            <Activity size={12} className={`mr-1.5 ${provider.latency < 200 ? 'text-emerald-500' : 'text-amber-500'}`} />
                                             <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
                                                 {provider.latency}ms
                                             </span>

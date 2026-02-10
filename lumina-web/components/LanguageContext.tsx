@@ -100,9 +100,9 @@ const translations = {
         placeholderPass: '请输入密码'
       },
       errors: {
-          missingCreds: '请输入用户名和密码。',
-          failed: '登录失败。请检查您的凭据。',
-          network: '无法连接到服务器。请检查您的网络连接。'
+        missingCreds: '请输入用户名和密码。',
+        failed: '登录失败。请检查您的凭据。',
+        network: '无法连接到服务器。请检查您的网络连接。'
       }
     },
     dashboard: {
@@ -133,18 +133,18 @@ const translations = {
           successRate: '成功率',
         },
         columns: {
-           rank: '排名',
-           provider: '供应商名称',
-           status: '状态'
+          rank: '排名',
+          provider: '供应商名称',
+          status: '状态'
         },
         status: {
-           observation: '观测中',
-           normal: '正常',
-           active: '活跃',
-           excellent: '优秀',
-           slow: '偏慢',
-           abnormal: '异常',
-           volatile: '波动'
+          observation: '观测中',
+          normal: '正常',
+          active: '活跃',
+          excellent: '优秀',
+          slow: '偏慢',
+          abnormal: '异常',
+          volatile: '波动'
         }
       }
     },
@@ -223,7 +223,9 @@ const translations = {
       capabilities: {
         reasoning: '推理',
         toolCall: '工具调用'
-      }
+      },
+      noModels: '未找到模型',
+      adjustSearch: '请尝试调整搜索条件'
     },
     logs: {
       title: '请求日志',
@@ -290,16 +292,23 @@ const translations = {
       passwordsDoNotMatch: '两次输入的密码不一致',
       update: '更新账号信息',
       tokens: {
-        title: 'API Token Management',
+        title: 'API 令牌管理',
         create: '创建新令牌',
-        name: 'Token Name',
-        key: 'Secret Key',
-        created: 'Created',
-        lastUsed: 'Last Used',
-        empty: 'No tokens found',
-        copied: 'Copied',
+        name: '令牌名称',
+        key: '密钥',
+        created: '创建于',
+        lastUsed: '最后使用',
+        empty: '暂无令牌',
+        copied: '已复制',
         copyWarning: '请务必立即复制此令牌。出于安全原因，它将不会再次显示。',
-        confirmRevoke: '确定要撤销此令牌吗？任何使用此令牌的应用程序将立即无法访问。'
+        confirmRevoke: '确定要撤销此令牌吗？任何使用此令牌的应用程序将立即无法访问。',
+        activeTokens: '活跃令牌',
+        tokenCreated: '令牌生成成功',
+        generateAnother: '生成另一个令牌',
+        confirmRevokeShort: '确认撤销？',
+        revokedSuccess: '令牌撤销成功',
+        revokedFail: '令牌撤销失败',
+        createFail: '创建令牌失败'
       },
       circuitBreaker: {
         title: '熔断器管控',
@@ -329,7 +338,19 @@ const translations = {
         actions: {
           manage: '管控',
           release: '释放控制'
-        }
+        },
+        loading: '加载中...',
+        noProviders: '暂无活跃供应商',
+        targetProvider: '目标供应商',
+        closedOption: 'CLOSED (正常)',
+        openOption: 'OPEN (强制断开)',
+        halfOpenOption: 'HALF_OPEN (探测)',
+        updateSuccess: '熔断器已更新',
+        updateFail: '更新熔断器失败',
+        fetchFail: '获取熔断状态失败',
+        releaseSuccess: '手动控制已释放',
+        releaseFail: '释放控制失败',
+        updateProfileFail: '更新账号信息失败'
       }
     }
   },
@@ -430,9 +451,9 @@ const translations = {
         placeholderPass: '••••••••'
       },
       errors: {
-          missingCreds: 'Please enter both username and password.',
-          failed: 'Login failed. Please check your credentials.',
-          network: 'Unable to connect to the server. Please check your network connection.'
+        missingCreds: 'Please enter both username and password.',
+        failed: 'Login failed. Please check your credentials.',
+        network: 'Unable to connect to the server. Please check your network connection.'
       }
     },
     dashboard: {
@@ -463,18 +484,18 @@ const translations = {
           successRate: 'Success Rate',
         },
         columns: {
-           rank: 'Rank',
-           provider: 'Provider Name',
-           status: 'Status'
+          rank: 'Rank',
+          provider: 'Provider Name',
+          status: 'Status'
         },
         status: {
-           observation: 'Observation',
-           normal: 'Normal',
-           active: 'Active',
-           excellent: 'Excellent',
-           slow: 'Slow',
-           abnormal: 'Abnormal',
-           volatile: 'Volatile'
+          observation: 'Observation',
+          normal: 'Normal',
+          active: 'Active',
+          excellent: 'Excellent',
+          slow: 'Slow',
+          abnormal: 'Abnormal',
+          volatile: 'Volatile'
         }
       }
     },
@@ -553,7 +574,9 @@ const translations = {
       capabilities: {
         reasoning: 'Reasoning',
         toolCall: 'Tool Call'
-      }
+      },
+      noModels: 'No models found',
+      adjustSearch: 'Try adjusting your search criteria'
     },
     logs: {
       title: 'Request Logs',
@@ -629,7 +652,14 @@ const translations = {
         empty: 'No tokens found',
         copied: 'Copied',
         copyWarning: 'Make sure to copy this token now. You won’t be able to see it again!',
-        confirmRevoke: 'Are you sure you want to revoke this token? Any applications using it will lose access immediately.'
+        confirmRevoke: 'Are you sure you want to revoke this token? Any applications using it will lose access immediately.',
+        activeTokens: 'Active Tokens',
+        tokenCreated: 'Token Generated Successfully',
+        generateAnother: 'Generate another token',
+        confirmRevokeShort: 'Confirm Revoke?',
+        revokedSuccess: 'Token revoked successfully',
+        revokedFail: 'Failed to revoke token',
+        createFail: 'Failed to create token'
       },
       circuitBreaker: {
         title: 'Circuit Breaker Management',
@@ -659,7 +689,19 @@ const translations = {
         actions: {
           manage: 'Manage',
           release: 'Release'
-        }
+        },
+        loading: 'Loading...',
+        noProviders: 'No active providers found',
+        targetProvider: 'Target Provider',
+        closedOption: 'CLOSED (Normal)',
+        openOption: 'OPEN (Force Break)',
+        halfOpenOption: 'HALF_OPEN (Probe)',
+        updateSuccess: 'Circuit breaker updated',
+        updateFail: 'Failed to update circuit breaker',
+        fetchFail: 'Failed to fetch circuit breaker status',
+        releaseSuccess: 'Manual control released',
+        releaseFail: 'Failed to release control',
+        updateProfileFail: 'Failed to update profile'
       }
     }
   }

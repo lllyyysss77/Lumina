@@ -50,7 +50,7 @@ class HttpClient {
   public async request<T>(url: string, config: RequestConfig = {}): Promise<T> {
     // Merge config
     const { baseURL, params, timeout, headers, skipAuth, ...customConfig } = config;
-    
+
     // Get Token from LocalStorage
     const token = localStorage.getItem('lumina_token');
     // Only add Authorization header if token exists AND skipAuth is not true
@@ -99,13 +99,13 @@ class HttpClient {
         let errorData;
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-           try {
-             errorData = await response.json();
-           } catch {
-             errorData = await response.text();
-           }
+          try {
+            errorData = await response.json();
+          } catch {
+            errorData = await response.text();
+          }
         } else {
-           errorData = await response.text();
+          errorData = await response.text();
         }
 
         // Handle 401 Unauthorized
@@ -119,7 +119,7 @@ class HttpClient {
           // Throw error to stop current execution flow
           throw new RequestError(response.status, 'Session Expired', errorData);
         }
-        
+
         throw new RequestError(response.status, response.statusText, errorData);
       }
 
@@ -133,7 +133,7 @@ class HttpClient {
       if (responseType && responseType.includes('application/json')) {
         return await response.json();
       }
-      
+
       return (await response.text()) as unknown as T;
 
     } catch (error: any) {
@@ -141,10 +141,10 @@ class HttpClient {
       if (error.name === 'AbortError') {
         throw new Error(`Request timeout of ${fetchTimeout}ms exceeded`);
       }
-      
+
       // Log network errors for debugging
       console.error('API Request Failed:', error);
-      
+
       // Re-throw the error to be handled by the caller
       throw error;
     }
@@ -186,8 +186,11 @@ class HttpClient {
 }
 
 // Export a singleton instance with default configuration
+// Reads from VITE_API_BASE_URL env var; falls back to relative path for proxied setups
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
 export const api = new HttpClient({
-  baseURL: 'http://127.0.0.1:8080/api/v1',
+  baseURL: API_BASE_URL,
 });
 
 export default HttpClient;

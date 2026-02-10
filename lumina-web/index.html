@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%234f46e5%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polygon points=%2213 2 3 14 12 14 11 22 21 10 12 10 13 2%22 fill=%22%234f46e5%22/></svg>" type="image/svg+xml" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23171717%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polygon points=%2213 2 3 14 12 14 11 22 21 10 12 10 13 2%22 fill=%22%23171717%22/></svg>" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lumina - LLM Gateway</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,18 +11,48 @@
         darkMode: 'class',
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            },
             colors: {
-              slate: {
-                850: '#1e293b',
-                900: '#0f172a',
-                950: '#020617',
+              // Custom neutral palette for that "Notion" look
+              gray: {
+                50: '#F9FAFB',
+                100: '#F3F4F6', // Surface Hover
+                200: '#E5E7EB', // Border
+                300: '#D1D5DB',
+                400: '#9CA3AF', // Muted Text
+                500: '#6B7280',
+                600: '#4B5563',
+                700: '#374151',
+                800: '#1F2937', // Dark Mode Surface
+                900: '#111827', // Dark Mode Bg
+                950: '#030712',
+              },
+              // Raycast often uses a very specific primary red/crimson or just monochrome. 
+              // We'll keep a refined indigo but make it less neon.
+              primary: {
+                50: '#eef2ff',
+                100: '#e0e7ff',
+                500: '#6366f1',
+                600: '#4f46e5',
+                700: '#4338ca',
+                900: '#312e81',
               }
             },
+            borderRadius: {
+              'xl': '12px',
+              '2xl': '16px',
+              '3xl': '24px',
+            },
+            boxShadow: {
+              'soft': '0 2px 8px -2px rgba(0, 0, 0, 0.05), 0 1px 4px -1px rgba(0, 0, 0, 0.02)',
+              'card': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+              'float': '0 10px 30px -10px rgba(0, 0, 0, 0.08)',
+            },
             animation: {
-              'fade-in': 'fadeIn 0.5s ease-out',
-              'slide-up': 'slideUp 0.5s ease-out forwards',
-              'shimmer': 'shimmer 2s linear infinite',
-              'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'fade-in': 'fadeIn 0.4s ease-out',
+              'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards', // Apple-like easing
             },
             keyframes: {
               fadeIn: {
@@ -30,13 +60,9 @@
                 '100%': { opacity: '1' },
               },
               slideUp: {
-                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '0%': { opacity: '0', transform: 'translateY(8px)' },
                 '100%': { opacity: '1', transform: 'translateY(0)' },
               },
-              shimmer: {
-                '0%': { backgroundPosition: '-1000px 0' },
-                '100%': { backgroundPosition: '1000px 0' },
-              }
             }
           }
         }
@@ -46,31 +72,36 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #f8fafc;
+        background-color: #FAFAFA; /* Raycast/Notion Light BG */
+        color: #111827;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
       .dark body {
-        background-color: #0f172a;
+        background-color: #0d0d0d; /* Deep rich black/gray */
+        color: #F9FAFB;
       }
-      /* Custom Scrollbar for a cleaner look */
+      
+      /* Refined Scrollbar */
       ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
       }
       ::-webkit-scrollbar-track {
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 3px;
+        background: #E5E7EB;
+        border-radius: 10px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #D1D5DB;
       }
       .dark ::-webkit-scrollbar-thumb {
-        background: #475569;
+        background: #374151;
       }
       .dark ::-webkit-scrollbar-thumb:hover {
-        background: #64748b;
+        background: #4B5563;
       }
     </style>
   <script type="importmap">
@@ -88,7 +119,7 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50 transition-colors duration-200">
+  <body class="bg-[#FAFAFA] text-gray-900 dark:bg-[#0d0d0d] dark:text-gray-50 transition-colors duration-200">
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

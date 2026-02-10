@@ -76,23 +76,23 @@ export const Groups: React.FC = () => {
 
   const getModeIcon = (mode: LoadBalanceMode) => {
     switch(mode) {
-        case LoadBalanceMode.ROUND_ROBIN: return <ArrowRightLeft size={16} />;
-        case LoadBalanceMode.RANDOM: return <Shuffle size={16} />;
-        case LoadBalanceMode.WEIGHTED: return <Scale size={16} />;
-        case LoadBalanceMode.FAILOVER: return <PlayCircle size={16} />;
-        case LoadBalanceMode.SAPR: return <Activity size={16} />;
-        default: return <Layers size={16} />;
+        case LoadBalanceMode.ROUND_ROBIN: return <ArrowRightLeft size={14} />;
+        case LoadBalanceMode.RANDOM: return <Shuffle size={14} />;
+        case LoadBalanceMode.WEIGHTED: return <Scale size={14} />;
+        case LoadBalanceMode.FAILOVER: return <PlayCircle size={14} />;
+        case LoadBalanceMode.SAPR: return <Activity size={14} />;
+        default: return <Layers size={14} />;
     }
   };
 
   const getModeColor = (mode: LoadBalanceMode) => {
     switch(mode) {
-        case LoadBalanceMode.ROUND_ROBIN: return 'text-blue-500 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
-        case LoadBalanceMode.RANDOM: return 'text-orange-500 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800';
-        case LoadBalanceMode.WEIGHTED: return 'text-purple-500 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800';
-        case LoadBalanceMode.FAILOVER: return 'text-red-500 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
-        case LoadBalanceMode.SAPR: return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800';
-        default: return 'text-slate-500 bg-slate-50';
+        case LoadBalanceMode.ROUND_ROBIN: return 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 border-blue-100 dark:border-blue-900/50';
+        case LoadBalanceMode.RANDOM: return 'text-orange-600 bg-orange-50 dark:bg-orange-900/30 border-orange-100 dark:border-orange-900/50';
+        case LoadBalanceMode.WEIGHTED: return 'text-purple-600 bg-purple-50 dark:bg-purple-900/30 border-purple-100 dark:border-purple-900/50';
+        case LoadBalanceMode.FAILOVER: return 'text-red-600 bg-red-50 dark:bg-red-900/30 border-red-100 dark:border-red-900/50';
+        case LoadBalanceMode.SAPR: return 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-100 dark:border-emerald-900/50';
+        default: return 'text-gray-600 bg-gray-50';
     }
   };
 
@@ -208,39 +208,39 @@ export const Groups: React.FC = () => {
     <div className="space-y-6 relative flex flex-col h-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t('groups.title')}</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">{t('groups.subtitle')}</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{t('groups.title')}</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">{t('groups.subtitle')}</p>
         </div>
         <button 
           onClick={handleOpenAdd}
-          className="group flex items-center px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/25 transition-all hover:-translate-y-0.5"
+          className="group flex items-center px-5 py-2.5 bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black rounded-xl font-semibold shadow-sm transition-all hover:-translate-y-0.5"
         >
-          <Plus size={20} className="mr-2 transition-transform group-hover:rotate-90" />
+          <Plus size={18} className="mr-2" />
           {t('groups.createGroup')}
         </button>
       </div>
 
       {/* Delete Confirmation Modal */}
       {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200 border border-white/20 dark:border-slate-700">
-                <div className="flex items-center justify-center w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full mx-auto mb-4 text-red-600 dark:text-red-400 shadow-inner">
-                    <Trash2 size={28} />
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-float max-w-sm w-full p-6 animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800">
+                <div className="flex items-center justify-center w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full mx-auto mb-4 text-red-600 dark:text-red-400">
+                    <Trash2 size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-center text-slate-900 dark:text-white mb-2">Delete Group?</h3>
-                <p className="text-center text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
-                    Are you sure you want to delete <span className="font-bold text-slate-700 dark:text-slate-200">{deleteModal.name}</span>? This action cannot be undone.
+                <h3 className="text-lg font-bold text-center text-gray-900 dark:text-white mb-2">{t('groups.deleteTitle')}</h3>
+                <p className="text-center text-gray-500 dark:text-gray-400 text-sm mb-6 leading-relaxed">
+                    {t('groups.deleteDesc', { name: deleteModal.name })}
                 </p>
-                <div className="flex space-x-4">
+                <div className="flex space-x-3">
                     <button 
                         onClick={() => setDeleteModal({isOpen: false, id: null, name: ''})}
-                        className="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
                         {t('common.cancel')}
                     </button>
                     <button 
                         onClick={confirmDelete}
-                        className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl shadow-lg shadow-red-500/20 transition-all hover:scale-[1.02]"
+                        className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl shadow-sm transition-all hover:scale-[1.02]"
                     >
                         {t('common.delete')}
                     </button>
@@ -256,50 +256,47 @@ export const Groups: React.FC = () => {
             <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
                 {groups.length === 0 ? (
-                    <div className="col-span-full py-20 text-center bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 animate-fade-in">
-                        <Layers size={48} className="mx-auto text-slate-300 mb-4" />
-                        <p className="text-lg text-slate-500 dark:text-slate-400 font-medium">No groups found</p>
-                        <p className="text-sm text-slate-400 mt-1">Create a group to route requests</p>
+                    <div className="col-span-full py-20 text-center bg-white dark:bg-[#1a1a1a] rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 animate-fade-in">
+                        <Layers size={48} className="mx-auto text-gray-300 mb-4" />
+                        <p className="text-lg text-gray-500 dark:text-gray-400 font-medium">{t('groups.noGroups')}</p>
+                        <p className="text-sm text-gray-400 mt-1">{t('groups.createFirst')}</p>
                     </div>
                 ) : (
                     groups.map((group, index) => (
                     <SlideInItem key={group.id} index={index}>
-                    <div className="group bg-white/70 dark:bg-slate-900/70 backdrop-blur-md rounded-2xl border border-white/20 dark:border-slate-700/50 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full hover:-translate-y-1 relative overflow-hidden">
+                    <div className="group bg-white dark:bg-[#1a1a1a] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-card hover:shadow-float transition-all duration-300 flex flex-col h-full hover:-translate-y-1 relative overflow-hidden">
                         
-                        {/* Top Accent Gradient */}
-                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-80" />
-
-                        <div className="p-6 flex-1">
-                            <div className="flex justify-between items-start mb-5">
-                                <div className="p-2.5 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-xl text-slate-600 dark:text-slate-400 shadow-inner">
-                                    <Layers size={22} />
+                        <div className="p-5 flex-1">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-600 dark:text-gray-400">
+                                    <Layers size={20} />
                                 </div>
-                                <div className="flex space-x-1">
+                                <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button 
                                     onClick={() => handleOpenEdit(group)}
-                                    className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                                    className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                                     title="Edit"
                                 >
-                                    <Settings2 size={18} />
+                                    <Settings2 size={16} />
                                 </button>
                                 <button 
                                     onClick={(e) => handleDeleteClick(group.id, group.name, e)}
-                                    className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                    className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                     title="Delete"
                                 >
-                                    <Trash2 size={18} />
+                                    <Trash2 size={16} />
                                 </button>
                                 </div>
                             </div>
                             
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 truncate">{group.name}</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 truncate">{group.name}</h3>
                             
                             <div className="flex flex-wrap items-center gap-2 mb-6">
-                                <span className={`flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${getModeColor(group.mode)}`}>
+                                <span className={`flex items-center px-2 py-1 rounded-lg text-xs font-bold border ${getModeColor(group.mode)}`}>
                                     <span className="mr-1.5">{getModeIcon(group.mode)}</span>
                                     {getModeLabel(group.mode)}
                                 </span>
-                                <span className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-400 px-2 py-1 bg-slate-100 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700/50">
+                                <span className="flex items-center text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-1 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
                                     <Clock size={12} className="mr-1" />
                                     {group.firstTokenTimeout}ms
                                 </span>
@@ -307,16 +304,16 @@ export const Groups: React.FC = () => {
 
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{t('groups.activeProviders')}</p>
-                                    <span className="text-xs font-mono text-slate-400 bg-slate-50 dark:bg-slate-800 px-1.5 rounded">{group.targets.length}</span>
+                                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('groups.activeProviders')}</p>
+                                    <span className="text-[10px] font-mono text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{group.targets.length}</span>
                                 </div>
                                 
                                 {group.targets.length === 0 ? (
-                                <div className="text-center py-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                                    <p className="text-xs text-slate-400 italic">No models selected</p>
+                                <div className="text-center py-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                                    <p className="text-xs text-gray-400 italic">{t('groups.modal.noModelsSelected')}</p>
                                 </div>
                                 ) : (
-                                <div className="max-h-40 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
                                     {group.targets.map((target, idx) => {
                                         const provider = providers.find(c => c.id === target.providerId);
                                         const isProviderMissing = !provider;
@@ -324,16 +321,16 @@ export const Groups: React.FC = () => {
                                         const isInvalid = isProviderMissing || isModelMissing;
 
                                         return (
-                                        <div key={`${target.providerId}-${target.model}-${idx}`} className={`flex items-center justify-between text-xs p-2.5 rounded-lg border transition-all ${isInvalid ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700/50 shadow-sm'}`}>
+                                        <div key={`${target.providerId}-${target.model}-${idx}`} className={`flex items-center justify-between text-xs p-2 rounded-lg border transition-all ${isInvalid ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-gray-50/50 dark:bg-gray-800/30 border-transparent hover:border-gray-200 dark:hover:border-gray-700'}`}>
                                             <div className="flex flex-col min-w-0">
                                                 <div className="flex items-center gap-1.5">
                                                     <div className={`w-1.5 h-1.5 rounded-full ${isInvalid ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-                                                    <span className={`font-semibold truncate ${isInvalid ? 'text-red-700 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                    <span className={`font-semibold truncate ${isInvalid ? 'text-red-700 dark:text-red-400' : 'text-gray-700 dark:text-gray-200'}`}>
                                                         {isProviderMissing ? `ID: ${target.providerId}` : provider?.name}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5 pl-3 mt-0.5">
-                                                    <span className={`font-mono truncate max-w-[140px] ${isInvalid ? 'text-red-600 dark:text-red-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                    <span className={`font-mono truncate max-w-[140px] ${isInvalid ? 'text-red-600 dark:text-red-300' : 'text-gray-500 dark:text-gray-400'}`}>
                                                         {target.model}
                                                     </span>
                                                 </div>
@@ -348,7 +345,7 @@ export const Groups: React.FC = () => {
                                 )}
                             </div>
                         </div>
-                        <div className="px-6 py-3 bg-slate-50/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-700/50 flex justify-between items-center text-[10px] text-slate-400 uppercase font-medium tracking-wide">
+                        <div className="px-5 py-3 bg-gray-50 dark:bg-[#151515] border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-[10px] text-gray-400 font-mono">
                             <span>ID: {group.id}</span>
                             <span>v{metadata.version}</span>
                         </div>
@@ -363,7 +360,7 @@ export const Groups: React.FC = () => {
                     size={pagination.size}
                     total={pagination.total}
                     onChange={handlePageChange}
-                    className="mt-6 pt-4 border-t border-slate-200/50 dark:border-slate-700/50"
+                    className="mt-6 pt-4 border-t border-gray-200/50 dark:border-gray-800/50"
                 />
             </div>
             </>
@@ -372,14 +369,14 @@ export const Groups: React.FC = () => {
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-white/20 dark:border-slate-700">
-                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-float max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur z-10">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                         {editingGroup ? t('groups.modal.titleEdit') : t('groups.modal.titleAdd')}
                     </h2>
-                    <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <X size={24} />
+                    <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                        <X size={20} />
                     </button>
                 </div>
                 
@@ -388,35 +385,35 @@ export const Groups: React.FC = () => {
                         {/* Name and Basic Settings */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="md:col-span-1">
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('groups.modal.name')}</label>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">{t('groups.modal.name')}</label>
                                 <input 
                                     type="text" 
                                     required
                                     value={formData.name}
                                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                    className="block w-full rounded-xl border-slate-300 dark:border-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2.5 px-3 bg-slate-50 dark:bg-slate-800 dark:text-white transition-all focus:bg-white dark:focus:bg-slate-900"
+                                    className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-50 dark:bg-gray-900 dark:text-white transition-all"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('groups.modal.mode')}</label>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">{t('groups.modal.mode')}</label>
                                 <div className="relative">
                                     <select 
                                         value={formData.mode}
                                         disabled={true}
                                         onChange={(e) => setFormData({...formData, mode: e.target.value as LoadBalanceMode})}
-                                        className="block w-full rounded-xl border-slate-300 dark:border-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2.5 px-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed appearance-none"
+                                        className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed appearance-none"
                                     >
                                         {Object.values(LoadBalanceMode).map((mode) => (
                                             <option key={mode} value={mode}>{getModeLabel(mode)}</option>
                                         ))}
                                     </select>
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <ChevronDown size={14} className="text-slate-400" />
+                                        <ChevronDown size={14} className="text-gray-400" />
                                     </div>
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('groups.modal.timeout')}</label>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">{t('groups.modal.timeout')}</label>
                                 <div className="relative">
                                     <input 
                                         type="number"
@@ -424,9 +421,9 @@ export const Groups: React.FC = () => {
                                         min="100"
                                         value={formData.firstTokenTimeout}
                                         onChange={(e) => setFormData({...formData, firstTokenTimeout: parseInt(e.target.value) || 0})}
-                                        className="block w-full rounded-xl border-slate-300 dark:border-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2.5 px-3 bg-slate-50 dark:bg-slate-800 dark:text-white transition-all focus:bg-white dark:focus:bg-slate-900"
+                                        className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-50 dark:bg-gray-900 dark:text-white transition-all"
                                     />
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-xs text-slate-400 font-medium">
+                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-xs text-gray-400 font-medium">
                                         ms
                                     </div>
                                 </div>
@@ -436,28 +433,28 @@ export const Groups: React.FC = () => {
                         {/* Dual Pane Selection */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px]">
                             {/* Left Column: Available Models */}
-                            <div className="flex flex-col bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700/50 overflow-hidden shadow-sm">
-                                <div className="p-3 border-b border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur z-10 space-y-3">
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                            <div className="flex flex-col bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+                                <div className="p-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] z-10 space-y-3">
+                                    <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block">
                                         Available Models
                                     </label>
                                     <div className="relative">
-                                        <Search className="absolute left-2.5 top-2.5 text-slate-400" size={14} />
+                                        <Search className="absolute left-2.5 top-2.5 text-gray-400" size={14} />
                                         <input 
                                             type="text" 
                                             placeholder={t('groups.modal.searchModels')} 
                                             value={modelFilter}
                                             onChange={(e) => setModelFilter(e.target.value)}
-                                            className="block w-full pl-8 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                            className="block w-full pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all"
                                         />
                                     </div>
                                 </div>
                                 
                                 <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-2">
                                      {activeProviders.length === 0 ? (
-                                        <div className="h-full flex flex-col items-center justify-center text-slate-400 text-sm">
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-400 text-sm">
                                             <AlertTriangle size={24} className="mb-2 opacity-50" />
-                                            No active providers
+                                            {t('groups.modal.noActiveProviders')}
                                         </div>
                                      ) : (
                                         activeProviders.map(provider => {
@@ -475,36 +472,36 @@ export const Groups: React.FC = () => {
                                             const selectedCount = formData.targets?.filter(t => t.providerId === provider.id && displayModels.includes(t.model)).length || 0;
 
                                             return (
-                                                <div key={provider.id} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700/50 overflow-hidden shadow-sm transition-shadow hover:shadow">
+                                                <div key={provider.id} className="bg-white dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden transition-shadow">
                                                     <div 
                                                         onClick={() => toggleProviderExpand(provider.id)}
-                                                        className="flex items-center justify-between p-3 cursor-pointer bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                                        className="flex items-center justify-between p-3 cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                                                     >
                                                         <div className="flex items-center gap-2 overflow-hidden">
-                                                            <ChevronRight size={14} className={`text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
-                                                            <span className="font-semibold text-sm text-slate-700 dark:text-slate-200 truncate">{provider.name}</span>
+                                                            <ChevronRight size={14} className={`text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                                                            <span className="font-semibold text-sm text-gray-700 dark:text-gray-200 truncate">{provider.name}</span>
                                                         </div>
                                                         {selectedCount > 0 && (
-                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-full">
+                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full">
                                                                 {selectedCount}
                                                             </span>
                                                         )}
                                                     </div>
                                                     
                                                     {isExpanded && (
-                                                        <div className="border-t border-slate-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
+                                                        <div className="border-t border-gray-100 dark:border-gray-800 divide-y divide-gray-50 dark:divide-gray-800/50">
                                                             {displayModels.map(model => {
                                                                 const isSelected = formData.targets?.some(t => t.providerId === provider.id && t.model === model);
                                                                 return (
                                                                     <div 
                                                                         key={model}
                                                                         onClick={() => toggleTargetSelection(provider.id, model)}
-                                                                        className={`flex items-center p-2.5 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}
+                                                                        className={`flex items-center p-2.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}
                                                                     >
-                                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center mr-3 transition-all flex-shrink-0 ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'}`}>
+                                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center mr-3 transition-all flex-shrink-0 ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900'}`}>
                                                                             {isSelected && <Check size={10} className="text-white" />}
                                                                         </div>
-                                                                        <span className={`truncate font-mono ${isSelected ? 'text-indigo-700 dark:text-indigo-300 font-medium' : 'text-slate-600 dark:text-slate-400'}`}>{model}</span>
+                                                                        <span className={`truncate font-mono ${isSelected ? 'text-indigo-700 dark:text-indigo-300 font-medium' : 'text-gray-600 dark:text-gray-400'}`}>{model}</span>
                                                                     </div>
                                                                 )
                                                             })}
@@ -518,9 +515,9 @@ export const Groups: React.FC = () => {
                             </div>
 
                             {/* Right Column: Selected Models */}
-                            <div className="flex flex-col bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700/50 overflow-hidden shadow-sm">
-                                <div className="p-3 border-b border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur flex justify-between items-center h-[85px]">
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            <div className="flex flex-col bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+                                <div className="p-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] flex justify-between items-center h-[60px]">
+                                    <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                                         Selected ({formData.targets?.length || 0})
                                     </label>
                                     {formData.targets && formData.targets.length > 0 && (
@@ -529,15 +526,15 @@ export const Groups: React.FC = () => {
                                             onClick={clearAllSelected}
                                             className="text-xs font-bold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 px-2 py-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                         >
-                                            Clear All
+                                            {t('common.clearAll')}
                                         </button>
                                     )}
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-2">
                                     {(!formData.targets || formData.targets.length === 0) ? (
-                                        <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-400">
                                             <Target size={32} className="mb-2 opacity-30" />
-                                            <p className="text-xs">No models selected</p>
+                                            <p className="text-xs">{t('groups.modal.noModelsSelected')}</p>
                                         </div>
                                     ) : (
                                         formData.targets.map((target, idx) => {
@@ -545,19 +542,19 @@ export const Groups: React.FC = () => {
                                             const isInvalid = !provider || (provider && !provider.models.includes(target.model));
                                             
                                             return (
-                                                <div key={`${target.providerId}-${target.model}-${idx}`} className="flex items-center justify-between p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-lg group hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors shadow-sm animate-in fade-in zoom-in-95 duration-200">
+                                                <div key={`${target.providerId}-${target.model}-${idx}`} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-lg group hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors shadow-sm animate-in fade-in zoom-in-95 duration-200">
                                                     <div className="flex flex-col overflow-hidden mr-2">
-                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">
+                                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 truncate">
                                                             {provider ? provider.name : <span className="text-red-500">Unknown Provider ({target.providerId})</span>}
                                                         </span>
-                                                        <span className={`text-xs font-mono truncate ${isInvalid ? 'text-red-500' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                        <span className={`text-xs font-mono truncate ${isInvalid ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
                                                             {target.model}
                                                         </span>
                                                     </div>
                                                     <button 
                                                         type="button"
                                                         onClick={() => toggleTargetSelection(target.providerId, target.model)}
-                                                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                                     >
                                                         <X size={14} />
                                                     </button>
@@ -585,11 +582,11 @@ export const Groups: React.FC = () => {
                     </form>
                 </div>
 
-                <div className="px-6 py-5 border-t border-slate-100 dark:border-slate-800 flex justify-end space-x-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur flex-shrink-0">
+                <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex justify-end space-x-3 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur flex-shrink-0">
                     <button 
                         type="button"
                         onClick={() => setIsModalOpen(false)}
-                        className="px-5 py-2.5 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-semibold rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        className="px-4 py-2.5 border border-gray-300 dark:border-gray-700 shadow-sm text-sm font-semibold rounded-xl text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                         {t('common.cancel')}
                     </button>
@@ -597,7 +594,7 @@ export const Groups: React.FC = () => {
                         type="submit"
                         form="group-form"
                         disabled={isSaving}
-                        className="flex items-center px-5 py-2.5 border border-transparent text-sm font-semibold rounded-xl shadow-lg shadow-indigo-500/20 text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all hover:-translate-y-0.5"
+                        className="flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl shadow-sm text-white bg-gray-900 hover:bg-black dark:bg-white dark:text-black dark:hover:bg-gray-200 transition-all hover:-translate-y-0.5"
                     >
                         {isSaving ? <Loader2 size={18} className="mr-2 animate-spin" /> : <Save size={18} className="mr-2" />}
                         {t('common.save')}

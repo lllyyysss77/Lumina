@@ -8,7 +8,6 @@ import { Logs } from './components/Logs';
 import { Pricing } from './components/Pricing';
 import { Login } from './components/Login';
 import { AuthProvider, useAuth } from './components/AuthContext';
-import { ToastProvider } from './components/ToastContext';
 import { ViewState } from './types';
 import { LanguageProvider, useLanguage } from './components/LanguageContext';
 import { ThemeProvider } from './components/ThemeContext';
@@ -57,17 +56,15 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  return (
-    <LanguageProvider>
-      <ThemeProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </ToastProvider>
-      </ThemeProvider>
-    </LanguageProvider>
-  );
+    return (
+        <LanguageProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+    );
 };
 
 export default App;

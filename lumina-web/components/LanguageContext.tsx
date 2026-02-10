@@ -31,7 +31,8 @@ const translations = {
       copy: '复制',
       close: '关闭',
       success: '成功',
-      fail: '失败'
+      fail: '失败',
+      copied: '已复制'
     },
     nav: {
       dashboard: '仪表盘',
@@ -100,9 +101,9 @@ const translations = {
         placeholderPass: '请输入密码'
       },
       errors: {
-        missingCreds: '请输入用户名和密码。',
-        failed: '登录失败。请检查您的凭据。',
-        network: '无法连接到服务器。请检查您的网络连接。'
+          missingCreds: '请输入用户名和密码。',
+          failed: '登录失败。请检查您的凭据。',
+          network: '无法连接到服务器。请检查您的网络连接。'
       }
     },
     dashboard: {
@@ -126,6 +127,7 @@ const translations = {
       },
       ranking: {
         title: '供应商统计排名',
+        noData: '暂无排名数据',
         options: {
           calls: '调用次数',
           cost: '预估费用',
@@ -133,18 +135,18 @@ const translations = {
           successRate: '成功率',
         },
         columns: {
-          rank: '排名',
-          provider: '供应商名称',
-          status: '状态'
+           rank: '排名',
+           provider: '供应商名称',
+           status: '状态'
         },
         status: {
-          observation: '观测中',
-          normal: '正常',
-          active: '活跃',
-          excellent: '优秀',
-          slow: '偏慢',
-          abnormal: '异常',
-          volatile: '波动'
+           observation: '观测中',
+           normal: '正常',
+           active: '活跃',
+           excellent: '优秀',
+           slow: '偏慢',
+           abnormal: '异常',
+           volatile: '波动'
         }
       }
     },
@@ -154,6 +156,17 @@ const translations = {
       addProvider: '添加供应商',
       provider: '供应商',
       baseUrl: 'API 地址',
+      noProviders: '暂无供应商',
+      addFirst: '添加第一个供应商以开始路由请求',
+      deleteTitle: '删除供应商？',
+      deleteDesc: '您确定要删除 {{name}} 吗？此操作无法撤销。',
+      deletedSuccess: '供应商已删除',
+      updatedSuccess: '供应商已更新',
+      createdSuccess: '供应商已创建',
+      failed: '操作失败',
+      latencyResult: '连接正常。延迟: {{latency}}ms',
+      syncing: '正在同步模型...',
+      syncedSuccess: '成功同步 {{count}} 个模型',
       modal: {
         titleAdd: '添加供应商',
         titleEdit: '编辑供应商',
@@ -183,6 +196,10 @@ const translations = {
       subtitle: '配置负载均衡策略与路由规则',
       createGroup: '新建分组',
       activeProviders: '活跃供应商',
+      noGroups: '暂无分组',
+      createFirst: '创建一个分组来路由请求',
+      deleteTitle: '删除分组？',
+      deleteDesc: '您确定要删除 {{name}} 吗？此操作无法撤销。',
       modal: {
         titleAdd: '新建分组',
         titleEdit: '编辑分组',
@@ -193,7 +210,9 @@ const translations = {
         selectPlaceholder: '请选择...',
         searchModels: '搜索模型...',
         viewSelected: '仅查看已选',
-        invalidSelections: '无效或缺失的模型选择'
+        invalidSelections: '无效或缺失的模型选择',
+        noModelsSelected: '未选择任何模型',
+        noActiveProviders: '无活跃供应商'
       },
       modes: {
         roundRobin: '轮询 (Round Robin)',
@@ -210,6 +229,8 @@ const translations = {
       sync: '同步上游模型',
       syncSuccess: '模型同步成功',
       syncFail: '模型同步失败',
+      noModels: '未找到模型',
+      adjustSearch: '请尝试调整搜索条件',
       table: {
         modelName: '模型名称',
         provider: '供应商',
@@ -223,9 +244,7 @@ const translations = {
       capabilities: {
         reasoning: '推理',
         toolCall: '工具调用'
-      },
-      noModels: '未找到模型',
-      adjustSearch: '请尝试调整搜索条件'
+      }
     },
     logs: {
       title: '请求日志',
@@ -234,6 +253,8 @@ const translations = {
       autoRefresh: '自动刷新',
       refreshInterval: '刷新间隔',
       seconds: '秒',
+      noLogs: '暂无日志',
+      noLogsDesc: '请尝试调整筛选条件或刷新',
       table: {
         status: '状态',
         time: '时间',
@@ -254,6 +275,8 @@ const translations = {
       },
       detail: {
         title: '请求详情',
+        loading: '正在加载详情...',
+        failed: '加载详情失败。',
         info: '基本信息',
         performance: '性能与费用',
         content: '请求内容',
@@ -295,25 +318,26 @@ const translations = {
         title: 'API 令牌管理',
         create: '创建新令牌',
         name: '令牌名称',
-        key: '密钥',
-        created: '创建于',
-        lastUsed: '最后使用',
-        empty: '暂无令牌',
+        key: 'Secret Key',
+        created: '创建时间',
+        lastUsed: '上次使用',
+        empty: '暂无可用令牌',
         copied: '已复制',
-        copyWarning: '请务必立即复制此令牌。出于安全原因，它将不会再次显示。',
-        confirmRevoke: '确定要撤销此令牌吗？任何使用此令牌的应用程序将立即无法访问。',
-        activeTokens: '活跃令牌',
-        tokenCreated: '令牌生成成功',
+        generatedSuccess: '令牌生成成功',
         generateAnother: '生成另一个令牌',
+        activeTokens: '活跃令牌',
         confirmRevokeShort: '确认撤销？',
-        revokedSuccess: '令牌撤销成功',
-        revokedFail: '令牌撤销失败',
-        createFail: '创建令牌失败'
+        revokeSuccess: '令牌已成功撤销',
+        copyWarning: '请务必立即复制此令牌。出于安全原因，它将不会再次显示。',
+        confirmRevoke: '确定要撤销此令牌吗？任何使用此令牌的应用程序将立即无法访问。'
       },
       circuitBreaker: {
         title: '熔断器管控',
         desc: '实时监控与手动干预各供应商的熔断状态。',
         refresh: '刷新状态',
+        updated: '熔断器状态已更新',
+        released: '手动控制已释放',
+        targetProvider: '目标供应商',
         table: {
           provider: '供应商',
           state: '熔断状态',
@@ -338,19 +362,7 @@ const translations = {
         actions: {
           manage: '管控',
           release: '释放控制'
-        },
-        loading: '加载中...',
-        noProviders: '暂无活跃供应商',
-        targetProvider: '目标供应商',
-        closedOption: 'CLOSED (正常)',
-        openOption: 'OPEN (强制断开)',
-        halfOpenOption: 'HALF_OPEN (探测)',
-        updateSuccess: '熔断器已更新',
-        updateFail: '更新熔断器失败',
-        fetchFail: '获取熔断状态失败',
-        releaseSuccess: '手动控制已释放',
-        releaseFail: '释放控制失败',
-        updateProfileFail: '更新账号信息失败'
+        }
       }
     }
   },
@@ -382,7 +394,8 @@ const translations = {
       copy: 'Copy',
       close: 'Close',
       success: 'Success',
-      fail: 'Failure'
+      fail: 'Failure',
+      copied: 'Copied'
     },
     nav: {
       dashboard: 'Dashboard',
@@ -451,9 +464,9 @@ const translations = {
         placeholderPass: '••••••••'
       },
       errors: {
-        missingCreds: 'Please enter both username and password.',
-        failed: 'Login failed. Please check your credentials.',
-        network: 'Unable to connect to the server. Please check your network connection.'
+          missingCreds: 'Please enter both username and password.',
+          failed: 'Login failed. Please check your credentials.',
+          network: 'Unable to connect to the server. Please check your network connection.'
       }
     },
     dashboard: {
@@ -477,6 +490,7 @@ const translations = {
       },
       ranking: {
         title: 'Provider Statistics Ranking',
+        noData: 'No data available for ranking',
         options: {
           calls: 'Calls',
           cost: 'Est. Cost',
@@ -484,18 +498,18 @@ const translations = {
           successRate: 'Success Rate',
         },
         columns: {
-          rank: 'Rank',
-          provider: 'Provider Name',
-          status: 'Status'
+           rank: 'Rank',
+           provider: 'Provider Name',
+           status: 'Status'
         },
         status: {
-          observation: 'Observation',
-          normal: 'Normal',
-          active: 'Active',
-          excellent: 'Excellent',
-          slow: 'Slow',
-          abnormal: 'Abnormal',
-          volatile: 'Volatile'
+           observation: 'Observation',
+           normal: 'Normal',
+           active: 'Active',
+           excellent: 'Excellent',
+           slow: 'Slow',
+           abnormal: 'Abnormal',
+           volatile: 'Volatile'
         }
       }
     },
@@ -505,6 +519,17 @@ const translations = {
       addProvider: 'Add Provider',
       provider: 'Provider',
       baseUrl: 'Base URL',
+      noProviders: 'No providers found',
+      addFirst: 'Add a new provider to start routing requests',
+      deleteTitle: 'Delete Provider?',
+      deleteDesc: 'Are you sure you want to delete {{name}}? This action cannot be undone.',
+      deletedSuccess: 'Provider deleted successfully',
+      updatedSuccess: 'Provider updated successfully',
+      createdSuccess: 'Provider created successfully',
+      failed: 'Operation failed',
+      latencyResult: 'Connection active. Latency: {{latency}}ms',
+      syncing: 'Syncing models...',
+      syncedSuccess: 'Synced {{count}} models',
       modal: {
         titleAdd: 'Add Provider',
         titleEdit: 'Edit Provider',
@@ -534,6 +559,10 @@ const translations = {
       subtitle: 'Configure load balancing strategies and routing rules.',
       createGroup: 'Create Group',
       activeProviders: 'Active Providers',
+      noGroups: 'No groups found',
+      createFirst: 'Create a group to route requests',
+      deleteTitle: 'Delete Group?',
+      deleteDesc: 'Are you sure you want to delete {{name}}? This action cannot be undone.',
       modal: {
         titleAdd: 'Create Group',
         titleEdit: 'Edit Group',
@@ -544,7 +573,9 @@ const translations = {
         selectPlaceholder: 'Select...',
         searchModels: 'Search models...',
         viewSelected: 'View Selected',
-        invalidSelections: 'Invalid / Missing Selections'
+        invalidSelections: 'Invalid / Missing Selections',
+        noModelsSelected: 'No models selected',
+        noActiveProviders: 'No active providers'
       },
       modes: {
         roundRobin: 'Round Robin',
@@ -561,6 +592,8 @@ const translations = {
       sync: 'Sync Upstream Models',
       syncSuccess: 'Models synced successfully',
       syncFail: 'Failed to sync models',
+      noModels: 'No models found',
+      adjustSearch: 'Try adjusting your search criteria',
       table: {
         modelName: 'Model Name',
         provider: 'Provider',
@@ -574,9 +607,7 @@ const translations = {
       capabilities: {
         reasoning: 'Reasoning',
         toolCall: 'Tool Call'
-      },
-      noModels: 'No models found',
-      adjustSearch: 'Try adjusting your search criteria'
+      }
     },
     logs: {
       title: 'Request Logs',
@@ -585,6 +616,8 @@ const translations = {
       autoRefresh: 'Auto Refresh',
       refreshInterval: 'Interval',
       seconds: 's',
+      noLogs: 'No logs found',
+      noLogsDesc: 'Try adjusting filters or refreshing',
       table: {
         status: 'Status',
         time: 'Time',
@@ -605,6 +638,8 @@ const translations = {
       },
       detail: {
         title: 'Request Detail',
+        loading: 'Loading details...',
+        failed: 'Failed to load details.',
         info: 'Basic Info',
         performance: 'Performance & Cost',
         content: 'Request Content',
@@ -651,20 +686,21 @@ const translations = {
         lastUsed: 'Last Used',
         empty: 'No tokens found',
         copied: 'Copied',
-        copyWarning: 'Make sure to copy this token now. You won’t be able to see it again!',
-        confirmRevoke: 'Are you sure you want to revoke this token? Any applications using it will lose access immediately.',
-        activeTokens: 'Active Tokens',
-        tokenCreated: 'Token Generated Successfully',
+        generatedSuccess: 'Token Generated Successfully',
         generateAnother: 'Generate another token',
+        activeTokens: 'Active Tokens',
         confirmRevokeShort: 'Confirm Revoke?',
-        revokedSuccess: 'Token revoked successfully',
-        revokedFail: 'Failed to revoke token',
-        createFail: 'Failed to create token'
+        revokeSuccess: 'Token revoked successfully',
+        copyWarning: 'Make sure to copy this token now. You won’t be able to see it again!',
+        confirmRevoke: 'Are you sure you want to revoke this token? Any applications using it will lose access immediately.'
       },
       circuitBreaker: {
         title: 'Circuit Breaker Management',
         desc: 'Real-time monitoring and manual intervention of provider circuit statuses.',
         refresh: 'Refresh Status',
+        updated: 'Circuit breaker updated',
+        released: 'Manual control released',
+        targetProvider: 'Target Provider',
         table: {
           provider: 'Provider',
           state: 'State',
@@ -689,19 +725,7 @@ const translations = {
         actions: {
           manage: 'Manage',
           release: 'Release'
-        },
-        loading: 'Loading...',
-        noProviders: 'No active providers found',
-        targetProvider: 'Target Provider',
-        closedOption: 'CLOSED (Normal)',
-        openOption: 'OPEN (Force Break)',
-        halfOpenOption: 'HALF_OPEN (Probe)',
-        updateSuccess: 'Circuit breaker updated',
-        updateFail: 'Failed to update circuit breaker',
-        fetchFail: 'Failed to fetch circuit breaker status',
-        releaseSuccess: 'Manual control released',
-        releaseFail: 'Failed to release control',
-        updateProfileFail: 'Failed to update profile'
+        }
       }
     }
   }

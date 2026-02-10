@@ -25,20 +25,19 @@ const StatCard: React.FC<{
   trendDirection: 'up' | 'down';
   trendPositive: boolean;
   icon: React.ElementType;
-  gradient: string;
-}> = ({ title, value, trend, trendDirection, trendPositive, icon: Icon, gradient }) => (
-  <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-white/20 dark:border-slate-700/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
+}> = ({ title, value, trend, trendDirection, trendPositive, icon: Icon }) => (
+  <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 shadow-card border border-gray-200/60 dark:border-gray-800 hover:shadow-soft transition-all duration-300 group">
     <div className="flex items-center justify-between mb-4">
-      <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-300`}>
-        <Icon size={22} />
+      <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 group-hover:scale-105 transition-transform duration-300">
+        <Icon size={20} strokeWidth={2} />
       </div>
-      <div className={`flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${trendPositive ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400'}`}>
-        {trendDirection === 'up' ? <ArrowUpRight size={14} className="mr-1" /> : <ArrowDownRight size={14} className="mr-1" />}
+      <div className={`flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${trendPositive ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}>
+        {trendDirection === 'up' ? <ArrowUpRight size={12} className="mr-1" /> : <ArrowDownRight size={12} className="mr-1" />}
         {trend}
       </div>
     </div>
-    <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium">{title}</h3>
-    <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2 tracking-tight">{value}</p>
+    <h3 className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wide">{title}</h3>
+    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1 tracking-tight">{value}</p>
   </div>
 );
 
@@ -136,7 +135,7 @@ export const Dashboard: React.FC = () => {
           if (item.avgLatency <= 3000) return 'bg-amber-500';
           return 'bg-red-500';
       }
-      return 'bg-indigo-500';
+      return 'bg-gray-800 dark:bg-gray-200'; // Monochrome bar for standard stats
   }
 
   const getProgressBarWidth = (item: ProviderStats, maxVal: number) => {
@@ -151,7 +150,7 @@ export const Dashboard: React.FC = () => {
   
   const getStatusInfo = (item: ProviderStats, currentMetric: RankingMetric) => {
     if (currentMetric === 'calls') {
-      if (item.callCount < 50) return { label: t('dashboard.ranking.status.observation'), className: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' };
+      if (item.callCount < 50) return { label: t('dashboard.ranking.status.observation'), className: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' };
       if (item.callCount <= 1000) return { label: t('dashboard.ranking.status.normal'), className: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' };
       return { label: t('dashboard.ranking.status.active'), className: 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300' };
     }
@@ -165,7 +164,7 @@ export const Dashboard: React.FC = () => {
     }
     
     if (currentMetric === 'successRate') {
-        if (item.callCount === 0) return { label: t('dashboard.ranking.status.observation'), className: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' };
+        if (item.callCount === 0) return { label: t('dashboard.ranking.status.observation'), className: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' };
         if (item.successRate >= 99) return { label: t('dashboard.ranking.status.excellent'), className: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' };
         if (item.successRate >= 95) return { label: t('dashboard.ranking.status.normal'), className: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' };
         return { label: t('dashboard.ranking.status.abnormal'), className: 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' };
@@ -202,14 +201,14 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       <SlideInItem>
-        <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t('dashboard.title')}</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">{t('dashboard.subtitle')}</p>
+        <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{t('dashboard.title')}</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">{t('dashboard.subtitle')}</p>
         </div>
       </SlideInItem>
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
             title: t('dashboard.totalRequests'),
@@ -217,8 +216,7 @@ export const Dashboard: React.FC = () => {
             trend: `${safeOverview.requestGrowthRate.toFixed(1)}%`,
             trendDirection: safeOverview.requestGrowthRate >= 0 ? 'up' : 'down' as 'up'|'down',
             trendPositive: safeOverview.requestGrowthRate >= 0,
-            icon: Zap,
-            gradient: "from-blue-500 to-indigo-600"
+            icon: Zap
           },
           {
             title: t('dashboard.totalCost'),
@@ -226,8 +224,7 @@ export const Dashboard: React.FC = () => {
             trend: `${safeOverview.costGrowthRate.toFixed(1)}%`,
             trendDirection: safeOverview.costGrowthRate >= 0 ? 'up' : 'down' as 'up'|'down',
             trendPositive: true,
-            icon: Coins,
-            gradient: "from-amber-400 to-orange-500"
+            icon: Coins
           },
           {
             title: t('dashboard.avgLatency'),
@@ -235,8 +232,7 @@ export const Dashboard: React.FC = () => {
             trend: `${Math.abs(safeOverview.latencyChange).toFixed(0)}ms`,
             trendDirection: safeOverview.latencyChange >= 0 ? 'up' : 'down' as 'up'|'down',
             trendPositive: safeOverview.latencyChange <= 0,
-            icon: Clock,
-            gradient: "from-purple-500 to-pink-500"
+            icon: Clock
           },
           {
             title: t('dashboard.successRate'),
@@ -244,82 +240,81 @@ export const Dashboard: React.FC = () => {
             trend: `${safeOverview.successRateChange.toFixed(1)}%`,
             trendDirection: safeOverview.successRateChange >= 0 ? 'up' : 'down' as 'up'|'down',
             trendPositive: safeOverview.successRateChange >= 0,
-            icon: Activity,
-            gradient: "from-emerald-400 to-green-600"
+            icon: Activity
           }
         ].map((item, index) => (
-            <SlideInItem key={index} index={index} delay={index * 100}>
+            <SlideInItem key={index} index={index} delay={index * 50}>
                 <StatCard {...item} />
             </SlideInItem>
         ))}
       </div>
 
       {/* Charts Row */}
-      <SlideInItem delay={400} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <SlideInItem delay={200} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Traffic Chart */}
-        <div className="lg:col-span-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/50">
+        <div className="lg:col-span-2 bg-white dark:bg-[#1a1a1a] p-6 rounded-2xl shadow-card border border-gray-200/60 dark:border-gray-800">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Activity size={20} className="text-indigo-500" />
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Activity size={18} className="text-gray-400" />
                 {t('dashboard.traffic')}
             </h3>
           </div>
-          <div className="h-80 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={trafficData}>
                 <defs>
                   <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
                     <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-slate-800" />
-                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" className="dark:stroke-gray-800" />
+                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} />
                 <Tooltip 
                   contentStyle={{
-                    borderRadius: '12px', 
-                    border: 'none', 
-                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    color: '#0f172a',
-                    padding: '12px'
+                    borderRadius: '8px', 
+                    border: '1px solid #E5E7EB', 
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                    backgroundColor: '#fff',
+                    color: '#111827',
+                    padding: '8px 12px'
                   }}
-                  cursor={{stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '4 4'}}
+                  cursor={{stroke: '#9CA3AF', strokeWidth: 1, strokeDasharray: '4 4'}}
                 />
-                <Area type="monotone" dataKey="requests" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRequests)" />
+                <Area type="monotone" dataKey="requests" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorRequests)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Top Models Chart */}
-        <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/50">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-              <BarChart3 size={20} className="text-violet-500" />
+        <div className="bg-white dark:bg-[#1a1a1a] p-6 rounded-2xl shadow-card border border-gray-200/60 dark:border-gray-800">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+              <BarChart3 size={18} className="text-gray-400" />
               {t('dashboard.tokenUsage')}
           </h3>
-           <div className="h-80 w-full">
+           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={modelUsageData} layout="vertical" barSize={24}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" className="dark:stroke-slate-800" />
+              <BarChart data={modelUsageData} layout="vertical" barSize={20}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E5E7EB" className="dark:stroke-gray-800" />
                 <XAxis type="number" hide />
                 <YAxis 
                   dataKey="name" 
                   type="category" 
-                  width={120} 
-                  tick={{fill: '#64748b', fontSize: 12, fontWeight: 500}} 
+                  width={110} 
+                  tick={{fill: '#6B7280', fontSize: 11, fontWeight: 500}} 
                   axisLine={false} 
                   tickLine={false}
                   tickFormatter={(value) => value.length > 15 ? `${value.substring(0, 15)}...` : value}
                 />
                 <Tooltip 
                     cursor={{fill: 'transparent'}} 
-                    contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: 'rgba(255,255,255,0.9)', color: '#000'}}
+                    contentStyle={{borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', backgroundColor: '#fff', color: '#000'}}
                 />
-                <Bar dataKey="tokens" radius={[0, 6, 6, 0]}>
+                <Bar dataKey="tokens" radius={[0, 4, 4, 0]}>
                     {modelUsageData.map((entry, index) => (
-                         <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#8b5cf6' : '#6366f1'} />
+                         <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#4B5563' : '#9CA3AF'} />
                     ))}
                 </Bar>
               </BarChart>
@@ -329,19 +324,19 @@ export const Dashboard: React.FC = () => {
       </SlideInItem>
       
       {/* Provider Ranking Table */}
-      <SlideInItem delay={600} className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-sm border border-white/20 dark:border-slate-700/50 overflow-hidden">
-        <div className="px-8 py-6 border-b border-slate-200/50 dark:border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('dashboard.ranking.title')}</h3>
+      <SlideInItem delay={400} className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-card border border-gray-200/60 dark:border-gray-800 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t('dashboard.ranking.title')}</h3>
             
-            <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
                 {metrics.map((m) => (
                     <button
                         key={m}
                         onClick={() => setMetric(m)}
-                        className={`px-4 py-2 text-xs font-semibold rounded-lg whitespace-nowrap transition-all ${
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-all ${
                             metric === m 
-                            ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' 
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                         }`}
                     >
                         {t(`dashboard.ranking.options.${m}`)}
@@ -351,34 +346,34 @@ export const Dashboard: React.FC = () => {
         </div>
         <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50/50 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-xs">
+                <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wider">
                     <tr>
-                        <th className="px-8 py-4 w-24">{t('dashboard.ranking.columns.rank')}</th>
-                        <th className="px-8 py-4">{t('dashboard.ranking.columns.provider')}</th>
-                        <th className="px-8 py-4">{t(`dashboard.ranking.options.${metric}`)}</th>
-                        <th className="px-8 py-4">{t('dashboard.ranking.columns.status')}</th>
+                        <th className="px-6 py-4 w-20">{t('dashboard.ranking.columns.rank')}</th>
+                        <th className="px-6 py-4">{t('dashboard.ranking.columns.provider')}</th>
+                        <th className="px-6 py-4">{t(`dashboard.ranking.options.${metric}`)}</th>
+                        <th className="px-6 py-4">{t('dashboard.ranking.columns.status')}</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                     {providerRanking.length === 0 ? (
                         <tr>
-                            <td colSpan={4} className="px-8 py-8 text-center text-slate-500 dark:text-slate-400 italic">
-                                No data available for ranking
+                            <td colSpan={4} className="px-6 py-8 text-center text-gray-400 dark:text-gray-600 italic">
+                                {t('dashboard.ranking.noData')}
                             </td>
                         </tr>
                     ) : (
                         sortedData.map((provider, index) => {
                             const statusInfo = getStatusInfo(provider, metric);
                             return (
-                                <tr key={provider.providerId} className="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors group">
-                                    <td className="px-8 py-4 font-bold text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">#{index + 1}</td>
-                                    <td className="px-8 py-4 font-semibold text-slate-800 dark:text-slate-200">
+                                <tr key={provider.providerId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+                                    <td className="px-6 py-4 font-mono text-xs text-gray-400 dark:text-gray-500">#{index + 1}</td>
+                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
                                         {provider.providerName}
                                     </td>
-                                    <td className="px-8 py-4 text-slate-600 dark:text-slate-300">
+                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
                                         <div className="flex items-center gap-4">
-                                            <span className="font-mono w-24 text-right font-medium">{formatValue(provider)}</span>
-                                            <div className="w-32 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden hidden sm:block">
+                                            <span className="font-mono text-xs w-20 text-right">{formatValue(provider)}</span>
+                                            <div className="w-24 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden hidden sm:block">
                                                 <div 
                                                     className={`h-full rounded-full transition-all duration-500 ${getProgressBarColor(provider)}`} 
                                                     style={{ width: getProgressBarWidth(provider, maxValue) }}
@@ -386,13 +381,13 @@ export const Dashboard: React.FC = () => {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-8 py-4">
+                                    <td className="px-6 py-4">
                                         {statusInfo ? (
-                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border border-transparent ${statusInfo.className}`}>
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${statusInfo.className}`}>
                                                 {statusInfo.label}
                                             </span>
                                         ) : (
-                                            <span className="text-slate-400">-</span>
+                                            <span className="text-gray-300">-</span>
                                         )}
                                     </td>
                                 </tr>

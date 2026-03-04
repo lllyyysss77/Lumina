@@ -17,11 +17,11 @@ public enum FailureType {
     // 限流，可 Failover
     HTTP_429(true, true),
 
-    // 客户端错误，不计入熔断，不 Failover
-    HTTP_4XX(false, false),
+    // 客户端错误，计入熔断，可 Failover
+    HTTP_4XX(true, true),
 
-    // 解码错误，计入熔断但不 Failover（可能是请求格式问题）
-    DECODE(true, false),
+    // 解码错误，计入熔断，可 Failover
+    DECODE(true, true),
 
     // 未知错误，默认触发熔断和 Failover
     UNKNOWN(true, true);

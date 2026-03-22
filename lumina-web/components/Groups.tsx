@@ -397,13 +397,12 @@ export const Groups: React.FC = () => {
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">{t('groups.modal.mode')}</label>
                                 <div className="relative">
-                                    <select 
+                                    <select
                                         value={formData.mode}
-                                        disabled={true}
                                         onChange={(e) => setFormData({...formData, mode: e.target.value as LoadBalanceMode})}
-                                        className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed appearance-none"
+                                        className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-50 dark:bg-gray-900 dark:text-white transition-all appearance-none"
                                     >
-                                        {Object.values(LoadBalanceMode).map((mode) => (
+                                        {[LoadBalanceMode.SAPR, LoadBalanceMode.ROUND_ROBIN].map((mode) => (
                                             <option key={mode} value={mode}>{getModeLabel(mode)}</option>
                                         ))}
                                     </select>

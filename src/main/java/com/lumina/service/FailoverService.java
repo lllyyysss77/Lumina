@@ -22,11 +22,14 @@ import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.channels.UnresolvedAddressException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -41,6 +44,8 @@ public class FailoverService {
     private static final int TOP_K = 3;
     private static final double SOFTMAX_T = 10.0;
     private static final double HALF_OPEN_WEIGHT_FACTOR = 0.5;
+
+    private final ConcurrentHashMap<String, AtomicInteger> roundRobinCounters = new ConcurrentHashMap<>();
 
     /**
      * 根据异常分类错误类型
@@ -132,6 +137,13 @@ public class FailoverService {
     }
 
     public ModelGroupConfigItem selectAvailableProvider(ModelGroupConfig modelGroupConfig, Set<String> excludeIds, int requestHash) {
+        // 轮询模式：直接轮询，不做熔断过滤
+        Integer balanceMode = modelGroupConfig.getBalanceMode();
+        if (balanceMode != null && balanceMode == 1) {
+            return selectByRoundRobin(modelGroupConfig.getItems(), excludeIds, modelGroupConfig.getId());
+        }
+
+        // SAPR 模式（默认）
         // 1. 过滤可用 Provider
         List<ModelGroupConfigItem> available = modelGroupConfig.getItems()
                 .stream()
@@ -151,7 +163,9 @@ public class FailoverService {
                 .toList();
 
         if (available.isEmpty()) {
-            throw new RuntimeException("所有 Provider 已熔断、不可用或已尝试过");
+            // 保底：降级到轮询，忽略 excludeIds，所有 Provider 都参与轮询
+            log.warn("Group {} 所有 Provider 熔断或不可用，降级到轮询保底策略", modelGroupConfig.getId());
+            return selectByRoundRobin(modelGroupConfig.getItems(), Collections.emptySet(), modelGroupConfig.getId());
         }
 
         // 2. 按 score 降序排序（考虑 HALF_OPEN 降权）
@@ -189,6 +203,24 @@ public class FailoverService {
         }
 
         return topK.get(0);
+    }
+
+    /**
+     * 轮询策略选择 Provider
+     */
+    private ModelGroupConfigItem selectByRoundRobin(List<ModelGroupConfigItem> items, Set<String> excludeIds, String groupId) {
+        List<ModelGroupConfigItem> candidates = items.stream()
+                .filter(item -> !excludeIds.contains(generateProviderId(item)))
+                .toList();
+
+        if (candidates.isEmpty()) {
+            throw new RuntimeException("所有 Provider 已尝试过，轮询无可用候选");
+        }
+
+        String key = groupId != null ? groupId : "default";
+        AtomicInteger counter = roundRobinCounters.computeIfAbsent(key, k -> new AtomicInteger(0));
+        int index = Math.abs(counter.getAndIncrement() % candidates.size());
+        return candidates.get(index);
     }
 
     private double getEffectiveScore(ProviderRuntimeState state) {

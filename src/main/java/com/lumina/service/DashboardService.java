@@ -126,7 +126,7 @@ public class DashboardService {
      * 获取模型 Token 使用统计
      */
     public List<ModelTokenUsageDto> getModelTokenUsage() {
-        LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
+        LocalDateTime last24Hours = LocalDateTime.now().minusHours(48);
         List<ModelTokenUsageDto> usageList = dashboardMapper.getModelTokenUsage(last24Hours.format(FORMATTER));
 
         long totalTokens = usageList.stream()

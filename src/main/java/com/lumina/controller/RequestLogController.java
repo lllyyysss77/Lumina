@@ -9,6 +9,8 @@ import com.lumina.service.RequestLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,12 +39,9 @@ public class RequestLogController {
 
 
     @GetMapping("/{id}")
-    public ApiResponse<RequestLog> getRequestLogById(@PathVariable Long id) {
-        RequestLog log = requestLogService.getById(id);
-        if (log == null) {
-            throw new IllegalArgumentException("RequestLog not found with id: " + id);
-        }
-        return ApiResponse.success(log);
+    public Mono<ApiResponse<RequestLog>> getRequestLogById(@PathVariable Long id) {
+        return Mono.fromCallable(() -> ApiResponse.success(requestLogService.getById(id)))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 

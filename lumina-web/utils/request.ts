@@ -39,7 +39,7 @@ class HttpClient {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      timeout: 15000, // Default 15s timeout
+      timeout: 150000, // Default 150s timeout
       ...config,
     };
   }
@@ -187,7 +187,7 @@ class HttpClient {
 
 // Export a singleton instance with default configuration
 export const api = new HttpClient({
-  baseURL: 'https://lumina.jojoz.cn/api/v1',
+  baseURL: 'http://127.0.0.1:8080/api/v1',
 });
 
 export default HttpClient;

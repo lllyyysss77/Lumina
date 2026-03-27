@@ -26,6 +26,16 @@ public class DashboardOverviewDto {
     private Double requestGrowthRate;
 
     /**
+     * 总 Token 数
+     */
+    private Long totalTokens;
+
+    /**
+     * 总 Token 数增长率（百分比）
+     */
+    private Double tokenGrowthRate;
+
+    /**
      * 预估总费用
      */
     private BigDecimal totalCost;

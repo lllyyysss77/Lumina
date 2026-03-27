@@ -28,19 +28,18 @@ public class ProviderStateRegistry {
             for (ProviderRuntimeStats row : list) {
                 ProviderRuntimeState stats = createProviderState(row.getProviderId());
                 stats.setProviderName(row.getProviderName());
+                stats.setModelName(extractModelName(row.getProviderId()));
                 stats.setSuccessRateEma(row.getSuccessRateEma() != null ? row.getSuccessRateEma() : 1.0);
                 stats.setLatencyEmaMs(row.getLatencyEmaMs() != null ? row.getLatencyEmaMs() : 0);
                 stats.setScore(row.getScore() != null ? row.getScore() : 100);
                 stats.getTotalRequests().set(row.getTotalRequests() != null ? row.getTotalRequests() : 0);
                 stats.getSuccessRequests().set(row.getSuccessRequests() != null ? row.getSuccessRequests() : 0);
                 stats.getFailureRequests().set(row.getFailureRequests() != null ? row.getFailureRequests() : 0);
-                stats.setCircuitState(row.getCircuitState() != null ? CircuitState.valueOf(row.getCircuitState()) : CircuitState.CLOSED);
-                stats.setCircuitOpenedAt(row.getCircuitOpenedAt() != null ? row.getCircuitOpenedAt() : 0);
-
-                // 加载阶段1新增字段
                 stats.getConsecutiveFailures().set(row.getConsecutiveFailures() != null ? row.getConsecutiveFailures() : 0);
                 stats.setOpenAttempt(row.getOpenAttempt() != null ? row.getOpenAttempt() : 0);
-                stats.setNextProbeAt(row.getNextProbeAt() != null ? row.getNextProbeAt() : 0);
+                stats.setStateSinceAt(resolveStateSinceAt(row));
+                recoverCircuitState(stats, row);
+                stats.clearDirty();
 
                 stateMap.put(row.getProviderId(), stats);
             }
@@ -122,5 +121,53 @@ public class ProviderStateRegistry {
             t = t.getCause();
         }
         return false;
+    }
+
+    private void recoverCircuitState(ProviderRuntimeState stats, ProviderRuntimeStats row) {
+        CircuitState persistedState = row.getCircuitState() != null
+                ? CircuitState.valueOf(row.getCircuitState())
+                : CircuitState.CLOSED;
+
+        if (persistedState == CircuitState.HALF_OPEN) {
+            long now = System.currentTimeMillis();
+            long nextProbeAt = row.getNextProbeAt() != null && row.getNextProbeAt() > now
+                    ? row.getNextProbeAt()
+                    : now + config.getOpenBaseMs();
+
+            stats.setCircuitState(CircuitState.OPEN);
+            stats.setCircuitOpenedAt(row.getCircuitOpenedAt() != null && row.getCircuitOpenedAt() > 0
+                    ? row.getCircuitOpenedAt()
+                    : now);
+            stats.setNextProbeAt(nextProbeAt);
+            stats.recordStateTransition("recovered_half_open_normalized", now);
+            log.info("Provider {} 恢复到持久化 HALF_OPEN 状态时已归一化为 OPEN，下次探测时间: {}",
+                    row.getProviderId(), nextProbeAt);
+            return;
+        }
+
+        stats.setCircuitState(persistedState);
+        stats.setCircuitOpenedAt(row.getCircuitOpenedAt() != null ? row.getCircuitOpenedAt() : 0);
+        stats.setNextProbeAt(row.getNextProbeAt() != null ? row.getNextProbeAt() : 0);
+    }
+
+    private long resolveStateSinceAt(ProviderRuntimeStats row) {
+        if (row.getCircuitOpenedAt() != null && row.getCircuitOpenedAt() > 0) {
+            return row.getCircuitOpenedAt();
+        }
+        if (row.getUpdatedAt() != null) {
+            return row.getUpdatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        }
+        return System.currentTimeMillis();
+    }
+
+    private String extractModelName(String providerId) {
+        if (providerId == null || providerId.isBlank()) {
+            return providerId;
+        }
+        int lastUnderscore = providerId.lastIndexOf('_');
+        if (lastUnderscore < 0 || lastUnderscore + 1 >= providerId.length()) {
+            return providerId;
+        }
+        return providerId.substring(lastUnderscore + 1);
     }
 }

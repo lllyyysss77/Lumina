@@ -7,6 +7,7 @@ import com.lumina.dto.ModelGroupConfig;
 import com.lumina.dto.ModelGroupConfigItem;
 import com.lumina.exception.BulkheadFullException;
 import com.lumina.exception.MaxFailoverExceededException;
+import com.lumina.metrics.RelayMetrics;
 import com.lumina.state.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ public class FailoverService {
     private final ProviderScoreCalculator scoreCalculator;
     private final CircuitBreaker circuitBreaker;
     private final CircuitBreakerConfigResolver configResolver;
+    private final RelayMetrics relayMetrics;
 
     private static final int TOP_K = 3;
     private static final double SOFTMAX_T = 10.0;
@@ -150,29 +152,40 @@ public class FailoverService {
                 .filter(item -> {
                     String id = generateProviderId(item);
                     if (excludeIds.contains(id)) {
+                        relayMetrics.recordProviderSkipped("excluded");
                         return false;
                     }
                     ProviderRuntimeState stats = providerStateRegistry.get(id);
                     if (stats.getProviderName() == null) {
                         stats.setProviderName(item.getProviderName());
                     }
+                    if (stats.getModelName() == null) {
+                        stats.setModelName(item.getModelName());
+                    }
                     // 使用解析后的配置判断是否允许请求
                     EffectiveCircuitBreakerConfig effectiveConfig = resolveConfig(modelGroupConfig, item, requestHash);
-                    return circuitBreaker.allowRequest(stats, effectiveConfig);
+                    boolean allowed = circuitBreaker.allowRequest(stats, effectiveConfig);
+                    if (!allowed) {
+                        relayMetrics.recordProviderSkipped("circuit_" + stats.getCircuitState().name().toLowerCase());
+                    }
+                    return allowed;
                 })
                 .toList();
 
         if (available.isEmpty()) {
             // 保底：降级到轮询，忽略 excludeIds，所有 Provider 都参与轮询
             log.warn("Group {} 所有 Provider 熔断或不可用，降级到轮询保底策略", modelGroupConfig.getId());
+            relayMetrics.recordFallbackToRoundRobin();
             return selectByRoundRobin(modelGroupConfig.getItems(), Collections.emptySet(), modelGroupConfig.getId());
         }
 
-        // 2. 按 score 降序排序（考虑 HALF_OPEN 降权）
+        relayMetrics.recordSelection("sapr");
+
+        // 2. 按 selection score 降序排序（健康分 + weight 先验）
         List<ModelGroupConfigItem> sorted = available.stream()
                 .sorted((a, b) -> {
-                    double sa = getEffectiveScore(providerStateRegistry.get(generateProviderId(a)));
-                    double sb = getEffectiveScore(providerStateRegistry.get(generateProviderId(b)));
+                    double sa = getSelectionScore(a);
+                    double sb = getSelectionScore(b);
                     return Double.compare(sb, sa);
                 })
                 .toList();
@@ -185,7 +198,7 @@ public class FailoverService {
         double sum = 0.0;
 
         for (int i = 0; i < topK.size(); i++) {
-            double score = getEffectiveScore(providerStateRegistry.get(generateProviderId(topK.get(i))));
+            double score = getSelectionScore(topK.get(i));
             double w = Math.exp(score / SOFTMAX_T);
             weights[i] = w;
             sum += w;
@@ -220,6 +233,7 @@ public class FailoverService {
         String key = groupId != null ? groupId : "default";
         AtomicInteger counter = roundRobinCounters.computeIfAbsent(key, k -> new AtomicInteger(0));
         int index = Math.abs(counter.getAndIncrement() % candidates.size());
+        relayMetrics.recordSelection("round_robin");
         return candidates.get(index);
     }
 
@@ -229,6 +243,13 @@ public class FailoverService {
             score *= HALF_OPEN_WEIGHT_FACTOR;
         }
         return score;
+    }
+
+    private double getSelectionScore(ModelGroupConfigItem item) {
+        ProviderRuntimeState state = providerStateRegistry.get(generateProviderId(item));
+        double score = getEffectiveScore(state);
+        int configuredWeight = Math.max(1, item.getWeight() == null ? 1 : item.getWeight());
+        return score + SOFTMAX_T * Math.log(configuredWeight);
     }
 
     public Mono<ObjectNode> executeWithFailoverMono(
@@ -255,6 +276,8 @@ public class FailoverService {
 
         // 检查 Failover 次数限制
         if (attemptCount >= groupConfig.getMaxFailoverAttempts()) {
+            relayMetrics.recordMaxFailoverExceeded(false);
+            relayMetrics.recordFailoverDepth(attemptCount);
             return Mono.error(new MaxFailoverExceededException(attemptCount, groupConfig.getMaxFailoverAttempts()));
         }
 
@@ -262,12 +285,20 @@ public class FailoverService {
         try {
             item = selectAvailableProvider(group, tried, requestHash);
         } catch (Exception e) {
+            relayMetrics.recordNoProviderAvailable(false);
+            relayMetrics.recordFailoverDepth(attemptCount);
             return Mono.error(e);
         }
 
         String providerId = generateProviderId(item);
         tried.add(providerId);
         ProviderRuntimeState state = providerStateRegistry.get(providerId);
+        if (state.getProviderName() == null) {
+            state.setProviderName(item.getProviderName());
+        }
+        if (state.getModelName() == null) {
+            state.setModelName(item.getModelName());
+        }
 
         // 解析 Provider 级别的生效配置
         EffectiveCircuitBreakerConfig effectiveConfig = resolveConfig(group, item, requestHash);
@@ -277,9 +308,12 @@ public class FailoverService {
 
         // 检查并发舱壁
         ProviderBulkhead bulkhead = state.getBulkhead();
+        bulkhead.setMaxConcurrent(effectiveConfig.getMaxConcurrentRequestsPerProvider());
         if (!bulkhead.tryAcquire()) {
             log.warn("Provider {} 并发已满，当前: {}/{}, 尝试 Failover",
                     providerId, bulkhead.getCurrentConcurrent(), bulkhead.getMaxConcurrent());
+            relayMetrics.recordBulkheadRejection(false);
+            relayMetrics.recordFailoverAttempt(false, attemptCount + 1);
             return executeWithFailoverMono(callFunction, group, tried, timeoutMs, attemptCount + 1, requestHash);
         }
 
@@ -292,6 +326,7 @@ public class FailoverService {
                     long duration = System.currentTimeMillis() - startTime;
                     scoreCalculator.update(state, FailureType.SUCCESS, duration);
                     circuitBreaker.onSuccess(state, effectiveConfig);
+                    relayMetrics.recordFailoverDepth(attemptCount);
                     log.debug("Provider {} 调用成功，耗时: {}ms, 新评分: {}", providerId, duration, state.getScore());
                 })
                 .doOnError(error -> bulkhead.release())
@@ -311,9 +346,12 @@ public class FailoverService {
 
                     if (!failureType.shouldFailover()) {
                         log.debug("错误类型 {} 不触发 Failover，直接返回错误", failureType);
+                        relayMetrics.recordFailoverDepth(attemptCount);
                         return Mono.error(error);
                     }
 
+                    relayMetrics.recordFailoverSwitch(false, "before_response", failureType.name().toLowerCase());
+                    relayMetrics.recordFailoverAttempt(false, attemptCount + 1);
                     return executeWithFailoverMono(callFunction, group, tried, timeoutMs, attemptCount + 1, requestHash);
                 });
     }
@@ -339,6 +377,8 @@ public class FailoverService {
                 group.getId(), group.getCircuitBreakerConfig());
 
         if (attemptCount >= groupConfig.getMaxFailoverAttempts()) {
+            relayMetrics.recordMaxFailoverExceeded(true);
+            relayMetrics.recordFailoverDepth(attemptCount);
             return Flux.error(new MaxFailoverExceededException(attemptCount, groupConfig.getMaxFailoverAttempts()));
         }
 
@@ -346,12 +386,20 @@ public class FailoverService {
         try {
             item = selectAvailableProvider(group, tried, requestHash);
         } catch (Exception e) {
+            relayMetrics.recordNoProviderAvailable(true);
+            relayMetrics.recordFailoverDepth(attemptCount);
             return Flux.error(e);
         }
 
         String providerId = generateProviderId(item);
         tried.add(providerId);
         ProviderRuntimeState state = providerStateRegistry.get(providerId);
+        if (state.getProviderName() == null) {
+            state.setProviderName(item.getProviderName());
+        }
+        if (state.getModelName() == null) {
+            state.setModelName(item.getModelName());
+        }
 
         EffectiveCircuitBreakerConfig effectiveConfig = resolveConfig(group, item, requestHash);
 
@@ -359,9 +407,12 @@ public class FailoverService {
                 providerId, state.getScore(), attemptCount + 1, effectiveConfig.getSourceLevel());
 
         ProviderBulkhead bulkhead = state.getBulkhead();
+        bulkhead.setMaxConcurrent(effectiveConfig.getMaxConcurrentRequestsPerProvider());
         if (!bulkhead.tryAcquire()) {
             log.warn("Provider {} 并发已满，当前: {}/{}, 尝试 Failover",
                     providerId, bulkhead.getCurrentConcurrent(), bulkhead.getMaxConcurrent());
+            relayMetrics.recordBulkheadRejection(true);
+            relayMetrics.recordFailoverAttempt(true, attemptCount + 1);
             return executeWithFailoverFlux(callFunction, group, tried, timeoutMs, attemptCount + 1, requestHash);
         }
 
@@ -384,6 +435,7 @@ public class FailoverService {
                     long duration = System.currentTimeMillis() - startTime;
                     scoreCalculator.update(state, FailureType.SUCCESS, duration);
                     circuitBreaker.onSuccess(state, effectiveConfig);
+                    relayMetrics.recordFailoverDepth(attemptCount);
                     log.debug("Provider {} 流式调用完成，耗时: {}ms, 新评分: {}", providerId, duration, state.getScore());
                 })
                 .doOnCancel(releaseBulkhead)
@@ -405,14 +457,18 @@ public class FailoverService {
 
                         if (!failureType.shouldFailover()) {
                             log.debug("错误类型 {} 不触发 Failover，直接返回错误", failureType);
+                            relayMetrics.recordFailoverDepth(attemptCount);
                             return Flux.error(error);
                         }
 
+                        relayMetrics.recordFailoverSwitch(true, "first_chunk", failureType.name().toLowerCase());
+                        relayMetrics.recordFailoverAttempt(true, attemptCount + 1);
                         return executeWithFailoverFlux(callFunction, group, tried, timeoutMs, attemptCount + 1, requestHash);
                     } else {
                         log.error("Provider {} 流式传输中途失败: {} (类型: {})", providerId, error.getMessage(), failureType);
                         scoreCalculator.update(state, failureType, duration);
                         circuitBreaker.onFailure(state, failureType, effectiveConfig);
+                        relayMetrics.recordFailoverDepth(attemptCount);
                         return Flux.error(error);
                     }
                 });

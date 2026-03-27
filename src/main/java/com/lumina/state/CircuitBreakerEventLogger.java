@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * 熔断器事件日志记录器
@@ -20,7 +23,10 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class CircuitBreakerEventLogger {
 
+    private static final int MAX_RECENT_MANUAL_EVENTS = 100;
+
     private final ObjectMapper objectMapper;
+    private final ConcurrentLinkedDeque<ManualControlEvent> recentManualEvents = new ConcurrentLinkedDeque<>();
 
     /**
      * 熔断状态变更事件
@@ -137,9 +143,11 @@ public class CircuitBreakerEventLogger {
                                   String reason, String operator) {
         try {
             ManualControlEvent event = ManualControlEvent.builder()
+                    .action("control")
                     .event("manual_circuit_control")
                     .providerId(state.getProviderId())
                     .providerName(state.getProviderName())
+                    .modelName(state.getModelName())
                     .fromState(fromState.name())
                     .toState(toState.name())
                     .reason(reason)
@@ -147,6 +155,7 @@ public class CircuitBreakerEventLogger {
                     .timestamp(Instant.now().toString())
                     .build();
 
+            rememberManualEvent(event);
             String json = objectMapper.writeValueAsString(event);
             log.info("MANUAL_CONTROL_EVENT: {}", json);
         } catch (JsonProcessingException e) {
@@ -156,6 +165,43 @@ public class CircuitBreakerEventLogger {
         }
     }
 
+    public void logManualRelease(ProviderRuntimeState state, String operator, String reason) {
+        try {
+            ManualControlEvent event = ManualControlEvent.builder()
+                    .action("release")
+                    .event("manual_circuit_release")
+                    .providerId(state.getProviderId())
+                    .providerName(state.getProviderName())
+                    .modelName(state.getModelName())
+                    .fromState(state.getCircuitState().name())
+                    .toState(state.getCircuitState().name())
+                    .reason(reason)
+                    .operator(operator)
+                    .timestamp(Instant.now().toString())
+                    .build();
+            rememberManualEvent(event);
+            String json = objectMapper.writeValueAsString(event);
+            log.info("MANUAL_CONTROL_EVENT: {}", json);
+        } catch (JsonProcessingException e) {
+            log.info("MANUAL_CONTROL_EVENT: provider={}, action=release, operator={}",
+                    state.getProviderId(), operator);
+        }
+    }
+
+    public List<ManualControlEvent> getRecentManualControlEvents(int limit) {
+        int cappedLimit = Math.max(1, Math.min(limit, MAX_RECENT_MANUAL_EVENTS));
+        List<ManualControlEvent> events = new ArrayList<>(cappedLimit);
+        int count = 0;
+        for (ManualControlEvent event : recentManualEvents) {
+            events.add(event);
+            count++;
+            if (count >= cappedLimit) {
+                break;
+            }
+        }
+        return events;
+    }
+
     /**
      * 手动控制事件
      */
@@ -163,14 +209,23 @@ public class CircuitBreakerEventLogger {
     @Builder
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ManualControlEvent {
+        private String action;
         private String event;
         private String providerId;
         private String providerName;
+        private String modelName;
         private String fromState;
         private String toState;
         private String reason;
         private String operator;
         private String timestamp;
+    }
+
+    private void rememberManualEvent(ManualControlEvent event) {
+        recentManualEvents.addFirst(event);
+        while (recentManualEvents.size() > MAX_RECENT_MANUAL_EVENTS) {
+            recentManualEvents.pollLast();
+        }
     }
 
     private Double roundToTwoDecimals(double value) {

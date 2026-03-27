@@ -15,7 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Instant;
 import java.util.List;
@@ -46,59 +48,57 @@ public class RelayServiceImpl implements RelayService {
     @Override
     public Mono<ResponseEntity<?>> relay(String type, ObjectNode params, Map<String, String> queryParams) {
         String modelGroupName = params.get("model").asText();
-        ModelGroupConfig modelGroupConfig = groupService.getModelGroupConfig(modelGroupName);
-        if (modelGroupConfig == null) {
-            return Mono.error(new RuntimeException("模型分组不存在"));
-        }
+        return groupService.getModelGroupConfigAsync(modelGroupName)
+                .switchIfEmpty(Mono.error(new RuntimeException("模型分组不存在")))
+                .flatMap(modelGroupConfig -> {
+                    if (modelGroupConfig == null) {
+                        return Mono.error(new RuntimeException("模型分组不存在"));
+                    }
 
-        Integer timeoutMs = modelGroupConfig.getFirstTokenTimeout();
-        boolean stream = params.has("stream") && params.get("stream").asBoolean();
-        LlmRequestExecutor executor = getExecutor(type);
+                    Integer timeoutMs = modelGroupConfig.getFirstTokenTimeout();
+                    boolean stream = params.has("stream") && params.get("stream").asBoolean();
+                    LlmRequestExecutor executor = getExecutor(type);
 
-        if (stream) {
-            // 返回 Mono<ResponseEntity<Flux<...>>>
-            // 这会告诉 WebFlux：响应头是 text/event-stream，Body 是一个流
-            return Mono.just(
-                    ResponseEntity.ok()
-                            .contentType(MediaType.TEXT_EVENT_STREAM)
-                            .body(
-                                    failoverService.executeWithFailoverFlux(
-                                            (provider) -> {
-                                                ObjectNode requestParams = params.deepCopy();
-                                                requestParams.put("model", provider.getModelName());
-                                                return executor.executeStream(
-                                                        requestParams,
-                                                        provider,
-                                                        queryParams,
-                                                        "",
-                                                        type,
-                                                        timeoutMs
-                                                );
-                                            },
-                                            modelGroupConfig,
+                    if (stream) {
+                        Flux<?> body = failoverService.executeWithFailoverFlux(
+                                (provider) -> {
+                                    ObjectNode requestParams = params.deepCopy();
+                                    requestParams.put("model", provider.getModelName());
+                                    return executor.executeStream(
+                                            requestParams,
+                                            provider,
+                                            queryParams,
+                                            "",
+                                            type,
                                             timeoutMs
-                                    )
-                            )
-            );
-        } else {
-            // 返回 Mono<ResponseEntity<ObjectNode>>
-            return failoverService.executeWithFailoverMono(
-                    (provider) -> {
-                        ObjectNode requestParams = params.deepCopy();
-                        requestParams.put("model", provider.getModelName());
-                        return executor.executeNormal(
-                                requestParams,
-                                provider,
-                                queryParams,
-                                "",
-                                type,
+                                    );
+                                },
+                                modelGroupConfig,
                                 timeoutMs
                         );
-                    },
-                    modelGroupConfig,
-                    timeoutMs
-            ).map(ResponseEntity::ok);
-        }
+
+                        return Mono.just(ResponseEntity.ok()
+                                .contentType(MediaType.TEXT_EVENT_STREAM)
+                                .body(body));
+                    }
+
+                    return failoverService.executeWithFailoverMono(
+                            (provider) -> {
+                                ObjectNode requestParams = params.deepCopy();
+                                requestParams.put("model", provider.getModelName());
+                                return executor.executeNormal(
+                                        requestParams,
+                                        provider,
+                                        queryParams,
+                                        "",
+                                        type,
+                                        timeoutMs
+                                );
+                            },
+                            modelGroupConfig,
+                            timeoutMs
+                    ).map(ResponseEntity::ok);
+                });
     }
 
     @Override
@@ -107,79 +107,79 @@ public class RelayServiceImpl implements RelayService {
         String modelGroupName = parts[0];
         String action = parts.length > 1 ? parts[1] : "";
 
-        ModelGroupConfig modelGroupConfig = groupService.getModelGroupConfig(modelGroupName);
-        if (modelGroupConfig == null) {
-            return Mono.error(new RuntimeException("模型分组不存在"));
-        }
+        return groupService.getModelGroupConfigAsync(modelGroupName)
+                .switchIfEmpty(Mono.error(new RuntimeException("模型分组不存在")))
+                .flatMap(modelGroupConfig -> {
+                    if (modelGroupConfig == null) {
+                        return Mono.error(new RuntimeException("模型分组不存在"));
+                    }
 
-        Integer timeoutMs = modelGroupConfig.getFirstTokenTimeout();
-        boolean stream = action.equalsIgnoreCase("streamGenerateContent");
-        LlmRequestExecutor executor = getExecutor(type);
+                    Integer timeoutMs = modelGroupConfig.getFirstTokenTimeout();
+                    boolean stream = action.equalsIgnoreCase("streamGenerateContent");
+                    LlmRequestExecutor executor = getExecutor(type);
 
-        if (stream) {
-            // 返回 Mono<ResponseEntity<Flux<String>>>
-            // 手动拼接 "data: " 前缀以确保冒号后有空格，并以 \n\n 结尾，兼容严格的 SSE 解析器
-            return Mono.just(
-                    ResponseEntity.ok()
-                            .contentType(MediaType.TEXT_EVENT_STREAM)
-                            .body(
-                                    failoverService.executeWithFailoverFlux(
-                                            (provider) -> {
-                                                ObjectNode requestParams = params.deepCopy();
-                                                return executor.executeStream(
-                                                        requestParams,
-                                                        provider,
-                                                        queryParams,
-                                                        provider.getModelName() + ":" + action,
-                                                        type,
-                                                        timeoutMs
-                                                );
-                                            },
-                                            modelGroupConfig,
+                    if (stream) {
+                        Flux<String> body = failoverService.executeWithFailoverFlux(
+                                (provider) -> {
+                                    ObjectNode requestParams = params.deepCopy();
+                                    return executor.executeStream(
+                                            requestParams,
+                                            provider,
+                                            queryParams,
+                                            provider.getModelName() + ":" + action,
+                                            type,
                                             timeoutMs
-                                    ).map(sse -> " " + sse.data())
-                            )
-            );
-        } else {
-            // 返回 Mono<ResponseEntity<ObjectNode>>
-            return failoverService.executeWithFailoverMono(
-                    (provider) -> {
-                        ObjectNode requestParams = params.deepCopy();
-                        return executor.executeNormal(
-                                requestParams,
-                                provider,
-                                queryParams,
-                                provider.getModelName() + ":" + action,
-                                type,
+                                    );
+                                },
+                                modelGroupConfig,
                                 timeoutMs
-                        );
-                    },
-                    modelGroupConfig,
-                    timeoutMs
-            ).map(ResponseEntity::ok);
-        }
+                        ).map(sse -> " " + sse.data());
+
+                        return Mono.just(ResponseEntity.ok()
+                                .contentType(MediaType.TEXT_EVENT_STREAM)
+                                .body(body));
+                    }
+
+                    return failoverService.executeWithFailoverMono(
+                            (provider) -> {
+                                ObjectNode requestParams = params.deepCopy();
+                                return executor.executeNormal(
+                                        requestParams,
+                                        provider,
+                                        queryParams,
+                                        provider.getModelName() + ":" + action,
+                                        type,
+                                        timeoutMs
+                                );
+                            },
+                            modelGroupConfig,
+                            timeoutMs
+                    ).map(ResponseEntity::ok);
+                });
     }
 
     @Override
     public Mono<ResponseEntity<?>> models() {
-        List<Group> groups = groupService.list();
+        return Mono.fromCallable(groupService::list)
+                .subscribeOn(Schedulers.boundedElastic())
+                .map(groups -> {
+                    ArrayNode dataArray = objectMapper.createArrayNode();
+                    long createdTimestamp = Instant.now().getEpochSecond();
 
-        ArrayNode dataArray = objectMapper.createArrayNode();
-        long createdTimestamp = Instant.now().getEpochSecond();
+                    for (Group group : groups) {
+                        ObjectNode model = objectMapper.createObjectNode();
+                        model.put("id", group.getName());
+                        model.put("object", "model");
+                        model.put("created", createdTimestamp);
+                        model.put("owned_by", "OpenAI");
+                        dataArray.add(model);
+                    }
 
-        for (Group group : groups) {
-            ObjectNode model = objectMapper.createObjectNode();
-            model.put("id", group.getName());
-            model.put("object", "model");
-            model.put("created", createdTimestamp);
-            model.put("owned_by", "OpenAI");
-            dataArray.add(model);
-        }
+                    ObjectNode response = objectMapper.createObjectNode();
+                    response.put("object", "list");
+                    response.set("data", dataArray);
 
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("object", "list");
-        response.set("data", dataArray);
-
-        return Mono.just(ResponseEntity.ok(response));
+                    return ResponseEntity.ok(response);
+                });
     }
 }

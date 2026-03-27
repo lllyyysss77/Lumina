@@ -3,6 +3,7 @@ package com.lumina.service.impl;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lumina.dto.ModelGroupConfigItem;
 import com.lumina.logging.RequestLogContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -12,6 +13,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
+@Slf4j
 @Service
 public class GeminiModelsExecutor extends AbstractRequestExecutor {
 
@@ -45,6 +47,7 @@ public class GeminiModelsExecutor extends AbstractRequestExecutor {
 
     @Override
     public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
+        log.info("调用流式接口，供应商：{},请求地址：{},模型：{}", provider.getProviderName(), provider.getBaseUrl(), provider.getModelName());
         RequestLogContext ctx = createLogContext(request, provider, type, true);
         Flux<ServerSentEvent<String>> result = createWebClient(provider).post()
                 .uri(uriBuilder -> {
@@ -66,7 +69,7 @@ public class GeminiModelsExecutor extends AbstractRequestExecutor {
                     if (ctx.getFirstTokenArrived().compareAndSet(false, true)) {
                         ctx.setFirstTokenMs((int) ((System.nanoTime() - ctx.getStartNano()) / 1_000_000));
                     }
-                    ctx.getResponseBuffer().append(data);
+                    appendResponseChunk(ctx, data);
 
                     try {
                         handleUsage(ctx, objectMapper.readTree(data));

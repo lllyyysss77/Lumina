@@ -20,7 +20,7 @@ services:
 
   app:
     build: .
-    image: lumina:0.1.0
+    image: lumina:0.4.0
     container_name: lumina
     ports:
       - "8080:8080"

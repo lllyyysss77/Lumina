@@ -6,11 +6,14 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Collection;
+import java.util.List;
 
 @Mapper
 public interface ProviderRuntimeStatsMapper extends BaseMapper<ProviderRuntimeStats> {
 
     int upsert(ProviderRuntimeStats stats);
+
+    int upsertBatch(@Param("statsList") List<ProviderRuntimeStats> statsList);
 
     /**
      * 删除指定的 Provider 运行态数据

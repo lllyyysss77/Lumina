@@ -110,6 +110,7 @@ const translations = {
       title: '仪表盘概览',
       subtitle: 'LLM 网关实时监控',
       totalRequests: '总请求数',
+      totalTokens: '总 Token 数',
       totalCost: '预估总费用',
       avgLatency: '平均延迟',
       successRate: '成功率',
@@ -147,6 +148,82 @@ const translations = {
            slow: '偏慢',
            abnormal: '异常',
            volatile: '波动'
+        }
+      },
+      observability: {
+        title: '运行态观测',
+        subtitle: '展示缓存命中、故障切换、舱壁保护与日志背压的实时状态。',
+        autoRefresh: '每 {{seconds}} 秒刷新 · 最近更新 {{time}}',
+        cards: {
+          cacheHitRate: '缓存命中率',
+          providersTrackedSuffix: '个 Provider',
+          openCircuits: 'OPEN / HALF_OPEN',
+          openCircuitsDetail: '当前处于保护状态的 Provider',
+          failoverSwitches: '故障切换次数',
+          failoverTerminationsSuffix: '次终止',
+          bulkheadRejections: 'Bulkhead 拒绝',
+          bulkheadRejectionsDetail: '触发并发舱壁保护的请求数',
+          logQueue: '日志队列 / 丢弃',
+        },
+        cache: {
+          title: '热路径缓存',
+          columns: {
+            name: '缓存项',
+            hitRate: '命中率',
+            lookups: '查询数',
+            loads: '加载数',
+            avgLoadMs: '平均加载'
+          },
+          names: {
+            group_config: '分组配置',
+            api_key: 'API Key',
+            model_price: '模型价格'
+          }
+        },
+        routing: {
+          title: '路由与切换',
+          items: {
+            saprSelections: 'SAPR 选择',
+            roundRobinSelections: '轮询选择',
+            fallbackToRoundRobin: '降级到轮询',
+            failoverAttempts: 'Failover 尝试',
+            failoverDepthAvg: '平均切换深度'
+          }
+        },
+        pipeline: {
+          title: '后台管线',
+          items: {
+            logDropped: '日志丢弃总数',
+            logQueue: '日志队列深度',
+            logFlushAvgMs: '日志刷盘耗时',
+            logBatchAvg: '平均批大小',
+            bulkheadRejected: 'Bulkhead 拒绝总数'
+          }
+        },
+        providers: {
+          title: 'Provider 运行态',
+          noData: '暂无运行态数据',
+          filters: {
+            provider: '供应商筛选',
+            model: '模型筛选',
+            state: '状态筛选',
+            allProviders: '全部供应商',
+            allModels: '全部模型',
+            allStates: '全部状态'
+          },
+          columns: {
+            provider: 'Provider',
+            model: '模型',
+            state: '状态',
+            score: '健康分',
+            totalRequests: '总请求',
+            successRequests: '成功请求',
+            failureRequests: '失败请求',
+            successRate: '成功率',
+            concurrent: '并发占用',
+            rejected: '拒绝数',
+            nextProbe: '下次探测'
+          }
         }
       }
     },
@@ -281,6 +358,12 @@ const translations = {
         performance: '性能与费用',
         content: '请求内容',
         responseContent: '响应内容',
+        loadRequestContent: '加载请求内容',
+        loadResponseContent: '加载响应内容',
+        loadingPayload: '正在加载内容...',
+        payloadHint: '请求与响应正文按需加载，避免详情接口拉取超大文本。',
+        noRequestContent: '暂无请求内容',
+        noResponseContent: '暂无响应内容',
         error: '错误信息',
         requestId: '请求 ID',
         provider: '供应商',
@@ -333,22 +416,61 @@ const translations = {
       },
       circuitBreaker: {
         title: '熔断器管控',
-        desc: '实时监控与手动干预各供应商的熔断状态。',
+        desc: '以 Provider + Model 粒度查看熔断状态、触发原因、配置来源与人工干预历史。',
         refresh: '刷新状态',
         updated: '熔断器状态已更新',
         released: '手动控制已释放',
         targetProvider: '目标供应商',
+        loading: '加载中...',
+        empty: '暂无熔断器运行态数据',
+        recentEvents: '最近人工操作',
+        noRecentEvents: '暂无人工控制事件',
+        filters: {
+          provider: '供应商',
+          model: '模型',
+          state: '状态',
+          source: '配置来源',
+          manual: '控制模式',
+          allProviders: '全部供应商',
+          allModels: '全部模型',
+          allStates: '全部状态',
+          allSources: '全部来源',
+          allModes: '全部模式',
+          manualOnly: '仅手动控制',
+          autoOnly: '仅自动'
+        },
         table: {
           provider: '供应商',
+          model: '模型',
           state: '熔断状态',
+          since: '状态开始',
+          nextProbe: '下次探测',
           score: '健康分',
+          requests: '请求量',
+          concurrency: '并发占用',
+          source: '配置来源',
           stats: '统计 (错误/慢调用)',
           control: '手动管控'
+        },
+        details: {
+          explanation: '状态解释',
+          failureType: '最近失败类型',
+          groups: '关联分组',
+          thresholds: '当前阈值',
+          manualReason: '人工原因',
+          noReason: '无',
+          mixed: '混合配置上下文'
         },
         states: {
           CLOSED: '正常 (CLOSED)',
           OPEN: '熔断 (OPEN)',
           HALF_OPEN: '探测 (HALF_OPEN)'
+        },
+        sources: {
+          global: '全局',
+          group: '分组',
+          provider: 'Provider',
+          mixed: '混合'
         },
         controlModal: {
           title: '手动控制熔断器',
@@ -357,10 +479,22 @@ const translations = {
           reasonPlaceholder: '请输入操作原因 (用于审计)',
           duration: '熔断持续时间 (毫秒)',
           confirm: '确认操作',
-          manualActive: '手动控制中'
+          manualActive: '手动控制中',
+          currentState: '当前状态',
+          currentScore: '当前健康分',
+          currentLoad: '当前并发',
+          warningOpen: '将强制打开熔断器，Provider 会在设定时间内保持不可用。',
+          warningHalfOpen: '将强制进入 HALF_OPEN，仅允许探测流量通过。',
+          warningClosed: '将强制关闭熔断器并清空当前探测/熔断计数。',
+          releaseHint: '当前实例处于手动控制状态，建议先释放控制再重新设定。'
         },
         actions: {
           manage: '管控',
+          release: '释放控制',
+          details: '详情'
+        },
+        events: {
+          control: '手动控制',
           release: '释放控制'
         }
       }
@@ -473,6 +607,7 @@ const translations = {
       title: 'Dashboard Overview',
       subtitle: 'Real-time monitoring of your LLM gateway.',
       totalRequests: 'Total Requests',
+      totalTokens: 'Total Tokens',
       totalCost: 'Total Cost (Est.)',
       avgLatency: 'Avg. Latency',
       successRate: 'Success Rate',
@@ -510,6 +645,82 @@ const translations = {
            slow: 'Slow',
            abnormal: 'Abnormal',
            volatile: 'Volatile'
+        }
+      },
+      observability: {
+        title: 'Runtime Observability',
+        subtitle: 'Live visibility into cache hits, failover behavior, bulkhead protection, and log backpressure.',
+        autoRefresh: 'Refresh every {{seconds}}s · last update {{time}}',
+        cards: {
+          cacheHitRate: 'Cache Hit Rate',
+          providersTrackedSuffix: 'providers tracked',
+          openCircuits: 'OPEN / HALF_OPEN',
+          openCircuitsDetail: 'Providers currently under protection',
+          failoverSwitches: 'Failover Switches',
+          failoverTerminationsSuffix: 'terminations',
+          bulkheadRejections: 'Bulkhead Rejections',
+          bulkheadRejectionsDetail: 'Requests rejected by concurrency protection',
+          logQueue: 'Log Queue / Dropped',
+        },
+        cache: {
+          title: 'Hot Path Caches',
+          columns: {
+            name: 'Cache',
+            hitRate: 'Hit Rate',
+            lookups: 'Lookups',
+            loads: 'Loads',
+            avgLoadMs: 'Avg Load'
+          },
+          names: {
+            group_config: 'Group Config',
+            api_key: 'API Key',
+            model_price: 'Model Price'
+          }
+        },
+        routing: {
+          title: 'Routing & Failover',
+          items: {
+            saprSelections: 'SAPR Selections',
+            roundRobinSelections: 'Round-Robin Selections',
+            fallbackToRoundRobin: 'Fallback to Round-Robin',
+            failoverAttempts: 'Failover Attempts',
+            failoverDepthAvg: 'Avg Failover Depth'
+          }
+        },
+        pipeline: {
+          title: 'Background Pipelines',
+          items: {
+            logDropped: 'Dropped Logs',
+            logQueue: 'Log Queue Depth',
+            logFlushAvgMs: 'Log Flush Time',
+            logBatchAvg: 'Avg Batch Size',
+            bulkheadRejected: 'Bulkhead Rejections'
+          }
+        },
+        providers: {
+          title: 'Provider Runtime State',
+          noData: 'No runtime data available',
+          filters: {
+            provider: 'Provider Filter',
+            model: 'Model Filter',
+            state: 'State Filter',
+            allProviders: 'All Providers',
+            allModels: 'All Models',
+            allStates: 'All States'
+          },
+          columns: {
+            provider: 'Provider',
+            model: 'Model',
+            state: 'State',
+            score: 'Score',
+            totalRequests: 'Total Requests',
+            successRequests: 'Success Requests',
+            failureRequests: 'Failure Requests',
+            successRate: 'Success Rate',
+            concurrent: 'Concurrency',
+            rejected: 'Rejected',
+            nextProbe: 'Next Probe'
+          }
         }
       }
     },
@@ -644,6 +855,12 @@ const translations = {
         performance: 'Performance & Cost',
         content: 'Request Content',
         responseContent: 'Response Content',
+        loadRequestContent: 'Load request content',
+        loadResponseContent: 'Load response content',
+        loadingPayload: 'Loading content...',
+        payloadHint: 'Request and response payloads are loaded on demand to avoid pulling huge text in the detail path.',
+        noRequestContent: 'No request content',
+        noResponseContent: 'No response content',
         error: 'Error Message',
         requestId: 'Request ID',
         provider: 'Provider',
@@ -696,22 +913,61 @@ const translations = {
       },
       circuitBreaker: {
         title: 'Circuit Breaker Management',
-        desc: 'Real-time monitoring and manual intervention of provider circuit statuses.',
+        desc: 'Inspect circuit state, trigger reasons, config source, and operator actions at Provider + Model granularity.',
         refresh: 'Refresh Status',
         updated: 'Circuit breaker updated',
         released: 'Manual control released',
         targetProvider: 'Target Provider',
+        loading: 'Loading...',
+        empty: 'No circuit-breaker runtime data',
+        recentEvents: 'Recent Operator Actions',
+        noRecentEvents: 'No manual control events yet',
+        filters: {
+          provider: 'Provider',
+          model: 'Model',
+          state: 'State',
+          source: 'Config Source',
+          manual: 'Control Mode',
+          allProviders: 'All Providers',
+          allModels: 'All Models',
+          allStates: 'All States',
+          allSources: 'All Sources',
+          allModes: 'All Modes',
+          manualOnly: 'Manual Only',
+          autoOnly: 'Automatic Only'
+        },
         table: {
           provider: 'Provider',
+          model: 'Model',
           state: 'State',
+          since: 'State Since',
+          nextProbe: 'Next Probe',
           score: 'Score',
+          requests: 'Requests',
+          concurrency: 'Concurrency',
+          source: 'Config Source',
           stats: 'Stats (Error/Slow)',
           control: 'Control'
+        },
+        details: {
+          explanation: 'State Explanation',
+          failureType: 'Last Failure Type',
+          groups: 'Linked Groups',
+          thresholds: 'Active Thresholds',
+          manualReason: 'Manual Reason',
+          noReason: 'None',
+          mixed: 'Mixed config context'
         },
         states: {
           CLOSED: 'Normal (CLOSED)',
           OPEN: 'Open (OPEN)',
           HALF_OPEN: 'Probe (HALF_OPEN)'
+        },
+        sources: {
+          global: 'Global',
+          group: 'Group',
+          provider: 'Provider',
+          mixed: 'Mixed'
         },
         controlModal: {
           title: 'Manual Circuit Control',
@@ -720,11 +976,23 @@ const translations = {
           reasonPlaceholder: 'Enter reason for operation (for audit)',
           duration: 'Duration (ms)',
           confirm: 'Confirm',
-          manualActive: 'Manually Controlled'
+          manualActive: 'Manually Controlled',
+          currentState: 'Current State',
+          currentScore: 'Current Score',
+          currentLoad: 'Current Load',
+          warningOpen: 'This will force the circuit OPEN and keep the provider unavailable for the specified duration.',
+          warningHalfOpen: 'This will force the circuit into HALF_OPEN and only allow probe traffic through.',
+          warningClosed: 'This will force the circuit CLOSED and clear the current probe/open counters.',
+          releaseHint: 'This instance is already under manual control. Releasing control first is recommended.'
         },
         actions: {
           manage: 'Manage',
-          release: 'Release'
+          release: 'Release',
+          details: 'Details'
+        },
+        events: {
+          control: 'Manual Control',
+          release: 'Release Control'
         }
       }
     }

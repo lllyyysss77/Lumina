@@ -15,7 +15,7 @@ export interface LogDTO {
   providerName: string;
 }
 
-export interface LogDetail {
+export interface LogDetailMeta {
   id: string;
   requestId: string;
   requestTime: number;
@@ -32,11 +32,16 @@ export interface LogDetail {
   totalTimeMs: number; // Changed from totalTime to totalTimeMs
   cost: number;
   status: string;
+  errorStage?: string;
   retryCount: number;
-  requestContent: string;
-  responseContent?: string;
   errorMessage?: string;
   createdAt: string;
+}
+
+export interface LogDetailPayloads {
+  id: string;
+  requestContent?: string;
+  responseContent?: string;
 }
 
 export interface LogPageResponse {
@@ -85,8 +90,8 @@ export const logService = {
     };
   },
 
-  // Fetch log detail
-  async getDetail(id: string): Promise<LogDetail> {
+  // Fetch log detail metadata only
+  async getDetail(id: string): Promise<LogDetailMeta> {
     const response = await api.get<any>(`/request-logs/${id}`);
     if (response.code === 200 && response.data) {
         return {
@@ -95,5 +100,17 @@ export const logService = {
         };
     }
     throw new Error(response.message || 'Failed to load log details');
+  },
+
+  // Fetch full request/response payloads on demand
+  async getPayloads(id: string): Promise<LogDetailPayloads> {
+    const response = await api.get<any>(`/request-logs/${id}/payloads`);
+    if (response.code === 200 && response.data) {
+      return {
+        ...response.data,
+        id: String(response.data.id)
+      };
+    }
+    throw new Error(response.message || 'Failed to load log payloads');
   }
 };

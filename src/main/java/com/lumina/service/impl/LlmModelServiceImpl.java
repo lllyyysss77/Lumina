@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lumina.dto.ModelDevDTO;
 import com.lumina.entity.LlmModel;
 import com.lumina.mapper.LlmModelMapper;
+import com.lumina.service.HotPathCacheService;
 import com.lumina.service.LlmModelService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -14,9 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +26,9 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModel> i
 
     @Autowired
     private RestClient restClient;
+
+    @Autowired
+    private HotPathCacheService hotPathCacheService;
 
     @Override
     @Transactional
@@ -80,11 +84,47 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModel> i
             this.remove(new QueryWrapper<>());
             // Save new models
             this.saveBatch(models);
+            hotPathCacheService.invalidateAllModelPrices();
         }
     }
 
     @Override
     public Page<LlmModel> queryPage(Page<Object> page, LambdaQueryWrapper<LlmModel> queryWrapper) {
         return baseMapper.queryPage(page, queryWrapper);
+    }
+
+    @Override
+    public LlmModel findLatestByModelName(String modelName) {
+        return hotPathCacheService.getModelPrice(modelName, () -> this.getOne(new LambdaQueryWrapper<LlmModel>()
+                .eq(LlmModel::getModelName, modelName)
+                .orderByDesc(LlmModel::getInputPrice)
+                .last("limit 1")));
+    }
+
+    @Override
+    public boolean save(LlmModel entity) {
+        boolean saved = super.save(entity);
+        if (saved) {
+            hotPathCacheService.invalidateModelPrice(entity.getModelName());
+        }
+        return saved;
+    }
+
+    @Override
+    public boolean updateById(LlmModel entity) {
+        boolean updated = super.updateById(entity);
+        if (updated) {
+            hotPathCacheService.invalidateModelPrice(entity.getModelName());
+        }
+        return updated;
+    }
+
+    @Override
+    public boolean removeById(Serializable id) {
+        boolean removed = super.removeById(id);
+        if (removed && id instanceof String modelName) {
+            hotPathCacheService.invalidateModelPrice(modelName);
+        }
+        return removed;
     }
 }

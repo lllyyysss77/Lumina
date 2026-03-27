@@ -1,5 +1,5 @@
 import { api } from '../utils/request';
-import { DashboardOverview } from '../types';
+import { CircuitBreakerStatus, DashboardOverview } from '../types';
 
 export interface TrafficDataPoint {
   hour: number;
@@ -26,6 +26,57 @@ export interface ProviderStats {
   successRate: number;
 }
 
+export interface ObservabilityOverview {
+  providersTracked: number;
+  openCircuits: number;
+  halfOpenCircuits: number;
+  bulkheadRejections: number;
+  logDroppedTotal: number;
+  logQueueSize: number;
+  cacheHitRate: number;
+  failoverSwitches: number;
+  failoverTerminations: number;
+  failoverDepthAvg: number;
+}
+
+export interface ObservabilitySelection {
+  saprSelections: number;
+  roundRobinSelections: number;
+  fallbackToRoundRobin: number;
+  skippedExcluded: number;
+  skippedCircuitOpen: number;
+  skippedCircuitHalfOpen: number;
+  bulkheadRejectedNonStream: number;
+  bulkheadRejectedStream: number;
+  failoverAttemptsNonStream: number;
+  failoverAttemptsStream: number;
+}
+
+export interface ObservabilityLogPipeline {
+  queueSize: number;
+  droppedTotal: number;
+  avgBatchSize: number;
+  avgFlushMs: number;
+}
+
+export interface ObservabilityCacheMetric {
+  cache: string;
+  hits: number;
+  misses: number;
+  expired: number;
+  loads: number;
+  hitRate: number;
+  avgLoadMs: number;
+}
+
+export interface DashboardObservability {
+  overview: ObservabilityOverview;
+  selection: ObservabilitySelection;
+  logPipeline: ObservabilityLogPipeline;
+  caches: ObservabilityCacheMetric[];
+  providers: CircuitBreakerStatus[];
+}
+
 export const dashboardService = {
   async getOverview(): Promise<DashboardOverview> {
     const response = await api.get<any>('/dashboard/overview');
@@ -36,6 +87,8 @@ export const dashboardService = {
     return {
         totalRequests: 0,
         requestGrowthRate: 0,
+        totalTokens: 0,
+        tokenGrowthRate: 0,
         totalCost: 0,
         costGrowthRate: 0,
         avgLatency: 0,
@@ -67,5 +120,46 @@ export const dashboardService = {
       return response.data;
     }
     return [];
+  },
+
+  async getObservability(): Promise<DashboardObservability> {
+    const response = await api.get<any>('/dashboard/observability');
+    if (response.code === 200 && response.data) {
+      return response.data as DashboardObservability;
+    }
+    return {
+      overview: {
+        providersTracked: 0,
+        openCircuits: 0,
+        halfOpenCircuits: 0,
+        bulkheadRejections: 0,
+        logDroppedTotal: 0,
+        logQueueSize: 0,
+        cacheHitRate: 0,
+        failoverSwitches: 0,
+        failoverTerminations: 0,
+        failoverDepthAvg: 0,
+      },
+      selection: {
+        saprSelections: 0,
+        roundRobinSelections: 0,
+        fallbackToRoundRobin: 0,
+        skippedExcluded: 0,
+        skippedCircuitOpen: 0,
+        skippedCircuitHalfOpen: 0,
+        bulkheadRejectedNonStream: 0,
+        bulkheadRejectedStream: 0,
+        failoverAttemptsNonStream: 0,
+        failoverAttemptsStream: 0,
+      },
+      logPipeline: {
+        queueSize: 0,
+        droppedTotal: 0,
+        avgBatchSize: 0,
+        avgFlushMs: 0,
+      },
+      caches: [],
+      providers: [],
+    };
   }
 };

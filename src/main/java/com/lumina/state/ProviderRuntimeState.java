@@ -5,6 +5,7 @@ import lombok.Data;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Data
@@ -12,6 +13,10 @@ public class ProviderRuntimeState {
 
     private final String providerId;
     private volatile String providerName;
+    private volatile String modelName;
+    private volatile long stateSinceAt = System.currentTimeMillis();
+    private volatile String lastStateChangeReason;
+    private volatile String lastFailureType;
 
     // 统计窗口
     private long windowStart = System.currentTimeMillis();
@@ -95,6 +100,9 @@ public class ProviderRuntimeState {
 
     // Provider 级别并发控制
     private final ProviderBulkhead bulkhead;
+
+    // 脏标记：仅脏状态参与批量落盘
+    private final AtomicBoolean dirty = new AtomicBoolean(false);
 
     /**
      * 构造函数（默认配置）
@@ -284,5 +292,26 @@ public class ProviderRuntimeState {
      */
     public void forceTransitionTo(CircuitState targetState) {
         circuitStateRef.set(targetState);
+    }
+
+    public void recordStateTransition(String reason, long changedAt) {
+        this.stateSinceAt = changedAt;
+        this.lastStateChangeReason = reason;
+    }
+
+    public void recordFailureType(String failureType) {
+        this.lastFailureType = failureType;
+    }
+
+    public void markDirty() {
+        dirty.set(true);
+    }
+
+    public boolean isDirty() {
+        return dirty.get();
+    }
+
+    public void clearDirty() {
+        dirty.set(false);
     }
 }

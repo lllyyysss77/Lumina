@@ -77,6 +77,7 @@ public class CircuitBreaker {
     public void onSuccess(ProviderRuntimeState state, EffectiveCircuitBreakerConfig config) {
         // 清除连续失败计数
         state.clearConsecutiveFailures();
+        state.markDirty();
 
         CircuitState currentState = state.getCircuitState();
 
@@ -94,6 +95,7 @@ public class CircuitBreaker {
             if (successCount >= config.getHalfOpenSuccessThreshold()) {
                 // 达到成功阈值，关闭熔断
                 if (state.tryTransitionTo(CircuitState.HALF_OPEN, CircuitState.CLOSED)) {
+                    state.recordStateTransition("half_open_success_threshold_reached", System.currentTimeMillis());
                     state.resetOnClose();
                     eventLogger.logCircuitClose(state);
                     log.info("Provider {} 熔断器关闭，恢复正常服务", state.getProviderId());
@@ -109,11 +111,14 @@ public class CircuitBreaker {
      * @param config 生效配置
      */
     public void onFailure(ProviderRuntimeState state, FailureType failureType, EffectiveCircuitBreakerConfig config) {
+        state.recordFailureType(failureType.name());
         // 如果错误类型不计入熔断，直接返回
         if (!failureType.countsAsFailure()) {
             log.debug("Provider {} 错误类型 {} 不计入熔断统计", state.getProviderId(), failureType);
             return;
         }
+
+        state.markDirty();
 
         CircuitState currentState = state.getCircuitState();
 
@@ -153,6 +158,8 @@ public class CircuitBreaker {
         // 尝试 CAS 转换到 HALF_OPEN
         if (state.tryTransitionTo(CircuitState.OPEN, CircuitState.HALF_OPEN)) {
             state.initHalfOpen(config.getPermittedCallsInHalfOpen());
+            state.recordStateTransition("probe_time_reached", System.currentTimeMillis());
+            state.markDirty();
             eventLogger.logHalfOpen(state);
             log.info("Provider {} 熔断器进入 HALF_OPEN 状态，允许 {} 个探测请求",
                     state.getProviderId(), config.getPermittedCallsInHalfOpen());
@@ -249,9 +256,12 @@ public class CircuitBreaker {
             state.setOpenAttempt(attempt);
 
             long openDuration = calculateOpenDuration(attempt, config);
-            long nextProbeAt = System.currentTimeMillis() + openDuration;
+            long changedAt = System.currentTimeMillis();
+            long nextProbeAt = changedAt + openDuration;
             state.setNextProbeAt(nextProbeAt);
-            state.setCircuitOpenedAt(System.currentTimeMillis());
+            state.setCircuitOpenedAt(changedAt);
+            state.recordStateTransition(reason, changedAt);
+            state.markDirty();
 
             eventLogger.logStateChange(state, currentState, CircuitState.OPEN, reason, openDuration);
 

@@ -200,3 +200,10 @@ lumina:
   api:
     version: v1
     prefix: /api/v1
+
+  # 日志链路配置
+  logging:
+    queue-capacity: 5000
+    batch-size: 100
+    flush-interval-ms: 500
+    success-payload-sample-rate: 1.0

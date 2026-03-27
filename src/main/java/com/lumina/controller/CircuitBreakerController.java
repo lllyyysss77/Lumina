@@ -1,6 +1,7 @@
 package com.lumina.controller;
 
 import com.lumina.dto.CircuitBreakerControlRequest;
+import com.lumina.dto.CircuitBreakerRecentEventDto;
 import com.lumina.dto.CircuitBreakerStatusResponse;
 import com.lumina.service.CircuitBreakerManagementService;
 import jakarta.validation.Valid;
@@ -42,6 +43,17 @@ public class CircuitBreakerController {
         return ResponseEntity.ok(managementService.listAllStatus());
     }
 
+    @GetMapping("/management/list")
+    public ResponseEntity<List<CircuitBreakerStatusResponse>> listManagementStatus() {
+        return ResponseEntity.ok(managementService.listManagementStatus());
+    }
+
+    @GetMapping("/management/recent-events")
+    public ResponseEntity<List<CircuitBreakerRecentEventDto>> listRecentEvents(
+            @RequestParam(defaultValue = "20") Integer limit) {
+        return ResponseEntity.ok(managementService.listRecentManualEvents(limit));
+    }
+
     /**
      * 手动控制熔断器状态
      *
@@ -64,10 +76,12 @@ public class CircuitBreakerController {
      * 释放手动控制，恢复自动管理
      */
     @PostMapping("/release/{providerId}")
-    public ResponseEntity<CircuitBreakerStatusResponse> releaseManualControl(@PathVariable String providerId) {
+    public ResponseEntity<CircuitBreakerStatusResponse> releaseManualControl(
+            @PathVariable String providerId,
+            @RequestHeader(value = "X-Operator", required = false) String operator) {
         log.info("释放手动控制请求: providerId={}", providerId);
 
-        CircuitBreakerStatusResponse response = managementService.releaseManualControl(providerId);
+        CircuitBreakerStatusResponse response = managementService.releaseManualControl(providerId, operator);
         if (response == null) {
             return ResponseEntity.notFound().build();
         }

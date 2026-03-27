@@ -1,5 +1,5 @@
 import { api } from '../utils/request';
-import { CircuitBreakerStatus, CircuitBreakerControlRequest } from '../types';
+import { CircuitBreakerStatus, CircuitBreakerControlRequest, CircuitBreakerRecentEvent } from '../types';
 
 export const circuitBreakerService = {
   // Get status list for all providers
@@ -12,6 +12,30 @@ export const circuitBreakerService = {
     // Fallback if wrapped in data object
     if (response && Array.isArray((response as any).data)) {
         return (response as any).data;
+    }
+    return [];
+  },
+
+  async getManagementList(): Promise<CircuitBreakerStatus[]> {
+    const response = await api.get<any>('/circuit-breaker/management/list');
+    if (Array.isArray(response)) {
+      return response;
+    }
+    if (response && Array.isArray((response as any).data)) {
+      return (response as any).data;
+    }
+    return [];
+  },
+
+  async getRecentEvents(limit = 20): Promise<CircuitBreakerRecentEvent[]> {
+    const response = await api.get<any>('/circuit-breaker/management/recent-events', {
+      params: { limit },
+    });
+    if (Array.isArray(response)) {
+      return response;
+    }
+    if (response && Array.isArray((response as any).data)) {
+      return (response as any).data;
     }
     return [];
   },
@@ -32,8 +56,10 @@ export const circuitBreakerService = {
   },
 
   // Release manual control
-  async release(providerId: string): Promise<CircuitBreakerStatus> {
+  async release(providerId: string, operator?: string): Promise<CircuitBreakerStatus> {
     const encodedId = encodeURIComponent(providerId);
-    return api.post<CircuitBreakerStatus>(`/circuit-breaker/release/${encodedId}`);
+    return api.post<CircuitBreakerStatus>(`/circuit-breaker/release/${encodedId}`, undefined, {
+      headers: operator ? { 'X-Operator': operator } : undefined,
+    });
   }
 };

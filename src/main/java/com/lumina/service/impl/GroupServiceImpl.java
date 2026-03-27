@@ -1,7 +1,6 @@
 package com.lumina.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lumina.dto.ModelGroupConfig;
@@ -10,10 +9,12 @@ import com.lumina.entity.GroupItem;
 import com.lumina.mapper.GroupMapper;
 import com.lumina.service.GroupItemService;
 import com.lumina.service.GroupService;
-import com.lumina.service.RedisService;
+import com.lumina.service.HotPathCacheService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -22,7 +23,7 @@ import java.util.Objects;
 public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements GroupService {
 
     @Autowired
-    private RedisService redisService;
+    private HotPathCacheService hotPathCacheService;
 
     @Autowired
     private GroupItemService groupItemService;
@@ -45,20 +46,17 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
 
     @Override
     public ModelGroupConfig getModelGroupConfig(String modelGroupName) {
-        return baseMapper.getModelGroupByName(modelGroupName);
-//        // 先查询redis缓存
-//        ModelGroupConfig config = redisService.get(modelGroupName, ModelGroupConfig.class);
-//        if (config != null) {
-//            return config;
-//        }
-//
-//        // 缓存未命中，查询数据库
-//        config = baseMapper.getModelGroupByName(modelGroupName);
-//        if (config != null) {
-//            // 将结果缓存到redis
-//            redisService.set(modelGroupName, config);
-//        }
-//        return config;
+        return loadModelGroupConfig(modelGroupName);
+    }
+
+    @Override
+    public Mono<ModelGroupConfig> getModelGroupConfigAsync(String modelGroupName) {
+        ModelGroupConfig cached = hotPathCacheService.getCachedGroupConfig(modelGroupName);
+        if (cached != null) {
+            return Mono.just(cached);
+        }
+        return Mono.fromCallable(() -> loadModelGroupConfig(modelGroupName))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -75,6 +73,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         }
         group.getGroupItems().forEach(item -> item.setGroupId(group.getId()));
         groupItemService.saveBatch(group.getGroupItems());
+        hotPathCacheService.invalidateAllGroupConfigs();
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -92,6 +91,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         // 批量插入新的关联
         group.getGroupItems().forEach(item -> item.setGroupId(group.getId()));
         groupItemService.saveBatch(group.getGroupItems());
+        hotPathCacheService.invalidateAllGroupConfigs();
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -100,5 +100,13 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         removeById(id);
         groupItemService.remove(new LambdaQueryWrapper<GroupItem>()
                 .eq(GroupItem::getGroupId, id));
+        hotPathCacheService.invalidateAllGroupConfigs();
+    }
+
+    private ModelGroupConfig loadModelGroupConfig(String modelGroupName) {
+        return hotPathCacheService.getGroupConfig(
+                modelGroupName,
+                () -> baseMapper.getModelGroupByName(modelGroupName)
+        );
     }
 }

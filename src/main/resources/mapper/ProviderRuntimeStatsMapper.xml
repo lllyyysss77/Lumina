@@ -34,6 +34,40 @@
             updated_at = VALUES(updated_at)
     </insert>
 
+    <insert id="upsertBatch" databaseId="mysql">
+        INSERT INTO provider_runtime_stats (
+            provider_id, provider_name, success_rate_ema, latency_ema_ms, score,
+            total_requests, success_requests, failure_requests,
+            circuit_state, circuit_opened_at,
+            consecutive_failures, open_attempt, next_probe_at,
+            updated_at
+        )
+        VALUES
+        <foreach collection="statsList" item="item" separator=",">
+            (
+                #{item.providerId}, #{item.providerName}, #{item.successRateEma}, #{item.latencyEmaMs}, #{item.score},
+                #{item.totalRequests}, #{item.successRequests}, #{item.failureRequests},
+                #{item.circuitState}, #{item.circuitOpenedAt},
+                #{item.consecutiveFailures}, #{item.openAttempt}, #{item.nextProbeAt},
+                #{item.updatedAt}
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            provider_name = VALUES(provider_name),
+            success_rate_ema = VALUES(success_rate_ema),
+            latency_ema_ms = VALUES(latency_ema_ms),
+            score = VALUES(score),
+            total_requests = VALUES(total_requests),
+            success_requests = VALUES(success_requests),
+            failure_requests = VALUES(failure_requests),
+            circuit_state = VALUES(circuit_state),
+            circuit_opened_at = VALUES(circuit_opened_at),
+            consecutive_failures = VALUES(consecutive_failures),
+            open_attempt = VALUES(open_attempt),
+            next_probe_at = VALUES(next_probe_at),
+            updated_at = VALUES(updated_at)
+    </insert>
+
     <!-- upsert - SQLite -->
     <insert id="upsert" databaseId="sqlite">
         INSERT OR REPLACE INTO provider_runtime_stats (
@@ -50,6 +84,26 @@
             #{consecutiveFailures}, #{openAttempt}, #{nextProbeAt},
             #{updatedAt}
         )
+    </insert>
+
+    <insert id="upsertBatch" databaseId="sqlite">
+        INSERT OR REPLACE INTO provider_runtime_stats (
+            provider_id, provider_name, success_rate_ema, latency_ema_ms, score,
+            total_requests, success_requests, failure_requests,
+            circuit_state, circuit_opened_at,
+            consecutive_failures, open_attempt, next_probe_at,
+            updated_at
+        )
+        VALUES
+        <foreach collection="statsList" item="item" separator=",">
+            (
+                #{item.providerId}, #{item.providerName}, #{item.successRateEma}, #{item.latencyEmaMs}, #{item.score},
+                #{item.totalRequests}, #{item.successRequests}, #{item.failureRequests},
+                #{item.circuitState}, #{item.circuitOpenedAt},
+                #{item.consecutiveFailures}, #{item.openAttempt}, #{item.nextProbeAt},
+                #{item.updatedAt}
+            )
+        </foreach>
     </insert>
 
     <!-- deleteByProviderId - 通用 SQL -->

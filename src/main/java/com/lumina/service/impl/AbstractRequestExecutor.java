@@ -6,15 +6,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lumina.dto.ModelGroupConfigItem;
 import com.lumina.entity.LlmModel;
+import com.lumina.config.LuminaProperties;
 import com.lumina.logging.LogWriter;
 import com.lumina.logging.RequestLogContext;
 import com.lumina.service.LlmModelService;
 import com.lumina.service.LlmRequestExecutor;
+import com.lumina.service.ProviderWebClientFactory;
 import com.lumina.util.SnowflakeIdGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -35,6 +35,12 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
 
     @Autowired
     protected LlmModelService llmModelService;
+
+    @Autowired
+    protected ProviderWebClientFactory providerWebClientFactory;
+
+    @Autowired
+    protected LuminaProperties luminaProperties;
 
     protected final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -114,10 +120,7 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
         }
 
         try {
-            LlmModel model = llmModelService.getOne(new LambdaQueryWrapper<LlmModel>()
-                    .eq(LlmModel::getModelName, ctx.getActualModel())
-                    .orderByDesc(LlmModel::getInputPrice)
-                    .last("limit 1"));
+            LlmModel model = llmModelService.findLatestByModelName(ctx.getActualModel());
             if (model == null) {
                 log.warn("未找到模型价格信息: {}", ctx.getActualModel());
                 return;
@@ -164,12 +167,14 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
     }
 
     protected WebClient createWebClient(ModelGroupConfigItem provider) {
-        String apiKey = provider.getApiKey();
-        String authHeader = apiKey.startsWith("Bearer ") ? apiKey : "Bearer " + apiKey;
-        return WebClient.builder()
-                .baseUrl(provider.getBaseUrl())
-                .defaultHeader(HttpHeaders.AUTHORIZATION, authHeader)
-                .build();
+        return providerWebClientFactory.getClient(provider);
+    }
+
+    protected void appendResponseChunk(RequestLogContext ctx, String data) {
+        if (data == null) {
+            return;
+        }
+        ctx.getResponseBuffer().append(data);
     }
 
     /**

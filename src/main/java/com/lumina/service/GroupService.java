@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lumina.dto.ModelGroupConfig;
 import com.lumina.entity.Group;
+import reactor.core.publisher.Mono;
 
 public interface GroupService extends IService<Group> {
 
@@ -27,6 +28,8 @@ public interface GroupService extends IService<Group> {
      * @return
      */
     ModelGroupConfig getModelGroupConfig(String model);
+
+    Mono<ModelGroupConfig> getModelGroupConfigAsync(String model);
 
     /**
      * 创建分组

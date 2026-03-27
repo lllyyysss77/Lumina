@@ -42,6 +42,24 @@ public class CircuitBreakerMetrics {
 
     @PostConstruct
     public void init() {
+        Gauge.builder("lumina_providers_registered", stateRegistry, registry -> registry.all().size())
+                .description("Total number of provider runtime states tracked in memory")
+                .register(meterRegistry);
+        Gauge.builder("lumina_circuit_state_count", stateRegistry,
+                        registry -> countByState(CircuitState.CLOSED))
+                .tag("state", "closed")
+                .description("Number of providers in CLOSED state")
+                .register(meterRegistry);
+        Gauge.builder("lumina_circuit_state_count", stateRegistry,
+                        registry -> countByState(CircuitState.OPEN))
+                .tag("state", "open")
+                .description("Number of providers in OPEN state")
+                .register(meterRegistry);
+        Gauge.builder("lumina_circuit_state_count", stateRegistry,
+                        registry -> countByState(CircuitState.HALF_OPEN))
+                .tag("state", "half_open")
+                .description("Number of providers in HALF_OPEN state")
+                .register(meterRegistry);
         log.info("CircuitBreakerMetrics 初始化完成");
     }
 
@@ -169,5 +187,11 @@ public class CircuitBreakerMetrics {
         // 移除或替换可能导致问题的字符
         return value.replaceAll("[^a-zA-Z0-9_\\-./]", "_")
                     .substring(0, Math.min(value.length(), 128));
+    }
+
+    private long countByState(CircuitState targetState) {
+        return stateRegistry.all().stream()
+                .filter(state -> state.getCircuitState() == targetState)
+                .count();
     }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Download, Loader2, ChevronLeft, ChevronRight, X, Copy, Check, Eye, RefreshCw, Clock, ScrollText } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
-import { logService, LogDetail } from '../services/logService';
+import { logService, LogDetailMeta, LogDetailPayloads } from '../services/logService';
 import { LogEntry } from '../types';
 import { TableSkeleton } from './Skeletons';
 
@@ -31,8 +31,11 @@ export const Logs: React.FC = () => {
 
   // Modal State
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<LogDetail | null>(null);
+  const [selectedLog, setSelectedLog] = useState<LogDetailMeta | null>(null);
+  const [selectedPayloads, setSelectedPayloads] = useState<LogDetailPayloads | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [isPayloadLoading, setIsPayloadLoading] = useState(false);
+  const [hasLoadedPayloads, setHasLoadedPayloads] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   // Fetch Logs
@@ -103,6 +106,9 @@ export const Logs: React.FC = () => {
       setIsDetailLoading(true);
       setIsDetailOpen(true);
       setSelectedLog(null); // Clear previous data
+      setSelectedPayloads(null);
+      setHasLoadedPayloads(false);
+      setIsPayloadLoading(false);
       try {
           const detail = await logService.getDetail(id);
           setSelectedLog(detail);
@@ -112,6 +118,23 @@ export const Logs: React.FC = () => {
       } finally {
           setIsDetailLoading(false);
       }
+  };
+
+  const handleLoadPayloads = async () => {
+    if (!selectedLog || hasLoadedPayloads || isPayloadLoading) {
+      return;
+    }
+
+    setIsPayloadLoading(true);
+    try {
+      const payloads = await logService.getPayloads(selectedLog.id);
+      setSelectedPayloads(payloads);
+      setHasLoadedPayloads(true);
+    } catch (error) {
+      console.error('Failed to fetch payloads', error);
+    } finally {
+      setIsPayloadLoading(false);
+    }
   };
 
   const handleCopy = (text: string, key: string) => {
@@ -128,6 +151,57 @@ export const Logs: React.FC = () => {
       } catch {
           return content;
       }
+  };
+
+  const renderPayloadSection = (
+    title: string,
+    content: string | undefined,
+    copyKey: string,
+    emptyText: string,
+    loadText: string
+  ) => {
+    const hasContent = Boolean(content && content.trim());
+
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">{title}</h3>
+          {hasLoadedPayloads && hasContent ? (
+            <button
+              onClick={() => handleCopy(content || '', copyKey)}
+              className="text-xs flex items-center font-medium px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400"
+            >
+              {copyFeedback === copyKey ? <Check size={14} className="mr-1" /> : <Copy size={14} className="mr-1" />}
+              {copyFeedback === copyKey ? t('common.copied') : t('common.copy')}
+            </button>
+          ) : (
+            <button
+              onClick={handleLoadPayloads}
+              disabled={isPayloadLoading}
+              className="text-xs flex items-center font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isPayloadLoading ? <Loader2 size={14} className="mr-1 animate-spin" /> : null}
+              {isPayloadLoading ? t('logs.detail.loadingPayload') : loadText}
+            </button>
+          )}
+        </div>
+        <div className="bg-gray-900 dark:bg-black rounded-xl p-5 overflow-hidden border border-gray-800 dark:border-gray-800 shadow-inner">
+          {!hasLoadedPayloads ? (
+            <div className="text-xs text-gray-400 dark:text-gray-500">
+              {t('logs.detail.payloadHint')}
+            </div>
+          ) : hasContent ? (
+            <pre className="text-xs font-mono text-gray-300 whitespace-pre-wrap break-words max-h-96 overflow-y-auto custom-scrollbar leading-relaxed">
+              {formatContent(content || '')}
+            </pre>
+          ) : (
+            <div className="text-xs text-gray-400 dark:text-gray-500">
+              {emptyText}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -449,44 +523,20 @@ export const Logs: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Content Section */}
-                                <div>
-                                    <div className="flex items-center justify-between mb-3">
-                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">{t('logs.detail.content')}</h3>
-                                        <button
-                                            onClick={() => handleCopy(selectedLog.requestContent, 'content')}
-                                            className="text-xs flex items-center font-medium px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400"
-                                        >
-                                            {copyFeedback === 'content' ? <Check size={14} className="mr-1" /> : <Copy size={14} className="mr-1" />}
-                                            {copyFeedback === 'content' ? t('common.copied') : t('common.copy')}
-                                        </button>
-                                    </div>
-                                    <div className="bg-gray-900 dark:bg-black rounded-xl p-5 overflow-hidden border border-gray-800 dark:border-gray-800 shadow-inner">
-                                        <pre className="text-xs font-mono text-gray-300 whitespace-pre-wrap break-words max-h-96 overflow-y-auto custom-scrollbar leading-relaxed">
-                                            {formatContent(selectedLog.requestContent)}
-                                        </pre>
-                                    </div>
-                                </div>
+                                {renderPayloadSection(
+                                    t('logs.detail.content'),
+                                    selectedPayloads?.requestContent,
+                                    'requestContent',
+                                    t('logs.detail.noRequestContent'),
+                                    t('logs.detail.loadRequestContent')
+                                )}
 
-                                {/* Response Content Section */}
-                                {selectedLog.responseContent && (
-                                    <div>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">{t('logs.detail.responseContent')}</h3>
-                                            <button
-                                                onClick={() => handleCopy(selectedLog.responseContent || '', 'response')}
-                                                className="text-xs flex items-center font-medium px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400"
-                                            >
-                                                {copyFeedback === 'response' ? <Check size={14} className="mr-1" /> : <Copy size={14} className="mr-1" />}
-                                                {copyFeedback === 'response' ? t('common.copied') : t('common.copy')}
-                                            </button>
-                                        </div>
-                                        <div className="bg-gray-900 dark:bg-black rounded-xl p-5 overflow-hidden border border-gray-800 dark:border-gray-800 shadow-inner">
-                                            <pre className="text-xs font-mono text-gray-300 whitespace-pre-wrap break-words max-h-96 overflow-y-auto custom-scrollbar leading-relaxed">
-                                                {formatContent(selectedLog.responseContent)}
-                                            </pre>
-                                        </div>
-                                    </div>
+                                {renderPayloadSection(
+                                    t('logs.detail.responseContent'),
+                                    selectedPayloads?.responseContent,
+                                    'responseContent',
+                                    t('logs.detail.noResponseContent'),
+                                    t('logs.detail.loadResponseContent')
                                 )}
 
                                 {/* Error Message Section */}

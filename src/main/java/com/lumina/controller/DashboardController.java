@@ -1,6 +1,7 @@
 package com.lumina.controller;
 
 import com.lumina.dto.ApiResponse;
+import com.lumina.dto.DashboardObservabilityDto;
 import com.lumina.dto.DashboardOverviewDto;
 import com.lumina.dto.ModelTokenUsageDto;
 import com.lumina.dto.ProviderStatsDto;
@@ -70,5 +71,10 @@ public class DashboardController {
             @RequestParam(defaultValue = "10") Integer limit) {
         List<ProviderStatsDto> stats = dashboardService.getProviderStats(limit);
         return ApiResponse.success(stats);
+    }
+
+    @GetMapping("/observability")
+    public ApiResponse<DashboardObservabilityDto> getObservability() {
+        return ApiResponse.success(dashboardService.getObservability());
     }
 }

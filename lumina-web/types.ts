@@ -82,6 +82,8 @@ export interface AccessToken {
 export interface DashboardOverview {
     totalRequests: number;
     requestGrowthRate: number;
+    totalTokens: number;
+    tokenGrowthRate: number;
     totalCost: number;
     costGrowthRate: number;
     avgLatency: number;
@@ -118,13 +120,21 @@ export type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 export interface CircuitBreakerStatus {
   providerId: string;
   providerName: string;
+  modelName?: string;
+  stateSinceAt?: number;
+  stateExplanation?: string;
+  lastStateChangeReason?: string | null;
+  lastFailureType?: string | null;
   circuitState: CircuitState;
   circuitOpenedAt?: number;
   nextProbeAt?: number;
   openAttempt?: number;
   score: number;
+  latencyEmaMs?: number;
+  successRateEma?: number;
   errorRate: number;
   slowRate: number;
+  windowTotalCount?: number;
   consecutiveFailures: number;
   totalRequests: number;
   successRequests: number;
@@ -136,7 +146,30 @@ export interface CircuitBreakerStatus {
   halfOpenSuccessCount?: number;
   halfOpenFailureCount?: number;
   manuallyControlled: boolean;
+  manualControlledAt?: number;
+  manualControlOperator?: string | null;
   manualControlReason?: string | null;
+  effectiveConfigSource?: string;
+  effectiveGroupNames?: string[];
+  mixedConfig?: boolean;
+  effectiveConfig?: {
+    minCalls: number;
+    errorRateThreshold: number;
+    consecutiveFailureThreshold: number;
+    slowCallThresholdMs: number;
+    slowRateThreshold: number;
+    permittedCallsInHalfOpen: number;
+    halfOpenSuccessThreshold: number;
+    halfOpenFailureThreshold: number;
+    halfOpenMaxDurationMs: number;
+    openBaseMs: number;
+    openMaxMs: number;
+    backoffMultiplier: number;
+    jitterRatio: number;
+    maxFailoverAttempts: number;
+    maxConcurrentRequestsPerProvider: number;
+    sourceLevel: string;
+  };
 }
 
 export interface CircuitBreakerControlRequest {
@@ -144,4 +177,16 @@ export interface CircuitBreakerControlRequest {
   targetState: CircuitState;
   reason?: string;
   durationMs?: number;
+}
+
+export interface CircuitBreakerRecentEvent {
+  action: string;
+  providerId: string;
+  providerName: string;
+  modelName?: string;
+  fromState: string;
+  toState: string;
+  reason?: string | null;
+  operator?: string | null;
+  timestamp: string;
 }

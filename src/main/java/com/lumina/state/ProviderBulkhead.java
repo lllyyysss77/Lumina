@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.LongAdder;
 public class ProviderBulkhead {
 
     private final AtomicInteger currentConcurrent = new AtomicInteger(0);
-    private final int maxConcurrent;
+    private final AtomicInteger maxConcurrent;
 
     // 指标统计
     private final LongAdder rejectedCount = new LongAdder();
@@ -21,7 +21,7 @@ public class ProviderBulkhead {
      * @param maxConcurrent 最大并发数
      */
     public ProviderBulkhead(int maxConcurrent) {
-        this.maxConcurrent = maxConcurrent;
+        this.maxConcurrent = new AtomicInteger(Math.max(1, maxConcurrent));
     }
 
     /**
@@ -31,7 +31,8 @@ public class ProviderBulkhead {
     public boolean tryAcquire() {
         while (true) {
             int current = currentConcurrent.get();
-            if (current >= maxConcurrent) {
+            int max = maxConcurrent.get();
+            if (current >= max) {
                 rejectedCount.increment();
                 return false;  // 快速失败
             }
@@ -65,7 +66,14 @@ public class ProviderBulkhead {
      * 获取最大并发数
      */
     public int getMaxConcurrent() {
-        return maxConcurrent;
+        return maxConcurrent.get();
+    }
+
+    /**
+     * 动态更新最大并发数
+     */
+    public void setMaxConcurrent(int newMaxConcurrent) {
+        maxConcurrent.set(Math.max(1, newMaxConcurrent));
     }
 
     /**
@@ -86,14 +94,14 @@ public class ProviderBulkhead {
      * 获取剩余可用许可数
      */
     public int getAvailablePermits() {
-        return Math.max(0, maxConcurrent - currentConcurrent.get());
+        return Math.max(0, maxConcurrent.get() - currentConcurrent.get());
     }
 
     /**
      * 是否已满
      */
     public boolean isFull() {
-        return currentConcurrent.get() >= maxConcurrent;
+        return currentConcurrent.get() >= maxConcurrent.get();
     }
 
     /**

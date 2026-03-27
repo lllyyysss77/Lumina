@@ -54,6 +54,7 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
 
     @Override
     public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
+        log.info("调用流式接口，供应商：{},请求地址：{},模型：{}", provider.getProviderName(), provider.getBaseUrl(), provider.getModelName());
         RequestLogContext ctx = createLogContext(request, provider, type, true);
         Flux<ServerSentEvent<String>> result = createWebClient(provider).post()
                 .uri(uriBuilder -> {
@@ -68,14 +69,13 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
 
         return applyTimeout(result, timeoutMs)
                 .doOnNext(event -> {
-                    System.out.println("[SSE] raw event: {}"+ event);
                     String data = event.data();
                     if (data == null) return;
                     if (ctx.getFirstTokenArrived().compareAndSet(false, true)) {
                         ctx.setFirstTokenMs((int) ((System.nanoTime() - ctx.getStartNano()) / 1_000_000));
                     }
                     if (!"[DONE]".equals(data)) {
-                        ctx.getResponseBuffer().append(data);
+                        appendResponseChunk(ctx, data);
                         try {
                             handleUsage(ctx, objectMapper.readTree(data));
                         } catch (Exception ignored) {

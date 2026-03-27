@@ -68,6 +68,7 @@ public class ProviderScoreCalculator {
             // 试探失败，保持低分
             stats.setScore(5.0);
         }
+        stats.markDirty();
     }
 
     private void updateBasicStats(ProviderRuntimeState stats, boolean success, long latencyMs, boolean isSlow) {
@@ -99,6 +100,7 @@ public class ProviderScoreCalculator {
                         ? currentSuccess
                         : ALPHA * currentSuccess + (1 - ALPHA) * oldSuccessRate
         );
+        stats.markDirty();
     }
 
     @SuppressWarnings("deprecation")
@@ -153,5 +155,6 @@ public class ProviderScoreCalculator {
                         - slowPenalty * 10;
 
         stats.setScore(Math.max(1.0, Math.min(100, score)));
+        stats.markDirty();
     }
 }

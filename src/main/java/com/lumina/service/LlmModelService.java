@@ -8,6 +8,8 @@ import com.lumina.entity.LlmModel;
 public interface LlmModelService extends IService<LlmModel> {
     void syncModels();
 
+    LlmModel findLatestByModelName(String modelName);
+
     /**
      * 分页查询
      *

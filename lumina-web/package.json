@@ -1,6 +1,6 @@
 {
   "name": "lumina-gateway",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A simple, beautiful, and elegant LLM API aggregation and load balancing service management dashboard.",
   "scripts": {
     "dev": "vite",

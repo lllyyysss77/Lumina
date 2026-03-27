@@ -1,16 +1,24 @@
 package com.lumina.service;
 
 import com.lumina.dto.DashboardOverviewDto;
+import com.lumina.dto.DashboardObservabilityDto;
 import com.lumina.dto.ModelTokenUsageDto;
 import com.lumina.dto.ProviderStatsDto;
 import com.lumina.dto.RequestTrafficDto;
+import com.lumina.dto.CircuitBreakerStatusResponse;
 import com.lumina.mapper.DashboardMapper;
-import com.lumina.mapper.ProviderMapper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -19,6 +27,11 @@ public class DashboardService {
     @Autowired
     private DashboardMapper dashboardMapper;
 
+    @Autowired
+    private MeterRegistry meterRegistry;
+
+    @Autowired
+    private CircuitBreakerManagementService circuitBreakerManagementService;
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -58,6 +71,14 @@ public class DashboardService {
                 allStats.setRequestGrowthRate(todayStats != null && todayStats.getTotalRequests() > 0 ? 100.0 : 0.0);
             }
 
+            long todayTokens = todayStats != null && todayStats.getTotalTokens() != null ? todayStats.getTotalTokens() : 0L;
+            long yesterdayTokens = yesterdayStats != null && yesterdayStats.getTotalTokens() != null ? yesterdayStats.getTotalTokens() : 0L;
+            if (yesterdayTokens > 0) {
+                allStats.setTokenGrowthRate(((todayTokens - yesterdayTokens) * 100.0) / yesterdayTokens);
+            } else {
+                allStats.setTokenGrowthRate(todayTokens > 0 ? 100.0 : 0.0);
+            }
+
             if (yesterdayStats != null && yesterdayStats.getTotalCost().doubleValue() > 0) {
                 allStats.setCostGrowthRate(
                         ((todayStats.getTotalCost().doubleValue() - yesterdayStats.getTotalCost().doubleValue()) * 100.0) / yesterdayStats.getTotalCost().doubleValue()
@@ -72,6 +93,13 @@ public class DashboardService {
             } else {
                 allStats.setLatencyChange(0.0);
                 allStats.setSuccessRateChange(0.0);
+            }
+
+            if (allStats.getTotalTokens() == null) {
+                allStats.setTotalTokens(0L);
+            }
+            if (allStats.getTotalCost() == null) {
+                allStats.setTotalCost(BigDecimal.ZERO);
             }
         }
 
@@ -160,5 +188,130 @@ public class DashboardService {
         }
 
         return statsList;
+    }
+
+    public DashboardObservabilityDto getObservability() {
+        List<DashboardObservabilityDto.CacheMetric> caches = List.of(
+                buildCacheMetric("group_config"),
+                buildCacheMetric("api_key"),
+                buildCacheMetric("model_price")
+        );
+
+        long totalCacheHits = caches.stream().mapToLong(DashboardObservabilityDto.CacheMetric::getHits).sum();
+        long totalCacheMisses = caches.stream().mapToLong(DashboardObservabilityDto.CacheMetric::getMisses).sum();
+        long totalCacheExpired = caches.stream().mapToLong(DashboardObservabilityDto.CacheMetric::getExpired).sum();
+        long totalCacheLookups = totalCacheHits + totalCacheMisses + totalCacheExpired;
+
+        long saprSelections = counterCount("lumina_provider_selection_total", "strategy", "sapr");
+        long roundRobinSelections = counterCount("lumina_provider_selection_total", "strategy", "round_robin");
+        long fallbackToRoundRobin = counterCount("lumina_provider_fallback_total", "strategy", "round_robin");
+        long skippedExcluded = counterCount("lumina_provider_skipped_total", "reason", "excluded");
+        long skippedCircuitOpen = counterCount("lumina_provider_skipped_total", "reason", "circuit_open");
+        long skippedCircuitHalfOpen = counterCount("lumina_provider_skipped_total", "reason", "circuit_half_open");
+        long bulkheadRejectedNonStream = counterCount("lumina_bulkhead_rejections_total", "stream", "false");
+        long bulkheadRejectedStream = counterCount("lumina_bulkhead_rejections_total", "stream", "true");
+        long failoverAttemptsNonStream = counterCount("lumina_failover_attempts_total", "stream", "false");
+        long failoverAttemptsStream = counterCount("lumina_failover_attempts_total", "stream", "true");
+        long failoverSwitches = counterCount("lumina_failover_switch_total");
+        long failoverTerminated = counterCount("lumina_failover_terminated_total");
+        long providersTracked = gaugeValue("lumina_providers_registered");
+        long openCircuits = gaugeValue("lumina_circuit_state_count", "state", "open");
+        long halfOpenCircuits = gaugeValue("lumina_circuit_state_count", "state", "half_open");
+        long logQueueSize = gaugeValue("lumina_log_queue_size");
+        long logDroppedTotal = gaugeValue("lumina_log_dropped_total");
+        double logBatchAvg = summaryMean("lumina_log_batch_size");
+        double logFlushAvgMs = timerMeanMs("lumina_log_flush_duration");
+        double failoverDepthAvg = summaryMean("lumina_failover_depth");
+
+        List<CircuitBreakerStatusResponse> providers = circuitBreakerManagementService.listAllStatus().stream()
+                .sorted(Comparator
+                        .comparing((CircuitBreakerStatusResponse status) -> status.getCircuitState().name())
+                        .thenComparing(CircuitBreakerStatusResponse::getScore, Comparator.reverseOrder()))
+                .toList();
+
+        return DashboardObservabilityDto.builder()
+                .overview(DashboardObservabilityDto.Overview.builder()
+                        .providersTracked(providersTracked)
+                        .openCircuits(openCircuits)
+                        .halfOpenCircuits(halfOpenCircuits)
+                        .bulkheadRejections(bulkheadRejectedNonStream + bulkheadRejectedStream)
+                        .logDroppedTotal(logDroppedTotal)
+                        .logQueueSize(logQueueSize)
+                        .cacheHitRate(ratio(totalCacheHits, totalCacheLookups))
+                        .failoverSwitches(failoverSwitches)
+                        .failoverTerminations(failoverTerminated)
+                        .failoverDepthAvg(failoverDepthAvg)
+                        .build())
+                .selection(DashboardObservabilityDto.Selection.builder()
+                        .saprSelections(saprSelections)
+                        .roundRobinSelections(roundRobinSelections)
+                        .fallbackToRoundRobin(fallbackToRoundRobin)
+                        .skippedExcluded(skippedExcluded)
+                        .skippedCircuitOpen(skippedCircuitOpen)
+                        .skippedCircuitHalfOpen(skippedCircuitHalfOpen)
+                        .bulkheadRejectedNonStream(bulkheadRejectedNonStream)
+                        .bulkheadRejectedStream(bulkheadRejectedStream)
+                        .failoverAttemptsNonStream(failoverAttemptsNonStream)
+                        .failoverAttemptsStream(failoverAttemptsStream)
+                        .build())
+                .logPipeline(DashboardObservabilityDto.LogPipeline.builder()
+                        .queueSize(logQueueSize)
+                        .droppedTotal(logDroppedTotal)
+                        .avgBatchSize(logBatchAvg)
+                        .avgFlushMs(logFlushAvgMs)
+                        .build())
+                .caches(caches)
+                .providers(providers)
+                .build();
+    }
+
+    private DashboardObservabilityDto.CacheMetric buildCacheMetric(String cacheName) {
+        long hits = counterCount("lumina_cache_lookups_total", "cache", cacheName, "result", "hit");
+        long misses = counterCount("lumina_cache_lookups_total", "cache", cacheName, "result", "miss");
+        long expired = counterCount("lumina_cache_lookups_total", "cache", cacheName, "result", "expired");
+        long loads = counterCount("lumina_cache_loads_total", "cache", cacheName, "result", "loaded");
+        long totalLookups = hits + misses + expired;
+        return DashboardObservabilityDto.CacheMetric.builder()
+                .cache(cacheName)
+                .hits(hits)
+                .misses(misses)
+                .expired(expired)
+                .loads(loads)
+                .hitRate(ratio(hits, totalLookups))
+                .avgLoadMs(timerMeanMs("lumina_cache_load_duration", "cache", cacheName))
+                .build();
+    }
+
+    private long counterCount(String name, String... tags) {
+        return Math.round(meterRegistry.find(name).tags(tags).counters().stream()
+                .mapToDouble(Counter::count)
+                .sum());
+    }
+
+    private long gaugeValue(String name, String... tags) {
+        return Math.round(meterRegistry.find(name).tags(tags).gauges().stream()
+                .mapToDouble(Gauge::value)
+                .sum());
+    }
+
+    private double summaryMean(String name, String... tags) {
+        return meterRegistry.find(name).tags(tags).summaries().stream()
+                .mapToDouble(DistributionSummary::mean)
+                .findFirst()
+                .orElse(0.0d);
+    }
+
+    private double timerMeanMs(String name, String... tags) {
+        return meterRegistry.find(name).tags(tags).timers().stream()
+                .mapToDouble(timer -> timer.mean(java.util.concurrent.TimeUnit.MILLISECONDS))
+                .findFirst()
+                .orElse(0.0d);
+    }
+
+    private double ratio(long numerator, long denominator) {
+        if (denominator <= 0) {
+            return 0.0d;
+        }
+        return numerator * 100.0d / denominator;
     }
 }

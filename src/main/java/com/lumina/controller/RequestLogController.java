@@ -1,19 +1,16 @@
 package com.lumina.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lumina.dto.ApiResponse;
+import com.lumina.dto.RequestLogDetailDto;
+import com.lumina.dto.RequestLogPayloadDto;
 import com.lumina.entity.RequestLog;
 import com.lumina.service.RequestLogService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/request-logs")
@@ -39,8 +36,14 @@ public class RequestLogController {
 
 
     @GetMapping("/{id}")
-    public Mono<ApiResponse<RequestLog>> getRequestLogById(@PathVariable Long id) {
-        return Mono.fromCallable(() -> ApiResponse.success(requestLogService.getById(id)))
+    public Mono<ApiResponse<RequestLogDetailDto>> getRequestLogById(@PathVariable String id) {
+        return Mono.fromCallable(() -> ApiResponse.success(requestLogService.getDetailMetaById(id)))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @GetMapping("/{id}/payloads")
+    public Mono<ApiResponse<RequestLogPayloadDto>> getRequestLogPayloads(@PathVariable String id) {
+        return Mono.fromCallable(() -> ApiResponse.success(requestLogService.getPayloadsById(id)))
                 .subscribeOn(Schedulers.boundedElastic());
     }
 

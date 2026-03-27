@@ -12,89 +12,84 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProviderStatsPersistenceJob {
 
+    private static final long CLEANUP_INTERVAL_MS = 60_000;
+
     private final ProviderStateRegistry stateRegistry;
     private final ProviderRuntimeStatsMapper mapper;
     private final GroupService groupService;
+    private volatile long lastCleanupAt;
 
     @Scheduled(fixedDelay = 10_000) // 每 10 秒落盘一次
     public void flush() {
-        // 获取所有有效的 Provider IDs
-        Set<String> validProviderIds = getValidProviderIds();
-
         int persistCount = 0;
         int removedCount = 0;
-        Set<String> staleProviderIds = new HashSet<>();
+        List<ProviderRuntimeStats> dirtyRows = new ArrayList<>();
 
-        // 持久化有效的 Provider 状态，并收集过期的 Provider IDs
         for (ProviderRuntimeState stats : stateRegistry.all()) {
-            String providerId = stats.getProviderId();
-
-            // 检查是否是有效的 Provider
-            if (!validProviderIds.contains(providerId)) {
-                staleProviderIds.add(providerId);
+            if (!stats.isDirty()) {
                 continue;
             }
 
             try {
                 ProviderRuntimeStats row = new ProviderRuntimeStats();
-                row.setProviderId(providerId);
+                row.setProviderId(stats.getProviderId());
                 row.setProviderName(stats.getProviderName());
-
                 row.setSuccessRateEma(stats.getSuccessRateEma());
                 row.setLatencyEmaMs(stats.getLatencyEmaMs());
                 row.setScore(stats.getScore());
-
                 row.setTotalRequests(stats.getTotalRequests().get());
                 row.setSuccessRequests(stats.getSuccessRequests().get());
                 row.setFailureRequests(stats.getFailureRequests().get());
-
                 row.setCircuitState(stats.getCircuitState().name());
                 row.setCircuitOpenedAt(stats.getCircuitOpenedAt());
-
-                // 新增字段：熔断/容错机制优化
                 row.setConsecutiveFailures(stats.getConsecutiveFailures().get());
                 row.setOpenAttempt(stats.getOpenAttempt());
                 row.setNextProbeAt(stats.getNextProbeAt());
-
                 row.setUpdatedAt(LocalDateTime.now());
-
-                mapper.upsert(row);
-                persistCount++;
+                dirtyRows.add(row);
             } catch (Exception e) {
-                log.error("持久化 Provider 状态失败: {}", providerId, e);
+                log.error("持久化 Provider 状态失败: {}", stats.getProviderId(), e);
             }
         }
 
-        // 清理过期的 Provider 数据
-        if (!staleProviderIds.isEmpty()) {
+        if (!dirtyRows.isEmpty()) {
             try {
-                // 从内存注册表中移除
-                stateRegistry.removeAll(staleProviderIds);
-
-                // 从数据库中删除
-                for (String staleId : staleProviderIds) {
-                    mapper.deleteByProviderId(staleId);
-                    removedCount++;
+                mapper.upsertBatch(dirtyRows);
+                persistCount = dirtyRows.size();
+                Set<String> persistedIds = new HashSet<>();
+                for (ProviderRuntimeStats row : dirtyRows) {
+                    persistedIds.add(row.getProviderId());
                 }
-
-                log.info("已清理 {} 个过期的 Provider 运行态数据: {}", removedCount, staleProviderIds);
+                for (ProviderRuntimeState stats : stateRegistry.all()) {
+                    if (persistedIds.contains(stats.getProviderId())) {
+                        stats.clearDirty();
+                    }
+                }
             } catch (Exception e) {
-                log.error("清理过期 Provider 状态失败", e);
+                log.error("批量持久化 Provider 状态失败", e);
             }
         }
 
         if (persistCount > 0) {
             log.debug("已同步 {} 条 Provider 运行态数据到数据库", persistCount);
+        }
+
+        if (shouldRunCleanup()) {
+            removedCount = cleanupStaleProviders();
+            lastCleanupAt = System.currentTimeMillis();
+        }
+        if (removedCount > 0) {
+            log.info("已清理 {} 个过期的 Provider 运行态数据", removedCount);
         }
     }
 
@@ -144,5 +139,27 @@ public class ProviderStatsPersistenceJob {
                 item.getBaseUrl(),
                 item.getApiKey() != null ? item.getApiKey().hashCode() : "null",
                 item.getModelName());
+    }
+
+    private boolean shouldRunCleanup() {
+        return System.currentTimeMillis() - lastCleanupAt >= CLEANUP_INTERVAL_MS;
+    }
+
+    private int cleanupStaleProviders() {
+        Set<String> validProviderIds = getValidProviderIds();
+        Set<String> staleProviderIds = new HashSet<>();
+        for (ProviderRuntimeState stats : stateRegistry.all()) {
+            if (!validProviderIds.contains(stats.getProviderId())) {
+                staleProviderIds.add(stats.getProviderId());
+            }
+        }
+        if (staleProviderIds.isEmpty()) {
+            return 0;
+        }
+
+        stateRegistry.removeAll(staleProviderIds);
+        int removed = mapper.deleteNotInProviderIds(validProviderIds);
+        log.debug("清理过期 Provider 运行态数据: {}", staleProviderIds);
+        return removed;
     }
 }

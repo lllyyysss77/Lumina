@@ -39,6 +39,21 @@ public class LuminaProperties {
      */
     private Api api = new Api();
 
+    /**
+     * 热路径缓存配置
+     */
+    private Cache cache = new Cache();
+
+    /**
+     * Relay HTTP 客户端配置
+     */
+    private Relay relay = new Relay();
+
+    /**
+     * 日志链路配置
+     */
+    private Logging logging = new Logging();
+
     @Data
     public static class Proxy {
         private String url;
@@ -80,5 +95,32 @@ public class LuminaProperties {
     public static class Api {
         private String version = "v1";
         private String prefix = "/api/v1";
+    }
+
+    @Data
+    public static class Cache {
+        private int groupConfigTtlSeconds = 60;
+        private int apiKeyTtlSeconds = 60;
+        private int modelPriceTtlSeconds = 300;
+    }
+
+    @Data
+    public static class Relay {
+        private int maxConnections = 200;
+        private int pendingAcquireMaxCount = 1000;
+        private int pendingAcquireTimeoutMs = 3000;
+        private int connectTimeoutMs = 5000;
+        private int responseTimeoutMs = 600000;
+        private int maxIdleTimeSeconds = 60;
+        private int maxLifeTimeSeconds = 300;
+        private int maxInMemorySizeMb = 100;
+    }
+
+    @Data
+    public static class Logging {
+        private int queueCapacity = 5000;
+        private int batchSize = 100;
+        private int flushIntervalMs = 500;
+        private double successPayloadSampleRate = 1.0;
     }
 }

@@ -1,6 +1,7 @@
 package com.lumina.util;
 
 import com.lumina.config.LuminaProperties;
+import com.lumina.dto.LoginResponse;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -56,21 +57,32 @@ public class JwtUtil {
      * 生成 JWT Token
      */
     public String generateToken(String username) {
+        return generateToken(username, luminaProperties.getAuth().getJwt().getExpiration());
+    }
+
+    /**
+     * 生成 Refresh Token
+     */
+    public String generateRefreshToken(String username) {
+        return generateToken(username, luminaProperties.getAuth().getJwt().getRefreshExpiration());
+    }
+
+    private String generateToken(String username, long expirationMs) {
         Date now = new Date();
-        Date expiration = new Date(now.getTime() + luminaProperties.getAuth().getJwt().getExpiration());
+        Date expirationDate = new Date(now.getTime() + expirationMs);
 
         String token = Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(now)
-                .setExpiration(expiration)
+                .setExpiration(expirationDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
 
         // 将 token 存储到 Redis 中，用于后续的注销功能
         redisTemplate.opsForValue().set(
-                "jwt:token:" + username,
-                token,
-                luminaProperties.getAuth().getJwt().getExpiration(),
+                "jwt:token:" + username + ":" + token,
+                "valid",
+                expirationMs,
                 TimeUnit.MILLISECONDS
         );
 
@@ -97,8 +109,8 @@ public class JwtUtil {
             String username = getUsernameFromToken(token);
 
             // 检查 token 是否存在于 Redis 中（用于注销验证）
-            String redisToken = redisTemplate.opsForValue().get("jwt:token:" + username);
-            if (redisToken == null || !redisToken.equals(token)) {
+            String redisTokenStatus = redisTemplate.opsForValue().get("jwt:token:" + username + ":" + token);
+            if (redisTokenStatus == null || !redisTokenStatus.equals("valid")) {
                 return false;
             }
 
@@ -135,7 +147,7 @@ public class JwtUtil {
     public void revokeToken(String token) {
         try {
             String username = getUsernameFromToken(token);
-            redisTemplate.delete("jwt:token:" + username);
+            redisTemplate.delete("jwt:token:" + username + ":" + token);
             log.info("Token revoked for user: {}", username);
         } catch (Exception e) {
             log.error("Error revoking token: {}", e.getMessage());
@@ -145,12 +157,23 @@ public class JwtUtil {
     /**
      * 刷新 token
      */
-    public String refreshToken(String token) {
+    public LoginResponse refreshToken(String refreshToken) {
         try {
-            String username = getUsernameFromToken(token);
-            if (!isTokenExpired(token)) {
-                revokeToken(token);
-                return generateToken(username);
+            if (validateToken(refreshToken)) {
+                String username = getUsernameFromToken(refreshToken);
+                // 刷新时，生成一对新的 token 和 refresh token
+                String newToken = generateToken(username);
+                String newRefreshToken = generateRefreshToken(username);
+                
+                // 可选：注销旧的 refresh token
+                revokeToken(refreshToken);
+                
+                return LoginResponse.builder()
+                    .token(newToken)
+                    .refreshToken(newRefreshToken)
+                    .expiresIn(luminaProperties.getAuth().getJwt().getExpiration())
+                    .username(username)
+                    .build();
             }
         } catch (Exception e) {
             log.error("Error refreshing token: {}", e.getMessage());

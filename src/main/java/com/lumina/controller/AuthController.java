@@ -41,9 +41,11 @@ public class AuthController {
         )
         .map(authentication -> {
             String token = jwtUtil.generateToken(loginRequest.getUsername());
+            String refreshToken = jwtUtil.generateRefreshToken(loginRequest.getUsername());
 
             LoginResponse loginResponse = LoginResponse.builder()
                 .token(token)
+                .refreshToken(refreshToken)
                 .type("Bearer")
                 .expiresIn(luminaProperties.getAuth().getJwt().getExpiration())
                 .username(loginRequest.getUsername())
@@ -56,6 +58,19 @@ public class AuthController {
             log.error("Login failed for user: {}", loginRequest.getUsername());
             return Mono.just(ApiResponse.error(401, "用户名或密码错误"));
         });
+    }
+
+    @PostMapping("/refresh")
+    public Mono<ApiResponse<LoginResponse>> refresh(@RequestHeader("Authorization") String authHeader) {
+        String refreshToken = jwtUtil.getTokenFromHeader(authHeader);
+        if (refreshToken != null) {
+            LoginResponse loginResponse = jwtUtil.refreshToken(refreshToken);
+            if (loginResponse != null) {
+                log.info("Token refreshed successfully for user: {}", loginResponse.getUsername());
+                return Mono.just(ApiResponse.success("刷新成功", loginResponse));
+            }
+        }
+        return Mono.just(ApiResponse.error(401, "无效的 Refresh Token"));
     }
 
     @PostMapping("/logout")

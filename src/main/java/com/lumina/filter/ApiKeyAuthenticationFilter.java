@@ -55,6 +55,7 @@ public class ApiKeyAuthenticationFilter implements WebFilter {
                 .flatMap(isValid -> {
                     if (isValid) {
                         log.debug("API key validated successfully for path: {}", path);
+                        exchange.getAttributes().put("API_KEY", apiKey);
                         return chain.filter(exchange);
                     } else {
                         log.warn("Invalid API key for path: {}", path);

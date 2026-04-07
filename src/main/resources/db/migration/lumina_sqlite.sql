@@ -188,6 +188,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- ----------------------------
 -- Triggers for auto-update timestamp
 -- ----------------------------
+-- Trigger for api_keys
 CREATE TRIGGER IF NOT EXISTS `trigger_api_keys_updated_at`
 AFTER UPDATE ON `api_keys`
 FOR EACH ROW

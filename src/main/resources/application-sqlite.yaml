@@ -2,5 +2,14 @@ spring:
   datasource:
     driver-class-name: org.sqlite.JDBC
     url: jdbc:sqlite:./data/lumina.db
-    username:
-    password:
+    username: ""
+    password: ""
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/migration/lumina_sqlite.sql
+
+lumina:
+  rate-limit:
+    enabled: true
+    requests-per-minute: 5

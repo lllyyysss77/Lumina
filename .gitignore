@@ -40,6 +40,12 @@ data
 
 **.text
 
+# Local Spring Boot profile overrides
+src/main/resources/application-local.yml
+src/main/resources/application-local.yaml
+src/main/resources/application-*.local.yml
+src/main/resources/application-*.local.yaml
+
 # web
 # Logs
 logs

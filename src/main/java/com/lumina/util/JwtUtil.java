@@ -4,6 +4,7 @@ import com.lumina.config.LuminaProperties;
 import com.lumina.dto.LoginResponse;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -27,13 +28,35 @@ public class JwtUtil {
 
     private volatile SecretKey signingKey;
 
+    /**
+     * 在应用启动时就把签名密钥初始化好，这样密钥缺失 / 过短这类
+     * 配置错误会直接让 Spring 启动失败，而不是等第一次带 token 的
+     * 请求进来才抛 500。
+     */
+    @PostConstruct
+    void init() {
+        getSigningKey();
+        log.info("JWT signing key initialized.");
+    }
+
     private SecretKey getSigningKey() {
         if (signingKey == null) {
             synchronized (this) {
                 if (signingKey == null) {
                     // 使用配置的密钥字符串生成一个符合HS512要求的安全密钥
                     String secret = luminaProperties.getAuth().getJwt().getSecret();
-                    
+
+                    if (secret == null || secret.isBlank()) {
+                        throw new IllegalStateException(
+                                "JWT secret is not configured. Set the LUMINA_JWT_SECRET environment variable "
+                                        + "(or lumina.auth.jwt.secret) to a strong random value before starting the application.");
+                    }
+                    if (secret.length() < 32) {
+                        throw new IllegalStateException(
+                                "JWT secret is too short (" + secret.length() + " chars). "
+                                        + "Use at least 32 characters of high-entropy random data.");
+                    }
+
                     // 使用SHA-256哈希处理配置的密钥，然后扩展到512位(64字节)以满足HS512要求
                     try {
                         MessageDigest sha256 = MessageDigest.getInstance("SHA-256");

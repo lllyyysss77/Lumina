@@ -3,10 +3,12 @@ package com.lumina.controller;
 import com.lumina.dto.ApiResponse;
 import com.lumina.entity.Setting;
 import com.lumina.service.SettingService;
+import com.lumina.service.SystemFlagService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -17,6 +19,9 @@ public class SettingController {
 
     @Autowired
     private SettingService settingService;
+
+    @Autowired
+    private SystemFlagService systemFlagService;
 
     @GetMapping
     public ApiResponse<List<Setting>> getAllSettings() {
@@ -41,6 +46,7 @@ public class SettingController {
         if (!success) {
             throw new IllegalArgumentException("Failed to create setting");
         }
+        systemFlagService.invalidate();
         return ApiResponse.success(setting);
     }
 
@@ -52,6 +58,7 @@ public class SettingController {
         if (!success) {
             throw new IllegalArgumentException("Setting not found with key: " + key);
         }
+        systemFlagService.invalidate();
         return ApiResponse.success(setting);
     }
 
@@ -61,6 +68,7 @@ public class SettingController {
         if (!success) {
             throw new IllegalArgumentException("Setting not found with key: " + key);
         }
+        systemFlagService.invalidate();
         return ApiResponse.success(null);
     }
 
@@ -81,6 +89,35 @@ public class SettingController {
             setting.setUpdatedAt(LocalDateTime.now());
             settingService.saveOrUpdate(setting);
         });
+        systemFlagService.invalidate();
         return ApiResponse.success(null);
+    }
+
+    // ---------- 自用模式（Self-use mode） ----------
+    // 开启后 /v1/** 与 /v1beta/** 将跳过 API Key 校验，仅建议在完全受信任的
+    // 本地 / 内网环境下使用。
+
+    @GetMapping("/self-use-mode")
+    public ApiResponse<Map<String, Boolean>> getSelfUseMode() {
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("enabled", systemFlagService.isSelfUseModeEnabled());
+        return ApiResponse.success(result);
+    }
+
+    @PutMapping("/self-use-mode")
+    public ApiResponse<Map<String, Boolean>> updateSelfUseMode(@RequestBody Map<String, Object> body) {
+        Object raw = body == null ? null : body.get("enabled");
+        boolean enabled;
+        if (raw instanceof Boolean b) {
+            enabled = b;
+        } else if (raw instanceof String s) {
+            enabled = Boolean.parseBoolean(s.trim());
+        } else {
+            throw new IllegalArgumentException("Field 'enabled' must be a boolean");
+        }
+        systemFlagService.setSelfUseModeEnabled(enabled);
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("enabled", enabled);
+        return ApiResponse.success(result);
     }
 }

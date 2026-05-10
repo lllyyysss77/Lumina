@@ -1,6 +1,7 @@
 package com.lumina.filter;
 
 import com.lumina.service.ApiKeyService;
+import com.lumina.service.SystemFlagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -23,10 +24,14 @@ public class ApiKeyAuthenticationFilter implements WebFilter {
     @Autowired
     private ApiKeyService apiKeyService;
 
+    @Autowired
+    private SystemFlagService systemFlagService;
+
     private static final String BEARER_PREFIX = "Bearer ";
 
     // 常见的 API Key 请求头名称列表（按优先级顺序）
     private static final String[] API_KEY_HEADER_NAMES = {
+        "OPENAI_API_KEY",           // codex app
         "Authorization",           // Bearer token 格式
         "X-API-Key",               // Cherry Studio 等
         "X-Api-Key",               // 大小写变体
@@ -41,6 +46,13 @@ public class ApiKeyAuthenticationFilter implements WebFilter {
 
         // 只处理 /v1/** 和 /v1beta/** 路径
         if (!path.startsWith("/v1/") && !path.startsWith("/v1beta/")) {
+            return chain.filter(exchange);
+        }
+
+        // 自用模式：跳过 API Key 校验，直接放行
+        // （RateLimitFilter 在 API_KEY 属性为 null 时会自动跳过限流，安全）
+        if (systemFlagService.isSelfUseModeEnabled()) {
+            log.debug("Self-use mode enabled, bypassing API key validation for path: {}", path);
             return chain.filter(exchange);
         }
 

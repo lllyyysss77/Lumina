@@ -398,6 +398,14 @@ const translations = {
       updateSuccess: '账号信息更新成功，即将跳转登录页...',
       passwordsDoNotMatch: '两次输入的密码不一致',
       update: '更新账号信息',
+      selfUseMode: {
+        title: '自用模式',
+        desc: '开启后，所有访问 /v1/** 与 /v1beta/** 的请求将跳过 API Key 校验，可直接调用。适合部署在完全受信任的本地或内网环境下自用。',
+        warning: '安全提示：自用模式会关闭 API Key 鉴权，切勿在公网可访问的部署中开启。一旦关闭将立即恢复鉴权。',
+        activeBadge: '已开启',
+        enabled: '自用模式已开启',
+        disabled: '自用模式已关闭',
+      },
       tokens: {
         title: 'API 令牌管理',
         create: '创建新令牌',
@@ -896,6 +904,14 @@ const translations = {
       updateSuccess: 'Profile updated successfully. Redirecting to login...',
       passwordsDoNotMatch: 'Passwords do not match',
       update: 'Update Profile',
+      selfUseMode: {
+        title: 'Self-Use Mode',
+        desc: 'When enabled, all requests to /v1/** and /v1beta/** will bypass API Key validation. Intended for fully-trusted local or private-network deployments only.',
+        warning: 'Security notice: Self-use mode disables API Key authentication. Do not enable on public-facing deployments. Authentication is restored immediately once disabled.',
+        activeBadge: 'Active',
+        enabled: 'Self-use mode enabled',
+        disabled: 'Self-use mode disabled',
+      },
       tokens: {
         title: 'API Token Management',
         create: 'Create New Token',

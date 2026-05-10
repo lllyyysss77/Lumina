@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Save, Shield, Monitor, Globe, Plus, Trash2, Copy, Check, X, Key, Loader2, User as UserIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Save, Shield, Monitor, Globe, Plus, Trash2, Copy, Check, X, Key, Loader2, User as UserIcon, Zap, AlertTriangle } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { tokenService } from '../services/tokenService';
 import { userService } from '../services/userService';
+import { settingsService } from '../services/settingsService';
 import { AccessToken } from '../types';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
@@ -38,6 +39,45 @@ export const Settings: React.FC = () => {
   
   // Confirmation for revocation
   const [revokeId, setRevokeId] = useState<string | null>(null);
+
+  // Self-use mode state
+  const [selfUseMode, setSelfUseMode] = useState<boolean>(false);
+  const [selfUseModeLoaded, setSelfUseModeLoaded] = useState<boolean>(false);
+  const [isUpdatingSelfUseMode, setIsUpdatingSelfUseMode] = useState<boolean>(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    settingsService.getSelfUseMode().then((enabled) => {
+      if (!cancelled) {
+        setSelfUseMode(enabled);
+        setSelfUseModeLoaded(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleToggleSelfUseMode = async (nextEnabled: boolean) => {
+    if (isUpdatingSelfUseMode) return;
+    setIsUpdatingSelfUseMode(true);
+    // Optimistic update for snappy UI; revert on failure
+    setSelfUseMode(nextEnabled);
+    try {
+      const confirmed = await settingsService.setSelfUseMode(nextEnabled);
+      setSelfUseMode(confirmed);
+      showToast(
+        nextEnabled ? t('settings.selfUseMode.enabled') : t('settings.selfUseMode.disabled'),
+        nextEnabled ? 'success' : 'info'
+      );
+    } catch (error: any) {
+      console.error('Failed to update self-use mode', error);
+      setSelfUseMode(!nextEnabled);
+      showToast(error?.message || t('common.fail'), 'error');
+    } finally {
+      setIsUpdatingSelfUseMode(false);
+    }
+  };
 
   // Fetch functions
   const fetchTokens = async () => {
@@ -251,8 +291,68 @@ export const Settings: React.FC = () => {
             </div>
         </SlideInItem>
 
-        {/* Section: Security */}
+        {/* Section: Self-Use Mode (Danger Zone) */}
         <SlideInItem index={3}>
+            <div className={`bg-white dark:bg-[#1a1a1a] rounded-2xl border p-6 sm:p-8 shadow-card hover:shadow-float transition-all duration-300 ${
+                selfUseMode
+                    ? 'border-amber-300 dark:border-amber-700/60 ring-1 ring-amber-200/60 dark:ring-amber-900/40'
+                    : 'border-gray-200 dark:border-gray-800'
+            }`}>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
+                    <div className="flex items-start space-x-5 flex-1">
+                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl flex-shrink-0">
+                            <Zap size={24} />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('settings.selfUseMode.title')}</h3>
+                                {selfUseMode && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                        {t('settings.selfUseMode.activeBadge')}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-xl">
+                                {t('settings.selfUseMode.desc')}
+                            </p>
+                            <div className="mt-3 flex items-start gap-2 p-3 rounded-xl bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200/80 dark:border-amber-800/40">
+                                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                                <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                                    {t('settings.selfUseMode.warning')}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-shrink-0 flex sm:items-center sm:justify-center">
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={selfUseMode}
+                            disabled={!selfUseModeLoaded || isUpdatingSelfUseMode}
+                            onClick={() => handleToggleSelfUseMode(!selfUseMode)}
+                            className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                selfUseMode ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-700'
+                            }`}
+                        >
+                            <span
+                                aria-hidden="true"
+                                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                    selfUseMode ? 'translate-x-5' : 'translate-x-0'
+                                }`}
+                            >
+                                {isUpdatingSelfUseMode && (
+                                    <Loader2 size={14} className="absolute inset-0 m-auto text-amber-600 animate-spin" />
+                                )}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </SlideInItem>
+
+        {/* Section: Security */}
+        <SlideInItem index={4}>
             <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-card hover:shadow-float transition-shadow duration-300">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
                 <div className="flex items-start space-x-5">
@@ -276,12 +376,12 @@ export const Settings: React.FC = () => {
         </SlideInItem>
 
         {/* Section: Circuit Breaker */}
-        <SlideInItem index={4}>
+        <SlideInItem index={5}>
             <CircuitBreakerSettingsPanel />
         </SlideInItem>
 
         {/* Section: Theme */}
-        <SlideInItem index={5}>
+        <SlideInItem index={6}>
             <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-card hover:shadow-float transition-shadow duration-300">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
                 <div className="flex items-start space-x-5">

@@ -3,6 +3,7 @@
 <mapper namespace="com.lumina.mapper.GroupMapper">
 
     <resultMap id="modelGroupConfigResultMap" type="com.lumina.dto.ModelGroupConfig">
+        <id column="group_id" property="id"/>
         <result column="name" property="name"/>
         <result column="balance_mode" property="balanceMode"/>
         <result column="first_token_timeout" property="firstTokenTimeout"/>
@@ -32,7 +33,8 @@
     </resultMap>
 
     <select id="getModelGroupByName" resultMap="modelGroupConfigResultMap"  databaseId="mysql">
-        SELECT mg.`name`,
+        SELECT mg.id AS group_id,
+               mg.`name`,
                mg.balance_mode,
                mg.first_token_timeout,
                mgi.model_name,
@@ -48,10 +50,12 @@
         WHERE mg.`name` = #{modelGroupName}
         AND p.is_enabled = 1
         AND FIND_IN_SET(mgi.model_name, p.model_name) > 0
+        ORDER BY mgi.id
         </select>
 
     <select id="getModelGroupByName" resultMap="modelGroupConfigResultMap"   databaseId="sqlite">
-        SELECT mg.`name`,
+        SELECT mg.id AS group_id,
+               mg.`name`,
                mg.balance_mode,
                mg.first_token_timeout,
                mgi.model_name,
@@ -67,6 +71,7 @@
         WHERE mg.`name` = #{modelGroupName}
         AND p.is_enabled = 1
         AND instr(',' || p.model_name || ',', ',' || mgi.model_name || ',') > 0
+        ORDER BY mgi.id
         </select>
 
     <select id="getGroupsByPage" resultMap="groupResultMap">

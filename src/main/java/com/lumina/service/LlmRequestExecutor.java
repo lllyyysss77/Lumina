@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 public interface LlmRequestExecutor {
-    
+
     boolean supports(String type);
 
     Mono<ObjectNode> executeNormal(

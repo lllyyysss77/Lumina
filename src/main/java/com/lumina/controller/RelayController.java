@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -29,8 +30,10 @@ public class RelayController {
     @PostMapping("/v1/messages")
     public Mono<ResponseEntity<?>> createMessage(
             @RequestBody ObjectNode params,
-            @RequestParam Map<String, String> allParams) {
-        return relayService.relay("anthropic_messages", params, allParams);
+            @RequestParam Map<String, String> allParams,
+            ServerWebExchange exchange) {
+        String apiKey = exchange.getAttribute("API_KEY");
+        return relayService.relay("anthropic_messages", params, allParams, apiKey);
     }
 
 
@@ -40,8 +43,10 @@ public class RelayController {
     )
     public Mono<ResponseEntity<?>> createChatCompletions(
             @RequestBody ObjectNode params,
-            @RequestParam Map<String, String> allParams) {
-        return relayService.relay("openai_chat_completions", params, allParams);
+            @RequestParam Map<String, String> allParams,
+            ServerWebExchange exchange) {
+        String apiKey = exchange.getAttribute("API_KEY");
+        return relayService.relay("openai_chat_completions", params, allParams, apiKey);
     }
 
     @PostMapping(
@@ -50,8 +55,10 @@ public class RelayController {
     )
     public Mono<ResponseEntity<?>> createResponses(
             @RequestBody ObjectNode params,
-            @RequestParam Map<String, String> allParams) {
-        return relayService.relay("openai_responses", params, allParams);
+            @RequestParam Map<String, String> allParams,
+            ServerWebExchange exchange) {
+        String apiKey = exchange.getAttribute("API_KEY");
+        return relayService.relay("openai_responses", params, allParams, apiKey);
     }
 
     @PostMapping(
@@ -61,8 +68,10 @@ public class RelayController {
     public Mono<ResponseEntity<?>> createModels(
             @PathVariable String modelAction,
             @RequestBody ObjectNode params,
-            @RequestParam Map<String, String> allParams) {
-        return relayService.relay("gemini_models", modelAction,params, allParams);
+            @RequestParam Map<String, String> allParams,
+            ServerWebExchange exchange) {
+        String apiKey = exchange.getAttribute("API_KEY");
+        return relayService.relay("gemini_models", modelAction, params, allParams, apiKey);
     }
 
     @PostMapping(

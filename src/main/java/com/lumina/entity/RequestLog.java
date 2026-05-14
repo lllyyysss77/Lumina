@@ -31,5 +31,6 @@ public class RequestLog {
     private Integer retryCount;
     private String requestContent;
     private String responseContent;
+    private String apiKey;
     private LocalDateTime createdAt;
 }

@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -45,6 +46,10 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
     protected final ObjectMapper objectMapper = new ObjectMapper();
 
     protected RequestLogContext createLogContext(ObjectNode request, ModelGroupConfigItem provider, String type, boolean stream) {
+        return createLogContext(request, provider, type, stream, null);
+    }
+
+    protected RequestLogContext createLogContext(ObjectNode request, ModelGroupConfigItem provider, String type, boolean stream, Map<String, String> queryParams) {
         RequestLogContext ctx = new RequestLogContext();
         ctx.setId(String.valueOf(snowflakeIdGenerator.nextId()));
         ctx.setProviderId(provider.getProviderId());
@@ -56,7 +61,20 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
         ctx.setStream(stream);
         ctx.setRequestModel(provider.getModelName());
         ctx.setRequestContent(request.toPrettyString());
+        if (queryParams != null) {
+            ctx.setApiKey(queryParams.get("_lumina_api_key"));
+        }
         return ctx;
+    }
+
+    protected static final String INTERNAL_API_KEY_PARAM = "_lumina_api_key";
+
+    protected void applyQueryParams(org.springframework.web.util.UriBuilder uriBuilder, Map<String, String> queryParams) {
+        queryParams.forEach((k, v) -> {
+            if (!INTERNAL_API_KEY_PARAM.equals(k)) {
+                uriBuilder.queryParam(k, v);
+            }
+        });
     }
 
     protected void handleUsage(RequestLogContext ctx, JsonNode node) {

@@ -45,7 +45,14 @@ public class ApiKeyServiceImpl extends ServiceImpl<ApiKeyMapper, ApiKey> impleme
             LambdaQueryWrapper<ApiKey> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(ApiKey::getApiKey, apiKey)
                     .eq(ApiKey::getIsEnabled, true);
-            return this.count(queryWrapper) > 0;
+            ApiKey key = this.getOne(queryWrapper);
+            if (key == null) {
+                return false;
+            }
+            if (key.getExpiredAt() != null && key.getExpiredAt() > 0) {
+                return System.currentTimeMillis() / 1000 < key.getExpiredAt();
+            }
+            return true;
         })).subscribeOn(Schedulers.boundedElastic());
     }
 

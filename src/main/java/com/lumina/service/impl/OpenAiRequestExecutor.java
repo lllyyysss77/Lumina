@@ -31,11 +31,11 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
 
     @Override
     public Mono<ObjectNode> executeNormal(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
-        RequestLogContext ctx = createLogContext(request, provider, type, false);
+        RequestLogContext ctx = createLogContext(request, provider, type, false, queryParams);
         Mono<ObjectNode> result = createWebClient(provider).post()
                 .uri(uriBuilder -> {
                     uriBuilder.path(URI_MAP.get(type));
-                    queryParams.forEach(uriBuilder::queryParam);
+                    applyQueryParams(uriBuilder, queryParams);
                     return uriBuilder.build();
                 })
                 .contentType(MediaType.APPLICATION_JSON)
@@ -55,11 +55,11 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
     @Override
     public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
         log.info("调用流式接口，供应商：{},请求地址：{},模型：{}", provider.getProviderName(), provider.getBaseUrl(), provider.getModelName());
-        RequestLogContext ctx = createLogContext(request, provider, type, true);
+        RequestLogContext ctx = createLogContext(request, provider, type, true, queryParams);
         Flux<ServerSentEvent<String>> result = createWebClient(provider).post()
                 .uri(uriBuilder -> {
                     uriBuilder.path(URI_MAP.get(type));
-                    queryParams.forEach(uriBuilder::queryParam);
+                    applyQueryParams(uriBuilder, queryParams);
                     return uriBuilder.build();
                 })
                 .contentType(MediaType.APPLICATION_JSON)

@@ -56,9 +56,13 @@ public class RelayServiceImpl implements RelayService {
     }
 
     @Override
-    public Mono<ResponseEntity<?>> relay(String type, ObjectNode params, Map<String, String> queryParams) {
+    public Mono<ResponseEntity<?>> relay(String type, ObjectNode params, Map<String, String> queryParams, String apiKey) {
         String modelGroupName = params.get("model").asText();
         log.info("Relaying request for model group: {}", modelGroupName);
+        Map<String, String> enrichedParams = new java.util.HashMap<>(queryParams);
+        if (apiKey != null) {
+            enrichedParams.put("_lumina_api_key", apiKey);
+        }
         return groupService.getModelGroupConfigAsync(modelGroupName)
                 .switchIfEmpty(Mono.error(new RuntimeException("模型分组不存在")))
                 .flatMap(modelGroupConfig -> {
@@ -80,7 +84,6 @@ public class RelayServiceImpl implements RelayService {
                                     requestParams.put("model", provider.getModelName());
 
                                     ObjectNode finalRequest = converter.map(c -> c.convertRequest(requestParams)).orElse(requestParams);
-                                    // 有转换器时用 outbound 协议的 executor，无转换时用原始 inbound 的 executor
                                     String executorType = converter.isPresent() ? outboundType.toRequestType() : type;
                                     LlmRequestExecutor executor = getExecutor(executorType);
 
@@ -89,7 +92,7 @@ public class RelayServiceImpl implements RelayService {
                                     }
 
                                     Flux<ServerSentEvent<String>> upstream = executor.executeStream(
-                                            finalRequest, provider, queryParams, "", executorType, timeoutMs
+                                            finalRequest, provider, enrichedParams, "", executorType, timeoutMs
                                     );
 
                                     return converter.map(c -> c.convertStreamResponse(upstream)).orElse(upstream);
@@ -120,7 +123,7 @@ public class RelayServiceImpl implements RelayService {
                                 }
 
                                 return executor.executeNormal(
-                                        finalRequest, provider, queryParams, "", executorType, timeoutMs
+                                        finalRequest, provider, enrichedParams, "", executorType, timeoutMs
                                 ).map(resp -> converter.map(c -> c.convertResponse(resp)).orElse(resp));
                             },
                             modelGroupConfig,
@@ -130,10 +133,14 @@ public class RelayServiceImpl implements RelayService {
     }
 
     @Override
-    public Mono<ResponseEntity<?>> relay(String type, String modelAction, ObjectNode params, Map<String, String> queryParams) {
+    public Mono<ResponseEntity<?>> relay(String type, String modelAction, ObjectNode params, Map<String, String> queryParams, String apiKey) {
         String[] parts = modelAction.split(":", 2);
         String modelGroupName = parts[0];
         String action = parts.length > 1 ? parts[1] : "";
+        Map<String, String> enrichedParams = new java.util.HashMap<>(queryParams);
+        if (apiKey != null) {
+            enrichedParams.put("_lumina_api_key", apiKey);
+        }
 
         return groupService.getModelGroupConfigAsync(modelGroupName)
                 .switchIfEmpty(Mono.error(new RuntimeException("模型分组不存在")))
@@ -153,7 +160,7 @@ public class RelayServiceImpl implements RelayService {
                                     return executor.executeStream(
                                             requestParams,
                                             provider,
-                                            queryParams,
+                                            enrichedParams,
                                             provider.getModelName() + ":" + action,
                                             type,
                                             timeoutMs
@@ -174,7 +181,7 @@ public class RelayServiceImpl implements RelayService {
                                 return executor.executeNormal(
                                         requestParams,
                                         provider,
-                                        queryParams,
+                                        enrichedParams,
                                         provider.getModelName() + ":" + action,
                                         type,
                                         timeoutMs

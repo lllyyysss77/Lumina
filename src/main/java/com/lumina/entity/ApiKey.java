@@ -13,6 +13,9 @@ public class ApiKey {
     private String name;
     private String apiKey;
     private Boolean isEnabled;
+    private Long expiredAt;
+    private BigDecimal maxAmount;
+    private String supportedModels;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

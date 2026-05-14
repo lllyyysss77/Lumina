@@ -128,6 +128,7 @@ public class LogWriter {
         logEntry.setErrorStage(ctx.getErrorStage());
         logEntry.setErrorMessage(ctx.getErrorMessage());
         logEntry.setRetryCount(ctx.getRetryCount());
+        logEntry.setApiKey(ctx.getApiKey());
 
         boolean keepPayloads = shouldKeepPayloads(ctx);
         logEntry.setRequestContent(keepPayloads ? ctx.getRequestContent() : null);

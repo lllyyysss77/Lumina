@@ -32,8 +32,8 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
     private GroupItemService groupItemService;
 
     @Override
-    public Page<Group> getGroupsByPage(Page<Object> page) {
-        return baseMapper.getGroupsByPage(page);
+    public Page<Group> getGroupsByPage(Page<Object> page, String name) {
+        return baseMapper.getGroupsByPage(page, name);
     }
 
     @Override

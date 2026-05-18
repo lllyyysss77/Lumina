@@ -53,8 +53,9 @@ public class GroupController {
     @GetMapping("/page")
     public ApiResponse<Page<Group>> getGroupsByPage(
             @RequestParam(defaultValue = "1") Integer current,
-            @RequestParam(defaultValue = "10") Integer size) {
-        Page<Group> page = groupService.getGroupsByPage(new Page<>(current, size));
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String name) {
+        Page<Group> page = groupService.getGroupsByPage(new Page<>(current, size), name);
         return ApiResponse.success(page);
     }
 }

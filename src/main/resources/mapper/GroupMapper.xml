@@ -77,6 +77,12 @@
     <select id="getGroupsByPage" resultMap="groupResultMap">
         SELECT *
         FROM model_groups
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+        </where>
+        ORDER BY created_at DESC
     </select>
 
     <select id="selectGroupItemsByGroupId" resultType="com.lumina.entity.GroupItem">

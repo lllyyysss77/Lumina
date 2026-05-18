@@ -11,9 +11,10 @@ public interface GroupService extends IService<Group> {
     /**
      * 分页获取分组
      * @param page
+     * @param name 分组名称（模糊查询）
      * @return
      */
-    Page<Group> getGroupsByPage(Page<Object> page);
+    Page<Group> getGroupsByPage(Page<Object> page, String name);
 
     /**
      * 根据id获取分组

@@ -434,7 +434,10 @@ const translations = {
         cost: '费用',
         expires: '过期时间',
         neverExpires: '永不过期',
-        expired: '已过期'
+        expired: '已过期',
+        enable: '启用',
+        disable: '停用',
+        disabledTokens: '已停用令牌',
       },
       circuitBreaker: {
         title: '熔断器管控',
@@ -953,7 +956,10 @@ const translations = {
         cost: 'Cost',
         expires: 'Expires',
         neverExpires: 'Never',
-        expired: 'Expired'
+        expired: 'Expired',
+        enable: 'Enable',
+        disable: 'Disable',
+        disabledTokens: 'Disabled Tokens',
       },
       circuitBreaker: {
         title: 'Circuit Breaker Management',

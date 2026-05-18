@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Copy, Check, X, Loader2, BarChart3 } from 'lucide-react';
+import { Plus, Trash2, Copy, Check, X, Loader2, BarChart3, ToggleLeft, ToggleRight, ChevronDown, ChevronRight } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { tokenService } from '../services/tokenService';
 import { AccessToken } from '../types';
@@ -18,6 +18,7 @@ export const Tokens: React.FC = () => {
   const [createdToken, setCreatedToken] = useState<AccessToken | null>(null);
   const [copyFeedbackId, setCopyFeedbackId] = useState<string | null>(null);
   const [revokeId, setRevokeId] = useState<string | null>(null);
+  const [showDisabled, setShowDisabled] = useState(false);
 
   useEffect(() => {
     fetchTokens();
@@ -52,6 +53,17 @@ export const Tokens: React.FC = () => {
     }
   };
 // PLACEHOLDER_TOKENS_CONTINUED
+
+  const handleToggleToken = async (id: string) => {
+    try {
+      await tokenService.toggle(id);
+      fetchTokens();
+      showToast(t('common.success'), 'success');
+    } catch (error) {
+      console.error('Failed to toggle token', error);
+      showToast(t('common.fail'), 'error');
+    }
+  };
 
   const handleRevokeToken = async (id: string) => {
     try {
@@ -137,19 +149,20 @@ export const Tokens: React.FC = () => {
             <div className="flex justify-center py-12">
               <Loader2 className="w-8 h-8 text-gray-600 animate-spin" />
             </div>
-          ) : tokens.length === 0 ? (
+          ) : tokens.filter(t => t.status === 'active').length === 0 ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-white dark:bg-[#1a1a1a] border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
               {t('settings.tokens.empty')}
             </div>
           ) : (
             <div className="space-y-3">
-              {tokens.map(token => (
+              {tokens.filter(tk => tk.status === 'active').map(token => (
                 <TokenCard
                   key={token.id}
                   token={token}
                   revokeId={revokeId}
                   copyFeedbackId={copyFeedbackId}
                   onCopy={copyToClipboard}
+                  onToggle={handleToggleToken}
                   onRevokeClick={setRevokeId}
                   onRevokeConfirm={handleRevokeToken}
                   onRevokeCancel={() => setRevokeId(null)}
@@ -160,6 +173,39 @@ export const Tokens: React.FC = () => {
           )}
         </div>
       </SlideInItem>
+
+      {/* Disabled Tokens */}
+      {!isLoading && tokens.filter(tk => tk.status === 'revoked').length > 0 && (
+        <SlideInItem index={3}>
+          <div>
+            <button
+              onClick={() => setShowDisabled(!showDisabled)}
+              className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wide hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            >
+              {showDisabled ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              {t('settings.tokens.disabledTokens')} ({tokens.filter(tk => tk.status === 'revoked').length})
+            </button>
+            {showDisabled && (
+              <div className="space-y-3">
+                {tokens.filter(tk => tk.status === 'revoked').map(token => (
+                  <TokenCard
+                    key={token.id}
+                    token={token}
+                    revokeId={revokeId}
+                    copyFeedbackId={copyFeedbackId}
+                    onCopy={copyToClipboard}
+                    onToggle={handleToggleToken}
+                    onRevokeClick={setRevokeId}
+                    onRevokeConfirm={handleRevokeToken}
+                    onRevokeCancel={() => setRevokeId(null)}
+                    t={t}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </SlideInItem>
+      )}
     </div>
   );
 };
@@ -170,13 +216,14 @@ interface TokenCardProps {
   revokeId: string | null;
   copyFeedbackId: string | null;
   onCopy: (text: string, id: string) => void;
+  onToggle: (id: string) => void;
   onRevokeClick: (id: string) => void;
   onRevokeConfirm: (id: string) => void;
   onRevokeCancel: () => void;
   t: (key: string) => string;
 }
 
-const TokenCard: React.FC<TokenCardProps> = ({ token, revokeId, copyFeedbackId, onCopy, onRevokeClick, onRevokeConfirm, onRevokeCancel, t }) => (
+const TokenCard: React.FC<TokenCardProps> = ({ token, revokeId, copyFeedbackId, onCopy, onToggle, onRevokeClick, onRevokeConfirm, onRevokeCancel, t }) => (
   <div className="p-4 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-xl hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
     <div className="flex flex-col sm:flex-row sm:items-center justify-between">
       <div className="mb-3 sm:mb-0">
@@ -203,21 +250,33 @@ const TokenCard: React.FC<TokenCardProps> = ({ token, revokeId, copyFeedbackId, 
         </div>
       </div>
 
-      {revokeId === token.id ? (
-        <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 p-2 rounded-xl border border-red-100 dark:border-red-900/50 mt-2 sm:mt-0">
-          <span className="text-xs text-red-700 dark:text-red-400 font-bold px-1">{t('settings.tokens.confirmRevokeShort')}</span>
-          <Button onClick={() => onRevokeConfirm(token.id)} variant="secondary" size="sm" className="px-2 bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30">
-            <Check size={16} />
-          </Button>
-          <Button onClick={onRevokeCancel} variant="secondary" size="sm" className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
-            <X size={16} />
-          </Button>
-        </div>
-      ) : (
-        <Button onClick={() => onRevokeClick(token.id)} variant="ghost" className="self-start sm:self-center px-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 mt-2 sm:mt-0" title={t('common.delete')}>
-          <Trash2 size={20} />
-        </Button>
-      )}
+      <div className="flex items-center gap-1 mt-2 sm:mt-0">
+        {revokeId === token.id ? (
+          <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 p-2 rounded-xl border border-red-100 dark:border-red-900/50">
+            <span className="text-xs text-red-700 dark:text-red-400 font-bold px-1">{t('settings.tokens.confirmRevokeShort')}</span>
+            <Button onClick={() => onRevokeConfirm(token.id)} variant="secondary" size="sm" className="px-2 bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30">
+              <Check size={16} />
+            </Button>
+            <Button onClick={onRevokeCancel} variant="secondary" size="sm" className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <X size={16} />
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Button
+              onClick={() => onToggle(token.id)}
+              variant="ghost"
+              className={`px-2 ${token.status === 'active' ? 'text-green-600 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20' : 'text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'}`}
+              title={token.status === 'active' ? t('settings.tokens.disable') : t('settings.tokens.enable')}
+            >
+              {token.status === 'active' ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+            </Button>
+            <Button onClick={() => onRevokeClick(token.id)} variant="ghost" className="px-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" title={t('common.delete')}>
+              <Trash2 size={20} />
+            </Button>
+          </>
+        )}
+      </div>
     </div>
 
     {/* Usage Stats */}

@@ -10,8 +10,10 @@ import com.lumina.converter.ProtocolType;
 import com.lumina.dto.ModelGroupConfig;
 import com.lumina.dto.ModelGroupConfigItem;
 import com.lumina.entity.Group;
+import com.lumina.entity.LlmModel;
 import com.lumina.service.FailoverService;
 import com.lumina.service.GroupService;
+import com.lumina.service.LlmModelService;
 import com.lumina.service.LlmRequestExecutor;
 import com.lumina.service.RelayService;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +49,9 @@ public class RelayServiceImpl implements RelayService {
 
     @Autowired
     private ProtocolConverterRegistry converterRegistry;
+
+    @Autowired
+    private LlmModelService llmModelService;
 
     private LlmRequestExecutor getExecutor(String type) {
         return executors.stream()
@@ -202,14 +207,15 @@ public class RelayServiceImpl implements RelayService {
                     long createdTimestamp = Instant.now().getEpochSecond();
 
                     for (Group group : groups) {
-                        ObjectNode model = objectMapper.createObjectNode();
-                        model.put("id", group.getName());
-                        model.put("object", "model");
-                        model.put("created", createdTimestamp);
-                        model.put("owned_by", "OpenAI");
-                        model.put("context_length", 1050000);
-                        model.put("max_completion_tokens", 128000);
-                        dataArray.add(model);
+                        LlmModel model = llmModelService.findLatestByModelName(group.getName());
+                        ObjectNode node = objectMapper.createObjectNode();
+                        node.put("id", group.getName());
+                        node.put("object", "model");
+                        node.put("created", createdTimestamp);
+                        node.put("owned_by", model != null ? model.getProvider() : "unknown");
+                        node.put("context_length", model != null && model.getContextLimit() != null ? model.getContextLimit() : 0);
+                        node.put("max_completion_tokens", model != null && model.getOutputLimit() != null ? model.getOutputLimit() : 0);
+                        dataArray.add(node);
                     }
 
                     ObjectNode response = objectMapper.createObjectNode();

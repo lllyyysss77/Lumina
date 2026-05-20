@@ -7,6 +7,7 @@ import com.lumina.dto.ApiResponse;
 import com.lumina.entity.User;
 import com.lumina.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
 
     @GetMapping
     public ApiResponse<List<User>> getAllUsers() {
@@ -36,6 +40,10 @@ public class UserController {
 
     @PostMapping
     public ApiResponse<User> createUser(@RequestBody User user) {
+        if (user.getPassword() == null || user.getPassword().isBlank()) {
+            throw new IllegalArgumentException("密码不能为空");
+        }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         userService.save(user);

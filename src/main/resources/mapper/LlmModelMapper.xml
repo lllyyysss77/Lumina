@@ -13,12 +13,8 @@
         ) AS rn
               FROM llm_models lm
                        JOIN model_group_items mgi ON lm.model_name = mgi.model_name
-              <where>
-                  lm.is_active = 1
-                  <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
-                      AND ${ew.sqlSegment}
-                  </if>
-              </where>
+              WHERE lm.is_active = 1
+              ${ew.customSqlSegment}
               ) t
         WHERE t.rn = 1
         ORDER BY t.output_price DESC

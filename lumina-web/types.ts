@@ -90,6 +90,7 @@ export interface AccessToken {
   createdAt: string;
   status: 'active' | 'revoked';
   expiredAt?: number | null; // Unix timestamp in seconds, null = never expires
+  maxAmount?: number | null; // USD spending limit, null = unlimited
   totalRequests?: number;
   successRequests?: number;
   totalInputTokens?: number;

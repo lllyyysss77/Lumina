@@ -7,6 +7,7 @@ interface ApiKeyDTO {
   apiKey: string;
   isEnabled: boolean;
   expiredAt: number | null;
+  maxAmount: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,6 +18,7 @@ interface ApiKeyUsageDTO {
   apiKey: string;
   isEnabled: boolean;
   expiredAt: number | null;
+  maxAmount: number | null;
   totalRequests: number;
   successRequests: number;
   totalInputTokens: number;
@@ -48,6 +50,7 @@ export const tokenService = {
         createdAt: '',
         status: item.isEnabled ? 'active' as const : 'revoked' as const,
         expiredAt: item.expiredAt,
+        maxAmount: item.maxAmount,
         totalRequests: item.totalRequests,
         successRequests: item.successRequests,
         totalInputTokens: item.totalInputTokens,
@@ -74,6 +77,7 @@ export const tokenService = {
         createdAt: item.createdAt,
         status: item.isEnabled ? 'active' : 'revoked',
         expiredAt: item.expiredAt,
+        maxAmount: item.maxAmount,
       };
     }
     throw new Error(response.message || 'Failed to create token');
@@ -94,9 +98,31 @@ export const tokenService = {
         createdAt: item.createdAt,
         status: item.isEnabled ? 'active' : 'revoked',
         expiredAt: item.expiredAt,
+        maxAmount: item.maxAmount,
       };
     }
     throw new Error(response.message || 'Failed to toggle token');
+  },
+
+  // Update token spending quota. null means unlimited.
+  async updateQuota(id: string, maxAmount: number | null): Promise<AccessToken> {
+    const response = await api.put<any>(`/api-keys/${id}/quota`, { maxAmount });
+    if (response.code === 200 && response.data) {
+      const item = response.data as ApiKeyDTO;
+      return {
+        id: String(item.id),
+        name: item.name,
+        token: item.apiKey,
+        maskedToken: item.apiKey
+          ? `${item.apiKey.substring(0, 3)}...${item.apiKey.substring(item.apiKey.length - 4)}`
+          : '******',
+        createdAt: item.createdAt,
+        status: item.isEnabled ? 'active' : 'revoked',
+        expiredAt: item.expiredAt,
+        maxAmount: item.maxAmount,
+      };
+    }
+    throw new Error(response.message || 'Failed to update token quota');
   },
 
   // Delete/Revoke a token

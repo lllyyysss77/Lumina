@@ -68,14 +68,21 @@ public class ApiKeyAuthenticationFilter implements WebFilter {
 
         return apiKeyService.validateApiKey(apiKey)
                 .flatMap(isValid -> {
-                    if (isValid) {
+                    if (!isValid) {
+                        log.warn("Invalid API key for path: {}", path);
+                        return writeError(exchange, HttpStatus.UNAUTHORIZED, "invalid_request_error", "Invalid API key");
+                    }
+
+                    return apiKeyService.hasAvailableQuota(apiKey).flatMap(hasQuota -> {
+                        if (!hasQuota) {
+                            log.warn("API key quota exceeded for path: {}", path);
+                            return writeError(exchange, HttpStatus.TOO_MANY_REQUESTS, "insufficient_quota", "API key quota exceeded");
+                        }
+
                         log.debug("API key validated successfully for path: {}", path);
                         exchange.getAttributes().put("API_KEY", apiKey);
                         return chain.filter(exchange);
-                    } else {
-                        log.warn("Invalid API key for path: {}", path);
-                        return unauthorized(exchange, "Invalid API key");
-                    }
+                    });
                 })
                 .onErrorResume(e -> {
                     log.error("Error validating API key for path: {}", path, e);
@@ -114,12 +121,17 @@ public class ApiKeyAuthenticationFilter implements WebFilter {
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        return writeError(exchange, HttpStatus.UNAUTHORIZED, "invalid_request_error", message);
+    }
+
+    private Mono<Void> writeError(ServerWebExchange exchange, HttpStatus status, String type, String message) {
+        exchange.getResponse().setStatusCode(status);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
         String body = String.format(
-                "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"%s\"}}",
-                message
+                "{\"error\":{\"type\":\"%s\",\"message\":\"%s\"}}",
+                type,
+                message.replace("\"", "\\\"")
         );
 
         return exchange.getResponse().writeWith(Mono.just(

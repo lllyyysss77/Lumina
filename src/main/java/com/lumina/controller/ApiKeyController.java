@@ -3,6 +3,7 @@ package com.lumina.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lumina.dto.ApiKeyQuotaUpdateRequest;
 import com.lumina.dto.ApiKeyUsageDto;
 import com.lumina.dto.ApiResponse;
 import com.lumina.entity.ApiKey;
@@ -122,6 +123,14 @@ public class ApiKeyController {
         apiKey.setIsEnabled(!apiKey.getIsEnabled());
         apiKey.setUpdatedAt(LocalDateTime.now());
         apiKeyService.updateById(apiKey);
+        return ApiResponse.success(apiKey);
+    }
+
+    @PutMapping("/{id}/quota")
+    public ApiResponse<ApiKey> updateApiKeyQuota(
+            @PathVariable Long id,
+            @RequestBody(required = false) ApiKeyQuotaUpdateRequest request) {
+        ApiKey apiKey = apiKeyService.updateMaxAmount(id, request != null ? request.getMaxAmount() : null);
         return ApiResponse.success(apiKey);
     }
 

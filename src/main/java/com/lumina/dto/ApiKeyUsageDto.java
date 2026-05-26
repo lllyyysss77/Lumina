@@ -10,6 +10,7 @@ public class ApiKeyUsageDto {
     private String apiKey;
     private Boolean isEnabled;
     private Long expiredAt;
+    private BigDecimal maxAmount;
     private Long totalRequests;
     private Long successRequests;
     private Long totalInputTokens;

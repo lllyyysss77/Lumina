@@ -8,4 +8,8 @@ public interface ApiKeyService extends IService<ApiKey> {
     ApiKey generateApiKey(String name);
 
     Mono<Boolean> validateApiKey(String apiKey);
+
+    Mono<Boolean> hasAvailableQuota(String apiKey);
+
+    ApiKey updateMaxAmount(Long id, java.math.BigDecimal maxAmount);
 }

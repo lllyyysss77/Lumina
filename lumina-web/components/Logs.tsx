@@ -521,6 +521,18 @@ export const Logs: React.FC = () => {
                                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('logs.detail.type')}</span>
                                         <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{selectedLog.requestType}</span>
                                     </div>
+                                    {selectedLog.requestIp && (
+                                    <div className="flex justify-between">
+                                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('logs.detail.requestIp')}</span>
+                                        <span className="text-sm font-mono text-gray-700 dark:text-gray-300">{selectedLog.requestIp}</span>
+                                    </div>
+                                    )}
+                                    {selectedLog.protocolConversion && (
+                                    <div className="flex justify-between">
+                                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('logs.detail.protocolConversion')}</span>
+                                        <span className="text-xs font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-md">{selectedLog.protocolConversion}</span>
+                                    </div>
+                                    )}
                                 </div>
                             </div>
 

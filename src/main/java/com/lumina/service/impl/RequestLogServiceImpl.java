@@ -50,6 +50,8 @@ public class RequestLogServiceImpl extends ServiceImpl<RequestLogMapper, Request
                         RequestLog::getErrorStage,
                         RequestLog::getErrorMessage,
                         RequestLog::getRetryCount,
+                        RequestLog::getRequestIp,
+                        RequestLog::getProtocolConversion,
                         RequestLog::getCreatedAt
                 ));
         if (log == null) {
@@ -77,6 +79,8 @@ public class RequestLogServiceImpl extends ServiceImpl<RequestLogMapper, Request
         dto.setErrorStage(log.getErrorStage());
         dto.setErrorMessage(log.getErrorMessage());
         dto.setRetryCount(log.getRetryCount());
+        dto.setRequestIp(log.getRequestIp());
+        dto.setProtocolConversion(log.getProtocolConversion());
         dto.setCreatedAt(log.getCreatedAt());
         return dto;
     }

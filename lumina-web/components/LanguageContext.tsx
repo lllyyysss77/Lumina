@@ -392,7 +392,9 @@ const translations = {
         stream: '流式响应',
         created: '创建时间',
         retry: '重试次数',
-        duration: '总耗时'
+        duration: '总耗时',
+        requestIp: '请求 IP',
+        protocolConversion: '协议转换'
       }
     },
     settings: {
@@ -934,7 +936,9 @@ const translations = {
         stream: 'Stream',
         created: 'Created At',
         retry: 'Retry Count',
-        duration: 'Duration'
+        duration: 'Duration',
+        requestIp: 'Request IP',
+        protocolConversion: 'Protocol Conversion'
       }
     },
     settings: {

@@ -42,6 +42,8 @@ public class RequestLogContext {
     private String responseContent;
 
     private String apiKey;
+    private String requestIp;
+    private String protocolConversion;
 
     private AtomicBoolean firstTokenArrived = new AtomicBoolean(false);
     private StringBuilder responseBuffer = new StringBuilder();

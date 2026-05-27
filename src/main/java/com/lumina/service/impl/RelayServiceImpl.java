@@ -92,12 +92,14 @@ public class RelayServiceImpl implements RelayService {
                                     String executorType = converter.isPresent() ? outboundType.toRequestType() : type;
                                     LlmRequestExecutor executor = getExecutor(executorType);
 
+                                    Map<String, String> execParams = new java.util.HashMap<>(enrichedParams);
                                     if (converter.isPresent()) {
                                         log.info("协议转换 [{}→{}], 转换后请求: {}", inboundType, outboundType, finalRequest);
+                                        execParams.put("_lumina_protocol_conversion", inboundType.name() + "→" + outboundType.name());
                                     }
 
                                     Flux<ServerSentEvent<String>> upstream = executor.executeStream(
-                                            finalRequest, provider, enrichedParams, "", executorType, timeoutMs
+                                            finalRequest, provider, execParams, "", executorType, timeoutMs
                                     );
 
                                     return converter.map(c -> c.convertStreamResponse(upstream)).orElse(upstream);
@@ -123,12 +125,14 @@ public class RelayServiceImpl implements RelayService {
                                 String executorType = converter.isPresent() ? outboundType.toRequestType() : type;
                                 LlmRequestExecutor executor = getExecutor(executorType);
 
+                                Map<String, String> execParams = new java.util.HashMap<>(enrichedParams);
                                 if (converter.isPresent()) {
                                     log.info("协议转换 [{}→{}], 转换后请求: {}", inboundType, outboundType, finalRequest);
+                                    execParams.put("_lumina_protocol_conversion", inboundType.name() + "→" + outboundType.name());
                                 }
 
                                 return executor.executeNormal(
-                                        finalRequest, provider, enrichedParams, "", executorType, timeoutMs
+                                        finalRequest, provider, execParams, "", executorType, timeoutMs
                                 ).map(resp -> converter.map(c -> c.convertResponse(resp)).orElse(resp));
                             },
                             modelGroupConfig,

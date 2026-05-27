@@ -32,5 +32,7 @@ public class RequestLog {
     private String requestContent;
     private String responseContent;
     private String apiKey;
+    private String requestIp;
+    private String protocolConversion;
     private LocalDateTime createdAt;
 }

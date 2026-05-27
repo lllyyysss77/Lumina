@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 
 @RestController
@@ -22,6 +23,19 @@ public class RelayController {
     @Autowired
     private TokenCountService tokenCountService;
 
+    private String extractClientIp(ServerWebExchange exchange) {
+        String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (xff != null && !xff.isEmpty()) {
+            return xff.split(",")[0].trim();
+        }
+        String realIp = exchange.getRequest().getHeaders().getFirst("X-Real-IP");
+        if (realIp != null && !realIp.isEmpty()) {
+            return realIp;
+        }
+        InetSocketAddress remoteAddress = exchange.getRequest().getRemoteAddress();
+        return remoteAddress != null ? remoteAddress.getAddress().getHostAddress() : "unknown";
+    }
+
     @GetMapping("/v1/models")
     public Mono<ResponseEntity<?>> models() {
         return relayService.models();
@@ -33,6 +47,7 @@ public class RelayController {
             @RequestParam Map<String, String> allParams,
             ServerWebExchange exchange) {
         String apiKey = exchange.getAttribute("API_KEY");
+        allParams.put("_lumina_request_ip", extractClientIp(exchange));
         return relayService.relay("anthropic_messages", params, allParams, apiKey);
     }
 
@@ -46,6 +61,7 @@ public class RelayController {
             @RequestParam Map<String, String> allParams,
             ServerWebExchange exchange) {
         String apiKey = exchange.getAttribute("API_KEY");
+        allParams.put("_lumina_request_ip", extractClientIp(exchange));
         return relayService.relay("openai_chat_completions", params, allParams, apiKey);
     }
 
@@ -58,6 +74,7 @@ public class RelayController {
             @RequestParam Map<String, String> allParams,
             ServerWebExchange exchange) {
         String apiKey = exchange.getAttribute("API_KEY");
+        allParams.put("_lumina_request_ip", extractClientIp(exchange));
         return relayService.relay("openai_responses", params, allParams, apiKey);
     }
 
@@ -71,6 +88,7 @@ public class RelayController {
             @RequestParam Map<String, String> allParams,
             ServerWebExchange exchange) {
         String apiKey = exchange.getAttribute("API_KEY");
+        allParams.put("_lumina_request_ip", extractClientIp(exchange));
         return relayService.relay("gemini_models", modelAction, params, allParams, apiKey);
     }
 

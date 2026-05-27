@@ -27,5 +27,7 @@ public class RequestLogDetailDto {
     private String errorStage;
     private String errorMessage;
     private Integer retryCount;
+    private String requestIp;
+    private String protocolConversion;
     private LocalDateTime createdAt;
 }

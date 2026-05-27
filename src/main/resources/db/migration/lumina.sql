@@ -202,6 +202,8 @@ CREATE TABLE `request_logs` (
   `error_stage` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'CONNECT / HTTP / DECODE / TIMEOUT',
   `retry_count` int DEFAULT '0' COMMENT '故障转移次数',
   `api_key` varchar(255) DEFAULT NULL COMMENT '客户端API密钥',
+  `request_ip` varchar(64) DEFAULT NULL COMMENT '请求客户端IP',
+  `protocol_conversion` varchar(64) DEFAULT NULL COMMENT '协议转换路径，如 OPENAI_RESPONSES→ANTHROPIC',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`),
   KEY `idx_request_time` (`request_time`),

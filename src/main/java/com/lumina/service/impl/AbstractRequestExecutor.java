@@ -63,6 +63,8 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
         ctx.setRequestContent(request.toPrettyString());
         if (queryParams != null) {
             ctx.setApiKey(queryParams.get("_lumina_api_key"));
+            ctx.setRequestIp(queryParams.get("_lumina_request_ip"));
+            ctx.setProtocolConversion(queryParams.get("_lumina_protocol_conversion"));
         }
         return ctx;
     }

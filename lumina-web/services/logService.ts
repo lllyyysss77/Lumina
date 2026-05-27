@@ -35,6 +35,8 @@ export interface LogDetailMeta {
   errorStage?: string;
   retryCount: number;
   errorMessage?: string;
+  requestIp?: string;
+  protocolConversion?: string;
   createdAt: string;
 }
 

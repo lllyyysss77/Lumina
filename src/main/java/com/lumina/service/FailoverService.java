@@ -342,8 +342,12 @@ public class FailoverService {
                     if (failureType == FailureType.TIMEOUT) {
                         log.warn("Provider {} 调用超时: 配置={}ms, 实际={}ms", providerId, timeoutMs, duration);
                     } else {
-                        log.warn("Provider {} 调用失败: {} (类型: {}), 耗时: {}ms",
-                                providerId, error.getMessage(), failureType, duration);
+                        String responseBody = "";
+                        if (error instanceof WebClientResponseException responseEx) {
+                            responseBody = responseEx.getResponseBodyAsString();
+                        }
+                        log.warn("Provider {} 调用失败: {} (类型: {}), 耗时: {}ms, 上游响应: {}",
+                                providerId, error.getMessage(), failureType, duration, responseBody);
                     }
 
                     scoreCalculator.update(state, failureType, duration);
@@ -453,8 +457,12 @@ public class FailoverService {
                         if (failureType == FailureType.TIMEOUT) {
                             log.warn("Provider {} 流式调用首包超时: 配置={}ms, 实际={}ms", providerId, timeoutMs, duration);
                         } else {
-                            log.warn("Provider {} 流式调用首包失败: {} (类型: {}), 耗时: {}ms",
-                                    providerId, error.getMessage(), failureType, duration);
+                            String responseBody = "";
+                            if (error instanceof WebClientResponseException responseEx) {
+                                responseBody = responseEx.getResponseBodyAsString();
+                            }
+                            log.warn("Provider {} 流式调用首包失败: {} (类型: {}), 耗时: {}ms, 上游响应: {}",
+                                    providerId, error.getMessage(), failureType, duration, responseBody);
                         }
 
                         scoreCalculator.update(state, failureType, duration);

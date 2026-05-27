@@ -138,6 +138,7 @@ logging:
     org.springframework.web: info
     org.springframework.security: info
     com.baomidou.mybatisplus: info
+    reactor.netty.http.client: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

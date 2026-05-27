@@ -31,6 +31,11 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
 
     @Override
     public Mono<ObjectNode> executeNormal(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
+        log.info("[DEBUG-RELAY] 非流式转发，供应商：{}, 请求地址：{}, 模型：{}", provider.getProviderName(), provider.getBaseUrl(), provider.getModelName());
+        log.info("[DEBUG-RELAY] 转发请求头: Authorization={}, providerType={}",
+                provider.getApiKey() != null ? "Bearer " + provider.getApiKey().substring(0, Math.min(8, provider.getApiKey().length())) + "..." : "null",
+                provider.getProviderType());
+        log.info("[DEBUG-RELAY] 转发请求体: {}", request.toString());
         RequestLogContext ctx = createLogContext(request, provider, type, false, queryParams);
         Mono<ObjectNode> result = createWebClient(provider).post()
                 .uri(uriBuilder -> {
@@ -55,6 +60,10 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
     @Override
     public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
         log.info("调用流式接口，供应商：{},请求地址：{},模型：{}", provider.getProviderName(), provider.getBaseUrl(), provider.getModelName());
+        log.info("[DEBUG-RELAY] 转发请求头: Authorization={}, providerType={}",
+                provider.getApiKey() != null ? "Bearer " + provider.getApiKey().substring(0, Math.min(8, provider.getApiKey().length())) + "..." : "null",
+                provider.getProviderType());
+        log.info("[DEBUG-RELAY] 转发请求体: {}", request.toString());
         RequestLogContext ctx = createLogContext(request, provider, type, true, queryParams);
         Flux<ServerSentEvent<String>> result = createWebClient(provider).post()
                 .uri(uriBuilder -> {

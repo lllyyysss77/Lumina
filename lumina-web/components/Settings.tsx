@@ -64,7 +64,11 @@ export const Settings: React.FC = () => {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password && password !== confirmPassword) {
+    if (!originalPassword || !password || !confirmPassword) {
+        showToast(t('settings.passwordsRequired'), 'error');
+        return;
+    }
+    if (password !== confirmPassword) {
         showToast(t('settings.passwordsDoNotMatch'), 'error');
         return;
     }
@@ -73,8 +77,8 @@ export const Settings: React.FC = () => {
     try {
         await userService.updateProfile({
             username: username,
-            originalPassword: originalPassword || undefined,
-            password: password || undefined
+            originalPassword,
+            password
         });
         showToast(t('settings.updateSuccess'), 'success');
         
@@ -168,8 +172,9 @@ export const Settings: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">{t('settings.originalPassword')}</label>
-                            <input 
-                                type="password" 
+                            <input
+                                type="password"
+                                required
                                 value={originalPassword}
                                 onChange={(e) => setOriginalPassword(e.target.value)}
                                 className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-50 dark:bg-gray-900 dark:text-white transition-all"
@@ -178,22 +183,22 @@ export const Settings: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">{t('settings.password')}</label>
-                                <input 
-                                    type="password" 
+                                <input
+                                    type="password"
+                                    required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    placeholder={t('settings.leaveBlank')}
-                                    className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-50 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500 transition-all"
+                                    className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-50 dark:bg-gray-900 dark:text-white transition-all"
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">{t('settings.confirmPassword')}</label>
-                                <input 
-                                    type="password" 
+                                <input
+                                    type="password"
+                                    required
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    placeholder={t('settings.leaveBlank')}
-                                    className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-50 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500 transition-all"
+                                    className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-50 dark:bg-gray-900 dark:text-white transition-all"
                                 />
                             </div>
                         </div>

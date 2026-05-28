@@ -419,6 +419,7 @@ const translations = {
       confirmPassword: '确认新密码',
       leaveBlank: '若不修改请留空',
       updateSuccess: '账号信息更新成功，即将跳转登录页...',
+      passwordsRequired: '请填写原密码、新密码和确认新密码',
       passwordsDoNotMatch: '两次输入的密码不一致',
       update: '更新账号信息',
       selfUseMode: {
@@ -964,6 +965,7 @@ const translations = {
       confirmPassword: 'Confirm Password',
       leaveBlank: 'Leave blank to keep current',
       updateSuccess: 'Profile updated successfully. Redirecting to login...',
+      passwordsRequired: 'Please fill in original password, new password and confirm password',
       passwordsDoNotMatch: 'Passwords do not match',
       update: 'Update Profile',
       selfUseMode: {

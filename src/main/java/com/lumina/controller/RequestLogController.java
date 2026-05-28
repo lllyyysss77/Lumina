@@ -34,7 +34,8 @@ public class RequestLogController {
         LambdaQueryWrapper<RequestLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.select(RequestLog::getId, RequestLog::getRequestTime, RequestLog::getStatus, RequestLog::getProviderName,
                 RequestLog::getRequestModelName, RequestLog::getActualModelName, RequestLog::getFirstTokenMs,
-                RequestLog::getInputTokens, RequestLog::getOutputTokens, RequestLog::getRetryCount, RequestLog::getCost);
+                RequestLog::getInputTokens, RequestLog::getOutputTokens, RequestLog::getRetryCount, RequestLog::getCost,
+                RequestLog::getRequestIp);
         wrapper.like(StringUtils.hasText(requestModelName), RequestLog::getRequestModelName, requestModelName);
         wrapper.like(StringUtils.hasText(providerName), RequestLog::getProviderName, providerName);
         wrapper.eq(StringUtils.hasText(status), RequestLog::getStatus, status);

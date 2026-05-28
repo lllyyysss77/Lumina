@@ -13,6 +13,7 @@ export interface LogDTO {
   status: string; // SUCCESS or FAIL
   cost: number; // Added cost field
   providerName: string;
+  requestIp?: string;
 }
 
 export interface LogDetailMeta {
@@ -79,7 +80,8 @@ export const logService = {
         actualModel: item.actualModelName || '-',
         tokens: (item.inputTokens || 0) + (item.outputTokens || 0),
         cost: item.cost || 0, // Map cost from API response
-        providerName: item.providerName || '-'
+        providerName: item.providerName || '-',
+        requestIp: item.requestIp || '-'
       }));
 
       return {

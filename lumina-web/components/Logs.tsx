@@ -333,6 +333,7 @@ export const Logs: React.FC = () => {
                                 <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.requestModel')}</th>
                                 <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.actualModel')}</th>
                                 <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.provider')}</th>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.requestIp')}</th>
                                 <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.latency')}</th>
                                 <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.tokens')}</th>
                                 <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.cost')}</th>
@@ -344,7 +345,7 @@ export const Logs: React.FC = () => {
                         <tbody className="bg-transparent divide-y divide-gray-100 dark:divide-gray-800">
                             {logs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-16 text-center">
+                                    <td colSpan={10} className="px-6 py-16 text-center">
                                         <div className="flex flex-col items-center justify-center">
                                             <ScrollText className="text-gray-300 dark:text-gray-700 mb-3" size={48} />
                                             <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">{t('logs.noLogs')}</p>
@@ -371,6 +372,9 @@ export const Logs: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                             {log.providerName}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-mono">
+                                            {log.requestIp || '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                             <span className={`font-mono ${log.latency > 5000 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-600 dark:text-gray-400'}`}>

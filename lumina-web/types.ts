@@ -52,6 +52,7 @@ export interface LogEntry {
   tokens: number;
   cost: number;
   providerName: string;
+  requestIp?: string;
 }
 
 export interface ModelPrice {

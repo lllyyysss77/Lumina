@@ -130,25 +130,29 @@ public class StatsRebuildJob {
             int outputTokens = logEntry.getOutputTokens() != null ? logEntry.getOutputTokens() : 0;
             BigDecimal cost = logEntry.getCost() != null ? logEntry.getCost() : BigDecimal.ZERO;
             int latencyMs = logEntry.getTotalTimeMs() != null ? logEntry.getTotalTimeMs() : 0;
+            int cacheReadTokens = logEntry.getCacheReadTokens() != null ? logEntry.getCacheReadTokens() : 0;
+            int cacheCreationTokens = logEntry.getCacheCreationTokens() != null ? logEntry.getCacheCreationTokens() : 0;
 
             String hKey = hourKey + "|" + logEntry.getProviderId() + "|" + logEntry.getActualModelName();
             hourlyAgg.computeIfAbsent(hKey, k -> new AggBucket(
                     hourKey, logEntry.getProviderId(), logEntry.getProviderName(), logEntry.getActualModelName()
-            )).add(success, inputTokens, outputTokens, cost, latencyMs);
+            )).add(success, inputTokens, outputTokens, cost, latencyMs, cacheReadTokens, cacheCreationTokens);
 
             String dKey = dateKey + "|" + logEntry.getProviderId() + "|" + logEntry.getActualModelName();
             dailyAgg.computeIfAbsent(dKey, k -> new AggBucket(
                     dateKey, logEntry.getProviderId(), logEntry.getProviderName(), logEntry.getActualModelName()
-            )).add(success, inputTokens, outputTokens, cost, latencyMs);
+            )).add(success, inputTokens, outputTokens, cost, latencyMs, cacheReadTokens, cacheCreationTokens);
         }
 
         for (AggBucket agg : hourlyAgg.values()) {
             statsHourlyMapper.upsert(agg.timeKey, agg.providerId, agg.providerName, agg.modelName,
-                    agg.requests, agg.successCount, agg.inputTokens, agg.outputTokens, agg.cost, agg.latencyMs);
+                    agg.requests, agg.successCount, agg.inputTokens, agg.outputTokens, agg.cost, agg.latencyMs,
+                    agg.cacheReadTokens, agg.cacheCreationTokens, agg.cacheHitCount);
         }
         for (AggBucket agg : dailyAgg.values()) {
             statsDailyMapper.upsert(agg.timeKey, agg.providerId, agg.providerName, agg.modelName,
-                    agg.requests, agg.successCount, agg.inputTokens, agg.outputTokens, agg.cost, agg.latencyMs);
+                    agg.requests, agg.successCount, agg.inputTokens, agg.outputTokens, agg.cost, agg.latencyMs,
+                    agg.cacheReadTokens, agg.cacheCreationTokens, agg.cacheHitCount);
         }
     }
 
@@ -188,6 +192,9 @@ public class StatsRebuildJob {
         fields.put("latencyMs", String.valueOf(stats.getTotalLatencyMs() != null ? stats.getTotalLatencyMs() : 0));
         long costMicros = stats.getTotalCost() != null ? stats.getTotalCost().multiply(BigDecimal.valueOf(10000)).longValue() : 0;
         fields.put("costMicros", String.valueOf(costMicros));
+        fields.put("cacheReadTokens", String.valueOf(stats.getTotalCacheReadTokens() != null ? stats.getTotalCacheReadTokens() : 0));
+        fields.put("cacheCreationTokens", String.valueOf(stats.getTotalCacheCreationTokens() != null ? stats.getTotalCacheCreationTokens() : 0));
+        fields.put("cacheHitCount", String.valueOf(stats.getCacheHitCount() != null ? stats.getCacheHitCount() : 0));
 
         redisTemplate.opsForHash().putAll(key, fields);
         if (expireHours > 0) {
@@ -217,6 +224,9 @@ public class StatsRebuildJob {
         long outputTokens;
         BigDecimal cost = BigDecimal.ZERO;
         long latencyMs;
+        long cacheReadTokens;
+        long cacheCreationTokens;
+        long cacheHitCount;
 
         AggBucket(String timeKey, Long providerId, String providerName, String modelName) {
             this.timeKey = timeKey;
@@ -225,13 +235,17 @@ public class StatsRebuildJob {
             this.modelName = modelName;
         }
 
-        void add(boolean success, int inTokens, int outTokens, BigDecimal c, int latency) {
+        void add(boolean success, int inTokens, int outTokens, BigDecimal c, int latency,
+                 int cacheRead, int cacheCreation) {
             requests++;
             if (success) successCount++;
             inputTokens += inTokens;
             outputTokens += outTokens;
             cost = cost.add(c);
             latencyMs += latency;
+            cacheReadTokens += cacheRead;
+            cacheCreationTokens += cacheCreation;
+            if (cacheRead > 0) cacheHitCount++;
         }
     }
 }

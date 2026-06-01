@@ -19,7 +19,10 @@ public interface StatsDailyMapper {
                 @Param("inputTokens") long inputTokens,
                 @Param("outputTokens") long outputTokens,
                 @Param("cost") BigDecimal cost,
-                @Param("latencyMs") long latencyMs);
+                @Param("latencyMs") long latencyMs,
+                @Param("cacheReadTokens") long cacheReadTokens,
+                @Param("cacheCreationTokens") long cacheCreationTokens,
+                @Param("cacheHitCount") long cacheHitCount);
 
     List<StatsDaily> selectByDateRange(@Param("startDate") String startDate,
                                        @Param("endDate") String endDate);

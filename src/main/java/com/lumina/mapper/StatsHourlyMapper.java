@@ -19,7 +19,10 @@ public interface StatsHourlyMapper {
                 @Param("inputTokens") long inputTokens,
                 @Param("outputTokens") long outputTokens,
                 @Param("cost") BigDecimal cost,
-                @Param("latencyMs") long latencyMs);
+                @Param("latencyMs") long latencyMs,
+                @Param("cacheReadTokens") long cacheReadTokens,
+                @Param("cacheCreationTokens") long cacheCreationTokens,
+                @Param("cacheHitCount") long cacheHitCount);
 
     List<StatsHourly> selectByHourRange(@Param("startHour") String startHour,
                                          @Param("endHour") String endHour);

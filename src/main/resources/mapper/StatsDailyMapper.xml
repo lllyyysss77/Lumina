@@ -6,10 +6,12 @@
     <insert id="upsert" databaseId="mysql">
         INSERT INTO stats_daily (stat_date, provider_id, provider_name, model_name,
                                  total_requests, success_count, total_input_tokens,
-                                 total_output_tokens, total_cost, total_latency_ms)
+                                 total_output_tokens, total_cost, total_latency_ms,
+                                 total_cache_read_tokens, total_cache_creation_tokens, cache_hit_count)
         VALUES (#{statDate}, #{providerId}, #{providerName}, #{modelName},
                 #{requests}, #{successCount}, #{inputTokens},
-                #{outputTokens}, #{cost}, #{latencyMs})
+                #{outputTokens}, #{cost}, #{latencyMs},
+                #{cacheReadTokens}, #{cacheCreationTokens}, #{cacheHitCount})
         ON DUPLICATE KEY UPDATE
             total_requests = total_requests + VALUES(total_requests),
             success_count = success_count + VALUES(success_count),
@@ -17,6 +19,9 @@
             total_output_tokens = total_output_tokens + VALUES(total_output_tokens),
             total_cost = total_cost + VALUES(total_cost),
             total_latency_ms = total_latency_ms + VALUES(total_latency_ms),
+            total_cache_read_tokens = total_cache_read_tokens + VALUES(total_cache_read_tokens),
+            total_cache_creation_tokens = total_cache_creation_tokens + VALUES(total_cache_creation_tokens),
+            cache_hit_count = cache_hit_count + VALUES(cache_hit_count),
             provider_name = VALUES(provider_name),
             updated_at = NOW()
     </insert>
@@ -25,10 +30,12 @@
     <insert id="upsert" databaseId="sqlite">
         INSERT INTO stats_daily (stat_date, provider_id, provider_name, model_name,
                                  total_requests, success_count, total_input_tokens,
-                                 total_output_tokens, total_cost, total_latency_ms)
+                                 total_output_tokens, total_cost, total_latency_ms,
+                                 total_cache_read_tokens, total_cache_creation_tokens, cache_hit_count)
         VALUES (#{statDate}, #{providerId}, #{providerName}, #{modelName},
                 #{requests}, #{successCount}, #{inputTokens},
-                #{outputTokens}, #{cost}, #{latencyMs})
+                #{outputTokens}, #{cost}, #{latencyMs},
+                #{cacheReadTokens}, #{cacheCreationTokens}, #{cacheHitCount})
         ON CONFLICT(stat_date, provider_id, model_name) DO UPDATE SET
             total_requests = total_requests + excluded.total_requests,
             success_count = success_count + excluded.success_count,
@@ -36,6 +43,9 @@
             total_output_tokens = total_output_tokens + excluded.total_output_tokens,
             total_cost = total_cost + excluded.total_cost,
             total_latency_ms = total_latency_ms + excluded.total_latency_ms,
+            total_cache_read_tokens = total_cache_read_tokens + excluded.total_cache_read_tokens,
+            total_cache_creation_tokens = total_cache_creation_tokens + excluded.total_cache_creation_tokens,
+            cache_hit_count = cache_hit_count + excluded.cache_hit_count,
             provider_name = excluded.provider_name,
             updated_at = datetime('now')
     </insert>
@@ -109,7 +119,10 @@
                SUM(total_input_tokens) as total_input_tokens,
                SUM(total_output_tokens) as total_output_tokens,
                SUM(total_cost) as total_cost,
-               SUM(total_latency_ms) as total_latency_ms
+               SUM(total_latency_ms) as total_latency_ms,
+               SUM(total_cache_read_tokens) as total_cache_read_tokens,
+               SUM(total_cache_creation_tokens) as total_cache_creation_tokens,
+               SUM(cache_hit_count) as cache_hit_count
         FROM stats_daily
     </select>
 
@@ -120,7 +133,10 @@
                SUM(total_input_tokens) as total_input_tokens,
                SUM(total_output_tokens) as total_output_tokens,
                SUM(total_cost) as total_cost,
-               SUM(total_latency_ms) as total_latency_ms
+               SUM(total_latency_ms) as total_latency_ms,
+               SUM(total_cache_read_tokens) as total_cache_read_tokens,
+               SUM(total_cache_creation_tokens) as total_cache_creation_tokens,
+               SUM(cache_hit_count) as cache_hit_count
         FROM stats_daily
     </select>
 
@@ -131,7 +147,10 @@
                SUM(total_input_tokens) as total_input_tokens,
                SUM(total_output_tokens) as total_output_tokens,
                SUM(total_cost) as total_cost,
-               SUM(total_latency_ms) as total_latency_ms
+               SUM(total_latency_ms) as total_latency_ms,
+               SUM(total_cache_read_tokens) as total_cache_read_tokens,
+               SUM(total_cache_creation_tokens) as total_cache_creation_tokens,
+               SUM(cache_hit_count) as cache_hit_count
         FROM stats_daily
         WHERE stat_date = #{statDate}
     </select>
@@ -143,7 +162,10 @@
                SUM(total_input_tokens) as total_input_tokens,
                SUM(total_output_tokens) as total_output_tokens,
                SUM(total_cost) as total_cost,
-               SUM(total_latency_ms) as total_latency_ms
+               SUM(total_latency_ms) as total_latency_ms,
+               SUM(total_cache_read_tokens) as total_cache_read_tokens,
+               SUM(total_cache_creation_tokens) as total_cache_creation_tokens,
+               SUM(cache_hit_count) as cache_hit_count
         FROM stats_daily
         WHERE stat_date = #{statDate}
     </select>

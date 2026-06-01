@@ -53,16 +53,18 @@ public class StatsAccumulator {
             int outputTokens = logEntry.getOutputTokens() != null ? logEntry.getOutputTokens() : 0;
             BigDecimal cost = logEntry.getCost() != null ? logEntry.getCost() : BigDecimal.ZERO;
             int latencyMs = logEntry.getTotalTimeMs() != null ? logEntry.getTotalTimeMs() : 0;
+            int cacheReadTokens = logEntry.getCacheReadTokens() != null ? logEntry.getCacheReadTokens() : 0;
+            int cacheCreationTokens = logEntry.getCacheCreationTokens() != null ? logEntry.getCacheCreationTokens() : 0;
 
             String hourAggKey = hourKey + "|" + logEntry.getProviderId() + "|" + logEntry.getActualModelName();
             hourlyAgg.computeIfAbsent(hourAggKey, k -> new AggregateKey(
                     hourKey, logEntry.getProviderId(), logEntry.getProviderName(), logEntry.getActualModelName()
-            )).add(success, inputTokens, outputTokens, cost, latencyMs);
+            )).add(success, inputTokens, outputTokens, cost, latencyMs, cacheReadTokens, cacheCreationTokens);
 
             String dailyAggKey = dateKey + "|" + logEntry.getProviderId() + "|" + logEntry.getActualModelName();
             dailyAgg.computeIfAbsent(dailyAggKey, k -> new AggregateKey(
                     dateKey, logEntry.getProviderId(), logEntry.getProviderName(), logEntry.getActualModelName()
-            )).add(success, inputTokens, outputTokens, cost, latencyMs);
+            )).add(success, inputTokens, outputTokens, cost, latencyMs, cacheReadTokens, cacheCreationTokens);
         }
 
         flushToDb(hourlyAgg, dailyAgg);
@@ -75,14 +77,16 @@ public class StatsAccumulator {
                 statsHourlyMapper.upsert(
                         agg.timeKey, agg.providerId, agg.providerName, agg.modelName,
                         agg.requests, agg.successCount, agg.inputTokens,
-                        agg.outputTokens, agg.cost, agg.latencyMs
+                        agg.outputTokens, agg.cost, agg.latencyMs,
+                        agg.cacheReadTokens, agg.cacheCreationTokens, agg.cacheHitCount
                 );
             }
             for (AggregateKey agg : dailyAgg.values()) {
                 statsDailyMapper.upsert(
                         agg.timeKey, agg.providerId, agg.providerName, agg.modelName,
                         agg.requests, agg.successCount, agg.inputTokens,
-                        agg.outputTokens, agg.cost, agg.latencyMs
+                        agg.outputTokens, agg.cost, agg.latencyMs,
+                        agg.cacheReadTokens, agg.cacheCreationTokens, agg.cacheHitCount
                 );
             }
         } catch (Exception e) {
@@ -102,6 +106,9 @@ public class StatsAccumulator {
             long totalOutputTokens = 0;
             long totalLatencyMs = 0;
             double totalCost = 0.0;
+            long totalCacheReadTokens = 0;
+            long totalCacheCreationTokens = 0;
+            long totalCacheHitCount = 0;
 
             for (RequestLog logEntry : batch) {
                 totalRequests++;
@@ -112,6 +119,13 @@ public class StatsAccumulator {
                 totalOutputTokens += logEntry.getOutputTokens() != null ? logEntry.getOutputTokens() : 0;
                 totalLatencyMs += logEntry.getTotalTimeMs() != null ? logEntry.getTotalTimeMs() : 0;
                 totalCost += logEntry.getCost() != null ? logEntry.getCost().doubleValue() : 0.0;
+                int cacheRead = logEntry.getCacheReadTokens() != null ? logEntry.getCacheReadTokens() : 0;
+                int cacheCreation = logEntry.getCacheCreationTokens() != null ? logEntry.getCacheCreationTokens() : 0;
+                totalCacheReadTokens += cacheRead;
+                totalCacheCreationTokens += cacheCreation;
+                if (cacheRead > 0) {
+                    totalCacheHitCount++;
+                }
             }
 
             redisTemplate.opsForHash().increment(totalKey, "requests", totalRequests);
@@ -120,6 +134,9 @@ public class StatsAccumulator {
             redisTemplate.opsForHash().increment(totalKey, "outputTokens", totalOutputTokens);
             redisTemplate.opsForHash().increment(totalKey, "latencyMs", totalLatencyMs);
             redisTemplate.opsForHash().increment(totalKey, "costMicros", (long) (totalCost * 10000));
+            redisTemplate.opsForHash().increment(totalKey, "cacheReadTokens", totalCacheReadTokens);
+            redisTemplate.opsForHash().increment(totalKey, "cacheCreationTokens", totalCacheCreationTokens);
+            redisTemplate.opsForHash().increment(totalKey, "cacheHitCount", totalCacheHitCount);
 
             redisTemplate.opsForHash().increment(todayKey, "requests", totalRequests);
             redisTemplate.opsForHash().increment(todayKey, "success", totalSuccess);
@@ -127,6 +144,9 @@ public class StatsAccumulator {
             redisTemplate.opsForHash().increment(todayKey, "outputTokens", totalOutputTokens);
             redisTemplate.opsForHash().increment(todayKey, "latencyMs", totalLatencyMs);
             redisTemplate.opsForHash().increment(todayKey, "costMicros", (long) (totalCost * 10000));
+            redisTemplate.opsForHash().increment(todayKey, "cacheReadTokens", totalCacheReadTokens);
+            redisTemplate.opsForHash().increment(todayKey, "cacheCreationTokens", totalCacheCreationTokens);
+            redisTemplate.opsForHash().increment(todayKey, "cacheHitCount", totalCacheHitCount);
             redisTemplate.expire(todayKey, 48, TimeUnit.HOURS);
         } catch (Exception e) {
             log.warn("统计聚合写入Redis失败（不影响主流程）", e);
@@ -155,6 +175,9 @@ public class StatsAccumulator {
         long outputTokens;
         BigDecimal cost = BigDecimal.ZERO;
         long latencyMs;
+        long cacheReadTokens;
+        long cacheCreationTokens;
+        long cacheHitCount;
 
         AggregateKey(String timeKey, Long providerId, String providerName, String modelName) {
             this.timeKey = timeKey;
@@ -163,13 +186,17 @@ public class StatsAccumulator {
             this.modelName = modelName;
         }
 
-        void add(boolean success, int inTokens, int outTokens, BigDecimal c, int latency) {
+        void add(boolean success, int inTokens, int outTokens, BigDecimal c, int latency,
+                 int cacheRead, int cacheCreation) {
             requests++;
             if (success) successCount++;
             inputTokens += inTokens;
             outputTokens += outTokens;
             cost = cost.add(c);
             latencyMs += latency;
+            cacheReadTokens += cacheRead;
+            cacheCreationTokens += cacheCreation;
+            if (cacheRead > 0) cacheHitCount++;
         }
     }
 }

@@ -119,6 +119,8 @@ public class LogWriter {
         logEntry.setIsStream(ctx.getStream());
         logEntry.setInputTokens(ctx.getInputTokens());
         logEntry.setOutputTokens(ctx.getOutputTokens());
+        logEntry.setCacheReadTokens(ctx.getCacheReadTokens());
+        logEntry.setCacheCreationTokens(ctx.getCacheCreationTokens());
         logEntry.setFirstTokenTime(ctx.getFirstTokenTime());
         logEntry.setFirstTokenMs(ctx.getFirstTokenMs());
         logEntry.setTotalTime(ctx.getTotalTime());

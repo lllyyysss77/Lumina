@@ -108,6 +108,9 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
             if (usage.has("candidatesTokenCount") && (ctx.getOutputTokens() == null || ctx.getOutputTokens() == 0)) {
                 ctx.setOutputTokens(usage.get("candidatesTokenCount").asInt());
             }
+            if (usage.has("cachedContentTokenCount")) {
+                ctx.setCacheReadTokens(usage.get("cachedContentTokenCount").asInt());
+            }
         }
 
         // 4. 处理 OpenAI /v1/responses 中的 nested usage
@@ -131,6 +134,24 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
         }
         if (usage.has("output_tokens") && (ctx.getOutputTokens() == null || ctx.getOutputTokens() == 0)) {
             ctx.setOutputTokens(usage.get("output_tokens").asInt());
+        }
+
+        // Anthropic prompt cache 字段
+        if (usage.has("cache_read_input_tokens")) {
+            ctx.setCacheReadTokens(usage.get("cache_read_input_tokens").asInt());
+        }
+        if (usage.has("cache_creation_input_tokens")) {
+            ctx.setCacheCreationTokens(usage.get("cache_creation_input_tokens").asInt());
+        }
+
+        // OpenAI Chat prompt cache: prompt_tokens_details.cached_tokens
+        if (usage.has("prompt_tokens_details") && usage.get("prompt_tokens_details").has("cached_tokens")) {
+            ctx.setCacheReadTokens(usage.get("prompt_tokens_details").get("cached_tokens").asInt());
+        }
+
+        // OpenAI Responses prompt cache: input_tokens_details.cached_tokens
+        if (usage.has("input_tokens_details") && usage.get("input_tokens_details").has("cached_tokens")) {
+            ctx.setCacheReadTokens(usage.get("input_tokens_details").get("cached_tokens").asInt());
         }
     }
 

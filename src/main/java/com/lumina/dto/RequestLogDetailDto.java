@@ -18,6 +18,8 @@ public class RequestLogDetailDto {
     private Boolean isStream;
     private Integer inputTokens;
     private Integer outputTokens;
+    private Integer cacheReadTokens;
+    private Integer cacheCreationTokens;
     private Integer firstTokenTime;
     private Integer firstTokenMs;
     private Integer totalTime;

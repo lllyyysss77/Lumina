@@ -70,6 +70,8 @@ public class RequestLogServiceImpl extends ServiceImpl<RequestLogMapper, Request
         dto.setIsStream(log.getIsStream());
         dto.setInputTokens(log.getInputTokens());
         dto.setOutputTokens(log.getOutputTokens());
+        dto.setCacheReadTokens(log.getCacheReadTokens());
+        dto.setCacheCreationTokens(log.getCacheCreationTokens());
         dto.setFirstTokenTime(log.getFirstTokenTime());
         dto.setFirstTokenMs(log.getFirstTokenMs());
         dto.setTotalTime(log.getTotalTime());

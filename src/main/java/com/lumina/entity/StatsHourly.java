@@ -21,6 +21,9 @@ public class StatsHourly {
     private Long totalOutputTokens;
     private BigDecimal totalCost;
     private Long totalLatencyMs;
+    private Long totalCacheReadTokens;
+    private Long totalCacheCreationTokens;
+    private Long cacheHitCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

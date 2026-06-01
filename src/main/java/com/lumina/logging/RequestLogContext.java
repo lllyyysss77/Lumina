@@ -24,6 +24,8 @@ public class RequestLogContext {
 
     private Integer inputTokens;
     private Integer outputTokens;
+    private Integer cacheReadTokens;
+    private Integer cacheCreationTokens;
 
     private Integer firstTokenTime;
     private Integer firstTokenMs;

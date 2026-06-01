@@ -116,6 +116,7 @@ const translations = {
       totalCost: '预估总费用',
       avgLatency: '平均延迟',
       successRate: '成功率',
+      cacheHitRate: '缓存命中率',
       traffic: '请求流量 (24小时)',
       tokenUsage: '模型 Token 使用分布',
       recentActivity: '近期 API 调用',
@@ -394,6 +395,7 @@ const translations = {
         created: '创建时间',
         retry: '重试次数',
         duration: '总耗时',
+        cache: '缓存命中',
         requestIp: '请求 IP',
         protocolConversion: '协议转换'
       }
@@ -662,6 +664,7 @@ const translations = {
       totalCost: 'Total Cost (Est.)',
       avgLatency: 'Avg. Latency',
       successRate: 'Success Rate',
+      cacheHitRate: 'Cache Hit Rate',
       traffic: 'Request Traffic (24h)',
       tokenUsage: 'Token Usage by Model',
       recentActivity: 'Recent API Calls',
@@ -940,6 +943,7 @@ const translations = {
         created: 'Created At',
         retry: 'Retry Count',
         duration: 'Duration',
+        cache: 'Cache Hit',
         requestIp: 'Request IP',
         protocolConversion: 'Protocol Conversion'
       }

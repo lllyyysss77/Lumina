@@ -560,6 +560,22 @@ export const Logs: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    {(selectedLog.cacheReadTokens != null && selectedLog.cacheReadTokens > 0 || selectedLog.cacheCreationTokens != null && selectedLog.cacheCreationTokens > 0) && (
+                                    <div className="flex justify-between items-start">
+                                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('logs.detail.cache')}</span>
+                                        <div className="text-right">
+                                            <div className="text-xs text-gray-400 dark:text-gray-500">
+                                                {selectedLog.cacheReadTokens != null && selectedLog.cacheReadTokens > 0 && (
+                                                    <span className="text-purple-600 dark:text-purple-400">{selectedLog.cacheReadTokens} read</span>
+                                                )}
+                                                {selectedLog.cacheReadTokens != null && selectedLog.cacheReadTokens > 0 && selectedLog.cacheCreationTokens != null && selectedLog.cacheCreationTokens > 0 && ' / '}
+                                                {selectedLog.cacheCreationTokens != null && selectedLog.cacheCreationTokens > 0 && (
+                                                    <span className="text-amber-600 dark:text-amber-400">{selectedLog.cacheCreationTokens} write</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    )}
                                     <div className="flex justify-between">
                                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('logs.table.cost')}</span>
                                         <span className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">${selectedLog.cost.toFixed(6)}</span>

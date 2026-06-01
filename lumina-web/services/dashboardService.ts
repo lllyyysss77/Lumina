@@ -14,6 +14,8 @@ export interface ModelTokenUsageData {
   totalTokens: number;
   requestCount: number;
   percentage: number;
+  cacheReadTokens: number;
+  cacheHitRate: number;
 }
 
 export interface ProviderStats {
@@ -107,7 +109,10 @@ export const dashboardService = {
         avgLatency: 0,
         latencyChange: 0,
         successRate: 0,
-        successRateChange: 0
+        successRateChange: 0,
+        cacheHitCount: 0,
+        cacheHitRate: 0,
+        cacheReadTokens: 0,
     };
   },
 

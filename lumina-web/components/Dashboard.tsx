@@ -399,6 +399,9 @@ export const Dashboard: React.FC = () => {
     latencyChange: 0,
     successRate: 0,
     successRateChange: 0,
+    cacheHitCount: 0,
+    cacheHitRate: 0,
+    cacheReadTokens: 0,
   };
 
   const runtime = observability || {
@@ -501,7 +504,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </SlideInItem>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
         {[
           {
             title: t('dashboard.totalRequests'),
@@ -542,6 +545,14 @@ export const Dashboard: React.FC = () => {
             trendDirection: safeOverview.successRateChange >= 0 ? ('up' as const) : ('down' as const),
             trendPositive: safeOverview.successRateChange >= 0,
             icon: Activity,
+          },
+          {
+            title: t('dashboard.cacheHitRate'),
+            value: `${safeOverview.cacheHitRate.toFixed(1)}%`,
+            trend: formatTokenCount(safeOverview.cacheReadTokens),
+            trendDirection: safeOverview.cacheHitRate > 0 ? ('up' as const) : ('down' as const),
+            trendPositive: safeOverview.cacheHitRate > 0,
+            icon: Database,
           },
         ].map((item, index) => (
           <SlideInItem key={index} index={index} delay={index * 50}>

@@ -28,6 +28,8 @@ export interface LogDetailMeta {
   isStream: boolean;
   inputTokens: number;
   outputTokens: number;
+  cacheReadTokens?: number;
+  cacheCreationTokens?: number;
   firstTokenTime: number;
   firstTokenMs: number;
   totalTimeMs: number; // Changed from totalTime to totalTimeMs

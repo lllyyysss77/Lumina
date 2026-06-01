@@ -110,6 +110,9 @@ export interface DashboardOverview {
     latencyChange: number;
     successRate: number;
     successRateChange: number;
+    cacheHitCount: number;
+    cacheHitRate: number;
+    cacheReadTokens: number;
 }
 
 export type ViewState = 'dashboard' | 'providers' | 'groups' | 'pricing' | 'logs' | 'tokens' | 'settings';

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Lumina"
+  short_description: "Repo-specific patterns and workflows for Lumina"
+  default_prompt: "Use the Lumina repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true

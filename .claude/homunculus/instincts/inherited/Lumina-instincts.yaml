@@ -1,0 +1,451 @@
+# Instincts generated from https://github.com/lllyyysss77/Lumina
+# Generated: 2026-06-01T13:27:29.073Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: Lumina-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/Lumina
+---
+
+# Lumina Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: feat
+
+## Evidence
+
+- 5 commits analyzed
+- Detected conventional commit pattern
+- Examples: feat(schema): add cache token fields to request_logs and stats tables, feat(cache): capture prompt cache tokens in request logging pipeline
+
+---
+id: Lumina-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/Lumina
+---
+
+# Lumina Commit Length
+
+## Action
+
+Write moderate-length commit messages (~67 characters)
+
+## Evidence
+
+- Average commit message length: 67 chars
+- Based on 5 commits
+
+---
+id: Lumina-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/Lumina
+---
+
+# Lumina Naming Files
+
+## Action
+
+Use PascalCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: PascalCase
+
+---
+id: Lumina-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/Lumina
+---
+
+# Lumina Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: Lumina-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/Lumina
+---
+
+# Lumina Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: Lumina-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/Lumina
+---
+
+# Lumina Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: Lumina-workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/Lumina
+---
+
+# Lumina Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~30x per month
+- Files: lumina-web/components/*, lumina-web/services/*, lumina-web/*
+
+---
+id: Lumina-workflow-add-new-database-field-and-pipeline
+trigger: "when doing add new database field and pipeline"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/Lumina
+---
+
+# Lumina Workflow Add New Database Field And Pipeline
+
+## Action
+
+Follow the add-new-database-field-and-pipeline workflow:
+1. Add new columns to database schema (SQL migrations for MySQL and SQLite).
+2. Add fields to entity classes and DTOs.
+3. Update mappers (Java and XML) to handle new fields.
+4. Update service and accumulator logic to process new fields.
+5. Expose new fields in API responses.
+6. Update frontend types and services to consume new fields.
+7. Display new metrics in the frontend UI.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: src/main/resources/db/migration/*.sql, src/main/java/com/lumina/entity/*.java, src/main/java/com/lumina/dto/*.java
+
+---
+id: lumina-instinct-file-naming
+trigger: "When creating a new file"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct File Naming
+
+## Action
+
+Name the file using PascalCase (e.g., RequestLogDetailDto.java)
+
+## Evidence
+
+- Pattern in files: src/main/java/com/lumina/dto/RequestLogDetailDto.java
+- Naming conventions: files = PascalCase
+
+---
+id: lumina-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Class Naming
+
+## Action
+
+Name the class using PascalCase
+
+## Evidence
+
+- Pattern in files: src/main/java/com/lumina/entity/RequestLog.java
+- Naming conventions: classes = PascalCase
+
+---
+id: lumina-instinct-function-naming
+trigger: "When writing a new function/method"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Function Naming
+
+## Action
+
+Name the function using camelCase
+
+## Evidence
+
+- Naming conventions: functions = camelCase
+
+---
+id: lumina-instinct-constant-naming
+trigger: "When declaring a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Constant Naming
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE
+
+## Evidence
+
+- Naming conventions: constants = SCREAMING_SNAKE_CASE
+
+---
+id: lumina-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Import Style
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- importStyle: relative
+
+---
+id: lumina-instinct-export-style
+trigger: "When exporting modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- exportStyle: named
+
+---
+id: lumina-instinct-try-catch-error-handling
+trigger: "When handling errors in Java code"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Try Catch Error Handling
+
+## Action
+
+Use try-catch blocks for error handling
+
+## Evidence
+
+- errorHandling: style = try-catch
+
+---
+id: lumina-instinct-no-custom-error-classes
+trigger: "When considering custom error classes"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct No Custom Error Classes
+
+## Action
+
+Avoid creating custom error classes
+
+## Evidence
+
+- errorHandling: customErrorClasses = false
+
+---
+id: lumina-instinct-git-conventional-commits
+trigger: "When writing a commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Git Conventional Commits
+
+## Action
+
+Use the Conventional Commits format with a prefix (e.g., feat:)
+
+## Evidence
+
+- commits: type = conventional, prefixes = ["feat"]
+- Seen in commit: feat(schema): add cache token fields to request_logs and stats tables
+
+---
+id: lumina-instinct-git-commit-length
+trigger: "When composing a commit message"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Git Commit Length
+
+## Action
+
+Keep the commit message concise (average length ~67 characters)
+
+## Evidence
+
+- commits: averageLength = 67
+
+---
+id: lumina-instinct-feature-dev-test-location
+trigger: "When adding tests for a feature"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Feature Dev Test Location
+
+## Action
+
+Place tests in a separate test location from src/main
+
+## Evidence
+
+- architecture: testLocation = separate
+- feature-development workflow: Add tests for feature
+
+---
+id: lumina-instinct-feature-dev-test-sequence
+trigger: "When implementing a new feature"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Feature Dev Test Sequence
+
+## Action
+
+Add tests after feature implementation and before documentation update
+
+## Evidence
+
+- feature-development workflow: commitSequence = [Add feature implementation, Add tests for feature, Update documentation]
+
+---
+id: lumina-instinct-feature-dev-workflow
+trigger: "When developing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Feature Dev Workflow
+
+## Action
+
+Follow the sequence: implement feature → add tests → update documentation
+
+## Evidence
+
+- feature-development workflow: commitSequence
+- Seen in commits: feat(schema): add cache token fields..., feat(cache): capture prompt cache tokens...
+
+---
+id: lumina-instinct-add-field-pipeline-workflow
+trigger: "When a new metric or data field needs to be tracked end-to-end"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: lllyyysss77/Lumina
+---
+
+# Lumina Instinct Add Field Pipeline Workflow
+
+## Action
+
+Follow the add-new-database-field-and-pipeline workflow: update schema, entities, mappers, services, API, frontend types, and UI
+
+## Evidence
+
+- add-new-database-field-and-pipeline workflow: steps and filesInvolved
+- Seen in commits and files: src/main/resources/db/migration/*.sql, src/main/java/com/lumina/entity/*.java, etc.
+

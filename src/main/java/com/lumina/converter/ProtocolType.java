@@ -4,8 +4,7 @@ public enum ProtocolType {
     OPENAI_CHAT(0),
     OPENAI_RESPONSES(1),
     ANTHROPIC(2),
-    GEMINI(3),
-    NEW_API(4);
+    GEMINI(3);
 
     private final int code;
 
@@ -41,7 +40,7 @@ public enum ProtocolType {
             case OPENAI_RESPONSES -> "openai_responses";
             case ANTHROPIC -> "anthropic_messages";
             case GEMINI -> "gemini_models";
-            case NEW_API -> "openai_chat_completions";
+            default -> "openai_chat_completions";
         };
     }
 }

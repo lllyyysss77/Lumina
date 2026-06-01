@@ -23,8 +23,6 @@ public class ProtocolConverterRegistry {
 
     public Optional<ProtocolConverter> getConverter(ProtocolType source, ProtocolType target) {
         if (source == target) return Optional.empty();
-        // NEW_API 表示上游兼容所有格式，直进直出不做转换
-        if (target == ProtocolType.NEW_API) return Optional.empty();
         return Optional.ofNullable(converters.get(key(source, target)));
     }
 

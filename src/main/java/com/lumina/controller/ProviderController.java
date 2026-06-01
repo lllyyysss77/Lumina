@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lumina.dto.ApiResponse;
 import com.lumina.entity.Provider;
+import com.lumina.entity.ProviderEndpoint;
+import com.lumina.mapper.ProviderEndpointMapper;
 import com.lumina.service.ProviderService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +23,14 @@ public class ProviderController {
     @Autowired
     private ProviderService providerService;
 
+    @Autowired
+    private ProviderEndpointMapper endpointMapper;
+
     @GetMapping
     public ApiResponse<List<Provider>> getAllProviders() {
-        return ApiResponse.success(providerService.list());
+        List<Provider> providers = providerService.list();
+        providers.forEach(this::fillEndpoints);
+        return ApiResponse.success(providers);
     }
 
     @GetMapping("/{id}")
@@ -32,6 +39,7 @@ public class ProviderController {
         if (provider == null) {
             throw new IllegalArgumentException("供应商不存在");
         }
+        fillEndpoints(provider);
         return ApiResponse.success(provider);
     }
 
@@ -39,7 +47,11 @@ public class ProviderController {
     public ApiResponse<Provider> createProvider(@RequestBody @Valid Provider provider) {
         provider.setCreatedAt(LocalDateTime.now());
         provider.setUpdatedAt(LocalDateTime.now());
+        if (provider.getType() == null) {
+            provider.setType("");
+        }
         providerService.save(provider);
+        saveEndpoints(provider);
         return ApiResponse.success("供应商创建成功", provider);
     }
 
@@ -55,11 +67,14 @@ public class ProviderController {
             provider.setApiKey(existing.getApiKey());
         }
         providerService.updateById(provider);
+        saveEndpoints(provider);
+        fillEndpoints(provider);
         return ApiResponse.success("供应商更新成功", provider);
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteProvider(@PathVariable Long id) {
+        // endpoints cascade via FK
         providerService.removeById(id);
         return ApiResponse.success("供应商删除成功", null);
     }
@@ -69,16 +84,18 @@ public class ProviderController {
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) Integer type,
+            @RequestParam(required = false) String type,
             @RequestParam(required = false) Boolean isEnabled,
             @RequestParam(required = false) String modelName) {
         LambdaQueryWrapper<Provider> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(name), Provider::getName, name);
-        wrapper.eq(type != null, Provider::getType, type);
+        wrapper.like(StringUtils.hasText(type), Provider::getType, type);
         wrapper.eq(isEnabled != null, Provider::getIsEnabled, isEnabled);
         wrapper.like(StringUtils.hasText(modelName), Provider::getModelName, modelName);
         wrapper.orderByDesc(Provider::getCreatedAt);
-        return ApiResponse.success(providerService.page(new Page<>(current, size), wrapper));
+        Page<Provider> page = providerService.page(new Page<>(current, size), wrapper);
+        page.getRecords().forEach(this::fillEndpoints);
+        return ApiResponse.success(page);
     }
 
     @GetMapping("/enabled")
@@ -89,9 +106,9 @@ public class ProviderController {
     }
 
     @GetMapping("/type/{type}")
-    public ApiResponse<List<Provider>> getProvidersByType(@PathVariable Integer type) {
+    public ApiResponse<List<Provider>> getProvidersByType(@PathVariable String type) {
         QueryWrapper<Provider> wrapper = new QueryWrapper<>();
-        wrapper.eq("type", type);
+        wrapper.like("type", type);
         return ApiResponse.success(providerService.list(wrapper));
     }
 
@@ -105,5 +122,24 @@ public class ProviderController {
             }
         }
         return ApiResponse.success(providerService.getModels(provider));
+    }
+
+    private void fillEndpoints(Provider provider) {
+        List<ProviderEndpoint> endpoints = endpointMapper.selectList(
+                new LambdaQueryWrapper<ProviderEndpoint>()
+                        .eq(ProviderEndpoint::getProviderId, provider.getId()));
+        provider.setEndpoints(endpoints);
+    }
+
+    private void saveEndpoints(Provider provider) {
+        // Delete existing endpoints and re-insert
+        endpointMapper.delete(new LambdaQueryWrapper<ProviderEndpoint>()
+                .eq(ProviderEndpoint::getProviderId, provider.getId()));
+        if (provider.getEndpoints() != null) {
+            for (ProviderEndpoint ep : provider.getEndpoints()) {
+                ep.setProviderId(provider.getId());
+                endpointMapper.insert(ep);
+            }
+        }
     }
 }

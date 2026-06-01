@@ -1,5 +1,5 @@
 import { api } from '../utils/request';
-import { Provider, ProviderType } from '../types';
+import { Provider } from '../types';
 
 export interface ProviderPageResponse {
   records: Provider[];
@@ -19,18 +19,22 @@ export const providerService = {
   // Fetch paginated list with metadata
   async getPage(current = 1, size = 10): Promise<ProviderPageResponse> {
     const response = await api.get<any>('/providers/page', { params: { current, size } });
-    
+
     if (response.code === 200 && response.data) {
        const records = (response.data.records || []).map((item: any) => ({
         id: String(item.id),
         name: item.name,
-        type: item.type as ProviderType,
+        type: item.type ? item.type.split(',').map(Number) : [],
         baseUrl: item.baseUrl,
-        apiKey: item.apiKey || '', 
+        apiKey: item.apiKey || '',
         models: item.modelName ? item.modelName.split(',') : [],
-        latency: 0, 
+        latency: 0,
         status: item.isEnabled ? 'active' : 'inactive',
-        autoSync: item.autoSync
+        autoSync: item.autoSync,
+        endpoints: (item.endpoints || []).map((ep: any) => ({
+          protocolType: ep.protocolType,
+          baseUrl: ep.baseUrl,
+        })),
       }));
 
       return {
@@ -55,12 +59,16 @@ export const providerService = {
   async create(provider: Partial<Provider>): Promise<any> {
     const data = {
       name: provider.name,
-      type: provider.type,
+      type: provider.type?.join(',') || '',
       isEnabled: provider.status === 'active' ? 1 : 0,
       baseUrl: provider.baseUrl,
       modelName: provider.models?.join(','),
       autoSync: provider.autoSync ? 1 : 0,
-      apiKey: provider.apiKey // Send as string
+      apiKey: provider.apiKey,
+      endpoints: provider.endpoints?.map(ep => ({
+        protocolType: ep.protocolType,
+        baseUrl: ep.baseUrl,
+      })) || [],
     };
     return api.post('/providers', data);
   },
@@ -69,12 +77,16 @@ export const providerService = {
   async update(id: string, provider: Partial<Provider>): Promise<any> {
     const data = {
       name: provider.name,
-      type: provider.type,
+      type: provider.type?.join(',') || '',
       isEnabled: provider.status === 'active' ? 1 : 0,
       baseUrl: provider.baseUrl,
       modelName: provider.models?.join(','),
       autoSync: provider.autoSync ? 1 : 0,
-      apiKey: provider.apiKey // Send as string
+      apiKey: provider.apiKey,
+      endpoints: provider.endpoints?.map(ep => ({
+        protocolType: ep.protocolType,
+        baseUrl: ep.baseUrl,
+      })) || [],
     };
     return api.put(`/providers/${id}`, data);
   },

@@ -62,7 +62,7 @@ DROP TABLE IF EXISTS `providers`;
 CREATE TABLE `providers` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '供应商ID',
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '供应商名称',
-  `type` tinyint NOT NULL DEFAULT '0' COMMENT '供应商类型：0-OpenAI Chat, 1-OpenAI Response, 2-Anthropic, 3-Gemini, 4-new api',
+  `type` varchar(50) NOT NULL DEFAULT '0' COMMENT '供应商类型(逗号分隔)：0-OpenAI Chat, 1-OpenAI Response, 2-Anthropic, 3-Gemini',
   `base_url` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Base URL',
   `api_key` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'API请求密钥',
   `model_name` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模型名称',

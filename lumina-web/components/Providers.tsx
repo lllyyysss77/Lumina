@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Provider, ProviderType } from '../types';
+import { Provider, ProviderEndpoint, ProviderType } from '../types';
 import { Plus, MoreHorizontal, Trash2, Key, RefreshCcw, X, Save, Edit2, Activity, DownloadCloud, Loader2, Link2, Box } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { providerService } from '../services/providerService';
@@ -42,7 +42,6 @@ export const getProviderLabel = (type: ProviderType): string => {
     case ProviderType.OPENAI_RESPONSE: return 'OpenAI Response';
     case ProviderType.ANTHROPIC: return 'Anthropic';
     case ProviderType.GEMINI: return 'Gemini';
-    case ProviderType.NEW_API: return 'New API';
     default: return 'Unknown';
   }
 };
@@ -69,16 +68,18 @@ export const Providers: React.FC = () => {
   const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, id: string | null, name: string}>({ isOpen: false, id: null, name: '' });
 
   // Form State
-  const [formData, setFormData] = useState<Partial<Provider>>({
+  const [formData, setFormData] = useState<Partial<Provider> & { type: number[]; endpoints: ProviderEndpoint[] }>({
     name: '',
-    type: ProviderType.NEW_API,
+    type: [],
     baseUrl: '',
     apiKey: '',
     models: [],
     status: 'active',
-    autoSync: true
+    autoSync: true,
+    endpoints: []
   });
   const [modelsInput, setModelsInput] = useState('');
+  const [typeUrls, setTypeUrls] = useState<Record<number, string>>({});
   
   // Refs
   const menuRef = useRef<HTMLDivElement>(null);
@@ -128,13 +129,15 @@ export const Providers: React.FC = () => {
     setEditingProvider(null);
     setFormData({
       name: '',
-      type: ProviderType.NEW_API,
+      type: [],
       baseUrl: '',
       apiKey: '',
       models: [],
       status: 'active',
-      autoSync: true
+      autoSync: true,
+      endpoints: []
     });
+    setTypeUrls({});
     setModelsInput('');
     setIsSyncing(false);
     setIsModalOpen(true);
@@ -142,7 +145,18 @@ export const Providers: React.FC = () => {
 
   const handleOpenEdit = (provider: Provider) => {
     setEditingProvider(provider);
-    setFormData({...provider, apiKey: ''});
+    setFormData({
+      ...provider,
+      apiKey: '',
+      type: provider.type || [],
+      endpoints: provider.endpoints || [],
+    });
+    // Populate per-type URLs from endpoints
+    const urls: Record<number, string> = {};
+    (provider.endpoints || []).forEach(ep => {
+      urls[ep.protocolType] = ep.baseUrl;
+    });
+    setTypeUrls(urls);
     setModelsInput('');
     setIsSyncing(false);
     setIsModalOpen(true);
@@ -197,7 +211,7 @@ export const Providers: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Auto-add any text remaining in input
     let currentModels = [...(formData.models || [])];
     if (modelsInput.trim()) {
@@ -212,8 +226,8 @@ export const Providers: React.FC = () => {
       showToast(t('providers.validation.name'), 'error');
       return;
     }
-    if (!formData.baseUrl?.trim()) {
-      showToast(t('providers.validation.baseUrl'), 'error');
+    if (!formData.type?.length) {
+      showToast(t('providers.validation.type'), 'error');
       return;
     }
     if (!formData.apiKey?.trim() && !editingProvider) {
@@ -224,12 +238,27 @@ export const Providers: React.FC = () => {
       showToast(t('providers.validation.models'), 'error');
       return;
     }
-    
+
+    // Build endpoints from selected types and their URLs
+    const endpoints: ProviderEndpoint[] = (formData.type || []).map(protocolType => ({
+      protocolType,
+      baseUrl: typeUrls[protocolType] || '',
+    }));
+
+    // Validate all selected types have URLs
+    for (const ep of endpoints) {
+      if (!ep.baseUrl.trim()) {
+        showToast('Please provide a base URL for each selected type', 'error');
+        return;
+      }
+    }
+
     const payload = {
-      ...formData as Provider,
+      ...formData as any,
       models: currentModels,
+      endpoints,
     };
-    
+
     try {
       if (editingProvider) {
         await providerService.update(editingProvider.id, payload);
@@ -246,20 +275,23 @@ export const Providers: React.FC = () => {
     }
   };
 
-  const getProviderIconStyle = (type: ProviderType) => {
+  const getProviderIconStyle = (type: number) => {
     switch (type) {
-      case ProviderType.OPENAI_CHAT: 
+      case ProviderType.OPENAI_CHAT:
       case ProviderType.OPENAI_RESPONSE:
         return 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30';
-      case ProviderType.ANTHROPIC: 
+      case ProviderType.ANTHROPIC:
         return 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30';
-      case ProviderType.GEMINI: 
+      case ProviderType.GEMINI:
         return 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/30';
-      case ProviderType.NEW_API: 
-        return 'bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-900/30';
-      default: 
+      default:
         return 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
     }
+  };
+
+  const getFirstType = (provider: Provider): number => {
+    if (Array.isArray(provider.type) && provider.type.length > 0) return provider.type[0];
+    return -1;
   };
 
   const handleTestConnection = (id: string) => {
@@ -323,14 +355,16 @@ export const Providers: React.FC = () => {
   };
 
   const handleSyncModelsFromForm = async () => {
-    if (!formData.baseUrl || (!formData.apiKey && !editingProvider)) {
-       showToast(t('providers.validation.baseUrl') + ' / ' + t('providers.validation.apiKey'), 'error');
+    const firstType = (formData.type || [])[0];
+    const syncUrl = firstType != null ? typeUrls[firstType] : '';
+    if (!syncUrl || (!formData.apiKey && !editingProvider)) {
+       showToast('Please select a type with a base URL and provide an API key', 'error');
        return;
     }
 
     setIsSyncing(true);
     try {
-        const models = await providerService.syncModels(formData.baseUrl, formData.apiKey, editingProvider?.id);
+        const models = await providerService.syncModels(syncUrl, formData.apiKey, editingProvider?.id);
         setFormData(prev => ({ ...prev, models }));
         setModelsInput('');
         showToast(t('providers.syncedSuccess', { count: models.length }), 'success');
@@ -404,16 +438,22 @@ export const Providers: React.FC = () => {
                             
                             {/* Left Section: Icon & Info */}
                             <div className="flex items-start gap-5 w-full overflow-hidden">
-                                <div className={`w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-lg font-bold shadow-sm border ${getProviderIconStyle(provider.type)}`}>
-                                    {getProviderLabel(provider.type).substring(0, 2).toUpperCase()}
+                                <div className={`w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-lg font-bold shadow-sm border ${getProviderIconStyle(getFirstType(provider))}`}>
+                                    {getProviderLabel(getFirstType(provider)).substring(0, 2).toUpperCase()}
                                 </div>
                                 
                                 <div className="flex-1 min-w-0">
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2">
                                         <h3 className="font-bold text-gray-900 dark:text-white text-lg truncate">{provider.name}</h3>
-                                        <Badge tone="neutral" size="xs">
-                                          {getProviderLabel(provider.type)}
-                                        </Badge>
+                                        {Array.isArray(provider.type) && provider.type.length > 0 && (
+                                          <div className="flex flex-wrap gap-1">
+                                            {provider.type.map(t => (
+                                              <Badge key={t} tone="neutral" size="xs">
+                                                {getProviderLabel(t)}
+                                              </Badge>
+                                            ))}
+                                          </div>
+                                        )}
                                         <div className="flex items-center space-x-3 pl-3 border-l border-gray-200 dark:border-gray-700 shrink-0">
                                             <StatusSwitch 
                                                 checked={provider.status === 'active'}
@@ -546,30 +586,51 @@ export const Providers: React.FC = () => {
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                     {t('providers.modal.type')} <span className="text-red-500">*</span>
                 </label>
-                <select 
-                    value={formData.type}
-                    onChange={(e) => setFormData({...formData, type: parseInt(e.target.value) as ProviderType})}
-                    className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 bg-gray-50 dark:bg-gray-900 dark:text-white cursor-pointer"
-                >
+                <div className="space-y-2">
                     {Object.values(ProviderType)
                         .filter(value => typeof value === 'number')
-                        .map((value) => (
-                        <option key={value} value={value}>{getProviderLabel(value as ProviderType)}</option>
-                    ))}
-                </select>
-            </div>
-
-            <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
-                    {t('providers.modal.baseUrl')} <span className="text-red-500">*</span>
-                </label>
-                <input 
-                    type="url" 
-                    required
-                    value={formData.baseUrl}
-                    onChange={(e) => setFormData({...formData, baseUrl: e.target.value})}
-                    className="block w-full rounded-xl border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-2.5 px-3 font-mono bg-gray-50 dark:bg-gray-900 dark:text-white transition-all"
-                />
+                        .map((value) => {
+                            const numVal = value as number;
+                            const isChecked = (formData.type || []).includes(numVal);
+                            return (
+                                <div key={numVal} className="bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800 p-3">
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={() => {
+                                                const newTypes = isChecked
+                                                    ? (formData.type || []).filter(t => t !== numVal)
+                                                    : [...(formData.type || []), numVal];
+                                                const newUrls = { ...typeUrls };
+                                                if (!isChecked) {
+                                                    newUrls[numVal] = newUrls[numVal] || '';
+                                                } else {
+                                                    delete newUrls[numVal];
+                                                }
+                                                setTypeUrls(newUrls);
+                                                setFormData({...formData, type: newTypes});
+                                            }}
+                                            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white"
+                                        />
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-shrink-0 w-32">
+                                            {getProviderLabel(numVal)}
+                                        </span>
+                                        {isChecked && (
+                                            <input
+                                                type="url"
+                                                required
+                                                value={typeUrls[numVal] || ''}
+                                                onChange={(e) => setTypeUrls({...typeUrls, [numVal]: e.target.value})}
+                                                placeholder={`${getProviderLabel(numVal)} 的 Base URL`}
+                                                className="flex-1 rounded-lg border-gray-200 dark:border-gray-700 shadow-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white text-sm py-1.5 px-3 font-mono bg-white dark:bg-[#1a1a1a] dark:text-white transition-all"
+                                            />
+                                        )}
+                                    </label>
+                                </div>
+                            );
+                        })}
+                </div>
             </div>
 
             <div>

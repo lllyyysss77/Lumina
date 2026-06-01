@@ -1,5 +1,6 @@
 package com.lumina.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -82,7 +83,8 @@ public class RelayServiceImpl implements RelayService {
                     if (stream) {
                         Flux<?> body = failoverService.executeWithFailoverFlux(
                                 (provider) -> {
-                                    ProtocolType outboundType = ProtocolType.fromCode(provider.getProviderType());
+                                    ProtocolType outboundType = resolveOutboundType(inboundType, provider);
+                                    provider.setBaseUrl(resolveBaseUrl(outboundType, provider));
                                     Optional<ProtocolConverter> converter = converterRegistry.getConverter(inboundType, outboundType);
 
                                     ObjectNode requestParams = params.deepCopy();
@@ -94,7 +96,7 @@ public class RelayServiceImpl implements RelayService {
 
                                     Map<String, String> execParams = new java.util.HashMap<>(enrichedParams);
                                     if (converter.isPresent()) {
-                                        log.info("协议转换 [{}→{}], 转换后请求: {}", inboundType, outboundType, finalRequest);
+                                        log.debug("协议转换 [{}→{}], 转换后请求: {}", inboundType, outboundType, finalRequest);
                                         execParams.put("_lumina_protocol_conversion", inboundType.name() + "→" + outboundType.name());
                                     }
 
@@ -115,7 +117,8 @@ public class RelayServiceImpl implements RelayService {
 
                     return failoverService.executeWithFailoverMono(
                             (provider) -> {
-                                ProtocolType outboundType = ProtocolType.fromCode(provider.getProviderType());
+                                ProtocolType outboundType = resolveOutboundType(inboundType, provider);
+                                provider.setBaseUrl(resolveBaseUrl(outboundType, provider));
                                 Optional<ProtocolConverter> converter = converterRegistry.getConverter(inboundType, outboundType);
 
                                 ObjectNode requestParams = params.deepCopy();
@@ -127,7 +130,7 @@ public class RelayServiceImpl implements RelayService {
 
                                 Map<String, String> execParams = new java.util.HashMap<>(enrichedParams);
                                 if (converter.isPresent()) {
-                                    log.info("协议转换 [{}→{}], 转换后请求: {}", inboundType, outboundType, finalRequest);
+                                    log.debug("协议转换 [{}→{}], 转换后请求: {}", inboundType, outboundType, finalRequest);
                                     execParams.put("_lumina_protocol_conversion", inboundType.name() + "→" + outboundType.name());
                                 }
 
@@ -228,5 +231,44 @@ public class RelayServiceImpl implements RelayService {
 
                     return ResponseEntity.ok(response);
                 });
+    }
+
+    /**
+     * 如果供应商支持入站协议类型，直接使用入站类型，避免不必要的协议转换。
+     * 否则回退到配置的默认类型。
+     */
+    private ProtocolType resolveOutboundType(ProtocolType inboundType, ModelGroupConfigItem provider) {
+        String supportedTypes = provider.getSupportedTypes();
+        if (supportedTypes != null && !supportedTypes.isEmpty()) {
+            int inboundCode = inboundType.getCode();
+            for (String code : supportedTypes.split(",")) {
+                if (Integer.parseInt(code.trim()) == inboundCode) {
+                    return inboundType;
+                }
+            }
+        }
+        return ProtocolType.fromCode(provider.getProviderType());
+    }
+
+    /**
+     * 从 endpointsJson 中查找匹配协议类型的 baseUrl。
+     * 如果找不到，回退到 provider 的默认 baseUrl。
+     */
+    private String resolveBaseUrl(ProtocolType protocolType, ModelGroupConfigItem provider) {
+        String endpointsJson = provider.getEndpointsJson();
+        if (endpointsJson != null && !endpointsJson.isEmpty()) {
+            try {
+                Map<String, String> endpoints = objectMapper.readValue(
+                        endpointsJson, new TypeReference<Map<String, String>>() {});
+                String url = endpoints.get(String.valueOf(protocolType.getCode()));
+                if (url != null && !url.isEmpty()) {
+                    return url;
+                }
+            } catch (Exception e) {
+                log.warn("Failed to parse endpoints JSON for provider {}: {}",
+                        provider.getProviderName(), e.getMessage());
+            }
+        }
+        return provider.getBaseUrl();
     }
 }

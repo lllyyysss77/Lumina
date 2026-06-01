@@ -15,6 +15,8 @@
             <result column="api_key" property="apiKey"/>
             <result column="base_url" property="baseUrl"/>
             <result column="provider_type" property="providerType"/>
+            <result column="supported_types" property="supportedTypes"/>
+            <result column="endpoints_json" property="endpointsJson"/>
         </collection>
     </resultMap>
 
@@ -39,14 +41,20 @@
                mg.first_token_timeout,
                mgi.model_name,
                mgi.weight,
-               p.base_url,
+               COALESCE(pe.base_url, p.base_url) AS base_url,
                p.api_key,
                p.id AS provider_id,
                p.`name` AS provider_name,
-               p.`type` AS provider_type
+               COALESCE(mgi.protocol_type, CAST(SUBSTRING_INDEX(p.type, ',', 1) AS UNSIGNED)) AS provider_type,
+               p.type AS supported_types,
+               (SELECT CONCAT('{', GROUP_CONCAT(
+                   CONCAT('"', pep.protocol_type, '":"', REPLACE(pep.base_url, '"', '\\"'), '"')
+                   SEPARATOR ','), '}')
+                FROM provider_endpoints pep WHERE pep.provider_id = p.id) AS endpoints_json
         FROM model_groups mg
         JOIN model_group_items mgi ON mg.id = mgi.group_id
         JOIN providers p ON p.id = mgi.provider_id
+        LEFT JOIN provider_endpoints pe ON pe.provider_id = p.id AND pe.protocol_type = COALESCE(mgi.protocol_type, CAST(SUBSTRING_INDEX(p.type, ',', 1) AS UNSIGNED))
         WHERE mg.`name` = #{modelGroupName}
         AND p.is_enabled = 1
         AND FIND_IN_SET(mgi.model_name, p.model_name) > 0
@@ -60,14 +68,20 @@
                mg.first_token_timeout,
                mgi.model_name,
                mgi.weight,
-               p.base_url,
+               COALESCE(pe.base_url, p.base_url) AS base_url,
                p.api_key,
                p.id AS provider_id,
                p.`name` AS provider_name,
-               p.`type` AS provider_type
+               COALESCE(mgi.protocol_type, CAST(SUBSTR(p.type, 1, INSTR(p.type || ',', ',') - 1) AS INTEGER)) AS provider_type,
+               p.type AS supported_types,
+               (SELECT '{' || GROUP_CONCAT(
+                   '"' || pep.protocol_type || '":"' || REPLACE(pep.base_url, '"', '\"') || '"')
+                   || '}'
+                FROM provider_endpoints pep WHERE pep.provider_id = p.id) AS endpoints_json
         FROM model_groups mg
         JOIN model_group_items mgi ON mg.id = mgi.group_id
         JOIN providers p ON p.id = mgi.provider_id
+        LEFT JOIN provider_endpoints pe ON pe.provider_id = p.id AND pe.protocol_type = COALESCE(mgi.protocol_type, CAST(SUBSTR(p.type, 1, INSTR(p.type || ',', ',') - 1) AS INTEGER))
         WHERE mg.`name` = #{modelGroupName}
         AND p.is_enabled = 1
         AND instr(',' || p.model_name || ',', ',' || mgi.model_name || ',') > 0

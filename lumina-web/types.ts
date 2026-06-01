@@ -12,19 +12,24 @@ export enum ProviderType {
   OPENAI_RESPONSE = 1,
   ANTHROPIC = 2,
   GEMINI = 3,
-  NEW_API = 4,
+}
+
+export interface ProviderEndpoint {
+  protocolType: number;
+  baseUrl: string;
 }
 
 export interface Provider {
   id: string;
   name: string;
-  type: ProviderType;
+  type: number[];
   baseUrl: string;
   apiKey: string; // Single API key
   models: string[];
   latency: number; // in ms
   status: 'active' | 'inactive';
   autoSync?: boolean;
+  endpoints?: ProviderEndpoint[];
 }
 
 export interface GroupTarget {

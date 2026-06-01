@@ -17,8 +17,10 @@ public class Provider {
     @NotEmpty(message = "名称不能为空")
     private String name;
 
-    @NotNull(message = "请选择供应商类型")
-    private Integer type;
+    private String type;
+
+    @TableField(exist = false)
+    private List<ProviderEndpoint> endpoints;
 
     @NotNull(message = "请选择是否启用")
     private Boolean isEnabled;

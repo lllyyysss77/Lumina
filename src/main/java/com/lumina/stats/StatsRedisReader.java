@@ -58,7 +58,10 @@ public class StatsRedisReader {
                 parseLong(entries, "inputTokens"),
                 parseLong(entries, "outputTokens"),
                 parseLong(entries, "latencyMs"),
-                parseLong(entries, "costMicros") / 10000.0
+                parseLong(entries, "costMicros") / 10000.0,
+                parseLong(entries, "cacheReadTokens"),
+                parseLong(entries, "cacheCreationTokens"),
+                parseLong(entries, "cacheHitCount")
         );
     }
 
@@ -78,9 +81,12 @@ public class StatsRedisReader {
             long inputTokens,
             long outputTokens,
             long latencyMs,
-            double cost
+            double cost,
+            long cacheReadTokens,
+            long cacheCreationTokens,
+            long cacheHitCount
     ) {
-        public static final StatsSnapshot EMPTY = new StatsSnapshot(0, 0, 0, 0, 0, 0.0);
+        public static final StatsSnapshot EMPTY = new StatsSnapshot(0, 0, 0, 0, 0, 0.0, 0, 0, 0);
 
         public double avgLatency() {
             return requests > 0 ? (double) latencyMs / requests : 0.0;
@@ -88,6 +94,10 @@ public class StatsRedisReader {
 
         public double successRate() {
             return requests > 0 ? success * 100.0 / requests : 0.0;
+        }
+
+        public double cacheHitRate() {
+            return requests > 0 ? cacheHitCount * 100.0 / requests : 0.0;
         }
     }
 }

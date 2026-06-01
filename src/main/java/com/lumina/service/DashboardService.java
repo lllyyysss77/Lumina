@@ -77,6 +77,9 @@ public class DashboardService {
                 .totalCost(BigDecimal.valueOf(total.cost()))
                 .avgLatency(total.avgLatency())
                 .successRate(total.successRate())
+                .cacheHitCount(total.cacheHitCount())
+                .cacheHitRate(total.cacheHitRate())
+                .cacheReadTokens(total.cacheReadTokens())
                 .build();
 
         computeGrowthRates(dto, today, yesterday);
@@ -96,12 +99,17 @@ public class DashboardService {
         }
 
         long totalReqs = globalTotal.getTotalRequests();
+        long cacheHitCount = globalTotal.getCacheHitCount() != null ? globalTotal.getCacheHitCount() : 0;
+        long cacheReadTokens = globalTotal.getTotalCacheReadTokens() != null ? globalTotal.getTotalCacheReadTokens() : 0;
         DashboardOverviewDto dto = DashboardOverviewDto.builder()
                 .totalRequests(totalReqs)
                 .totalTokens(globalTotal.getTotalInputTokens() + globalTotal.getTotalOutputTokens())
                 .totalCost(globalTotal.getTotalCost())
                 .avgLatency(totalReqs > 0 ? (double) globalTotal.getTotalLatencyMs() / totalReqs : 0.0)
                 .successRate(totalReqs > 0 ? globalTotal.getSuccessCount() * 100.0 / totalReqs : 0.0)
+                .cacheHitCount(cacheHitCount)
+                .cacheHitRate(totalReqs > 0 ? cacheHitCount * 100.0 / totalReqs : 0.0)
+                .cacheReadTokens(cacheReadTokens)
                 .build();
 
         StatsSnapshot todaySnap = toSnapshot(todayStats);
@@ -204,7 +212,10 @@ public class DashboardService {
                 stats.getTotalInputTokens() != null ? stats.getTotalInputTokens() : 0,
                 stats.getTotalOutputTokens() != null ? stats.getTotalOutputTokens() : 0,
                 stats.getTotalLatencyMs() != null ? stats.getTotalLatencyMs() : 0,
-                stats.getTotalCost() != null ? stats.getTotalCost().doubleValue() : 0.0
+                stats.getTotalCost() != null ? stats.getTotalCost().doubleValue() : 0.0,
+                stats.getTotalCacheReadTokens() != null ? stats.getTotalCacheReadTokens() : 0,
+                stats.getTotalCacheCreationTokens() != null ? stats.getTotalCacheCreationTokens() : 0,
+                stats.getCacheHitCount() != null ? stats.getCacheHitCount() : 0
         );
     }
 
@@ -310,6 +321,9 @@ public class DashboardService {
             long inTokens = h.getTotalInputTokens() != null ? h.getTotalInputTokens() : 0;
             long outTokens = h.getTotalOutputTokens() != null ? h.getTotalOutputTokens() : 0;
             long total = inTokens + outTokens;
+            long reqs = h.getTotalRequests() != null ? h.getTotalRequests() : 0;
+            long cacheHits = h.getCacheHitCount() != null ? h.getCacheHitCount() : 0;
+            long cacheRead = h.getTotalCacheReadTokens() != null ? h.getTotalCacheReadTokens() : 0;
             totalTokens += total;
 
             usageList.add(ModelTokenUsageDto.builder()
@@ -317,7 +331,9 @@ public class DashboardService {
                     .inputTokens(inTokens)
                     .outputTokens(outTokens)
                     .totalTokens(total)
-                    .requestCount(h.getTotalRequests() != null ? h.getTotalRequests() : 0L)
+                    .requestCount(reqs)
+                    .cacheReadTokens(cacheRead)
+                    .cacheHitRate(reqs > 0 ? cacheHits * 100.0 / reqs : 0.0)
                     .build());
         }
 

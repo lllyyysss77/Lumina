@@ -42,4 +42,14 @@ public class ModelTokenUsageDto {
      * 占比（百分比）
      */
     private Double percentage;
+
+    /**
+     * 缓存读取 Token 数
+     */
+    private Long cacheReadTokens;
+
+    /**
+     * 缓存命中率（百分比）
+     */
+    private Double cacheHitRate;
 }

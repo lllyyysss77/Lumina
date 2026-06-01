@@ -64,4 +64,19 @@ public class DashboardOverviewDto {
      * 成功率变化（百分比）
      */
     private Double successRateChange;
+
+    /**
+     * 缓存命中请求数
+     */
+    private Long cacheHitCount;
+
+    /**
+     * 缓存命中率（百分比）
+     */
+    private Double cacheHitRate;
+
+    /**
+     * 缓存读取 Token 数
+     */
+    private Long cacheReadTokens;
 }

@@ -19,6 +19,7 @@ import org.springframework.web.client.RestClient;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -115,6 +116,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModel> i
 
                 List<LlmModel> toInsert = new ArrayList<>();
                 List<LlmModel> toUpdate = new ArrayList<>();
+                Set<String> seenInBatch = new HashSet<>();
 
                 for (LlmModel m : models) {
                     String key = m.getModelName() + "|" + m.getProvider();
@@ -129,7 +131,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModel> i
                             m.setCreatedAt(existing.getCreatedAt());
                             toUpdate.add(m);
                         }
-                    } else {
+                    } else if (seenInBatch.add(key)) {
                         // New record, default is_active = false (user must explicitly select)
                         m.setIsActive(false);
                         toInsert.add(m);
@@ -137,7 +139,17 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModel> i
                 }
 
                 if (!toInsert.isEmpty()) {
-                    this.saveBatch(toInsert);
+                    // Re-check existingKeys after dedup to avoid race-condition duplicates
+                    Set<String> freshExistingKeys = this.list(new LambdaQueryWrapper<LlmModel>()
+                            .select(LlmModel::getModelName, LlmModel::getProvider))
+                            .stream()
+                            .map(m2 -> m2.getModelName() + "|" + m2.getProvider())
+                            .collect(Collectors.toSet());
+                    toInsert.removeIf(m -> freshExistingKeys.contains(m.getModelName() + "|" + m.getProvider()));
+
+                    if (!toInsert.isEmpty()) {
+                        this.saveBatch(toInsert);
+                    }
                     // Auto-activate if this model_name has no active record yet
                     for (LlmModel m : toInsert) {
                         long activeCount = this.count(new LambdaQueryWrapper<LlmModel>()

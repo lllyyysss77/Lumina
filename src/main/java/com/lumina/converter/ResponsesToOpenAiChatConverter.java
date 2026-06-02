@@ -9,6 +9,8 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.UUID;
 
 @Slf4j
@@ -16,6 +18,7 @@ import java.util.UUID;
 public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
 
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final String DEEPSEEK_REASONING_PREFIX = "deepseek-reasoning:";
 
     @Override
     public ProtocolType sourceType() {
@@ -46,16 +49,45 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
             // 标准 Responses API 格式: input 字段
             JsonNode input = request.get("input");
             if (input.isArray()) {
+                String pendingReasoningContent = null;
+                ArrayNode pendingToolCalls = mapper.createArrayNode();
                 for (JsonNode item : input) {
                     if (item.isTextual()) {
+                        if (pendingToolCalls.size() > 0) {
+                            messages.add(buildAssistantToolCallsMessage(pendingToolCalls, pendingReasoningContent));
+                            pendingToolCalls = mapper.createArrayNode();
+                        }
+                        pendingReasoningContent = null;
                         ObjectNode msg = mapper.createObjectNode();
                         msg.put("role", "user");
                         msg.put("content", item.asText());
                         messages.add(msg);
                     } else if (item.isObject()) {
+                        if (isReasoningItem(item)) {
+                            pendingReasoningContent = mergeReasoningContent(
+                                    pendingReasoningContent,
+                                    extractReasoningContent(item)
+                            );
+                            continue;
+                        }
+                        if (isFunctionCallItem(item)) {
+                            pendingToolCalls.add(convertFunctionCallToToolCall(item));
+                            continue;
+                        }
+                        if (pendingToolCalls.size() > 0) {
+                            messages.add(buildAssistantToolCallsMessage(pendingToolCalls, pendingReasoningContent));
+                            pendingToolCalls = mapper.createArrayNode();
+                        }
                         ObjectNode converted = convertInputItem(item);
-                        if (converted != null) messages.add(converted);
+                        if (converted != null) {
+                            attachReasoningContent(converted, pendingReasoningContent);
+                            messages.add(converted);
+                        }
+                        pendingReasoningContent = null;
                     }
+                }
+                if (pendingToolCalls.size() > 0) {
+                    messages.add(buildAssistantToolCallsMessage(pendingToolCalls, pendingReasoningContent));
                 }
             } else if (input.isTextual()) {
                 ObjectNode msg = mapper.createObjectNode();
@@ -119,7 +151,7 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
             }
         }
         if (request.has("tool_choice")) {
-            result.set("tool_choice", request.get("tool_choice"));
+            result.set("tool_choice", convertToolChoice(request.get("tool_choice")));
         }
 
         log.debug("Responses→Chat converted request: {}", result);
@@ -138,37 +170,62 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
             if (content.isTextual()) {
                 msg.put("content", content.asText());
             } else if (content.isArray()) {
-                StringBuilder sb = new StringBuilder();
-                for (JsonNode part : content) {
-                    if (part.has("text")) sb.append(part.get("text").asText());
-                    else if (part.has("input_text")) sb.append(part.get("input_text").asText());
-                }
-                msg.put("content", sb.toString());
+                JsonNode convertedContent = convertResponsesContentToChatContent(content);
+                msg.set("content", convertedContent);
             } else {
                 msg.set("content", content);
             }
+        } else if ("assistant".equals(role)) {
+            msg.putNull("content");
         }
+        if (item.has("tool_calls")) msg.set("tool_calls", item.get("tool_calls"));
+        if (item.has("tool_call_id")) msg.set("tool_call_id", item.get("tool_call_id"));
+        if (item.has("reasoning_content")) msg.set("reasoning_content", item.get("reasoning_content"));
         return msg;
+    }
+
+    /**
+     * 将 Responses API 的 tool_choice 转换为 Chat Completions 格式。
+     * Responses: {"type":"function","name":"x"}
+     * Chat:      {"type":"function","function":{"name":"x"}}
+     */
+    private JsonNode convertToolChoice(JsonNode toolChoice) {
+        if (toolChoice.isTextual()) {
+            String val = toolChoice.asText();
+            // "required" 不是标准 Chat API 值，DeepSeek 等供应商不支持，降级为 auto
+            if ("required".equals(val)) return mapper.getNodeFactory().textNode("auto");
+            return toolChoice;
+        }
+        if (toolChoice.isObject()) {
+            if (toolChoice.has("function")) return toolChoice; // 已是 Chat 嵌套格式
+            if (toolChoice.has("name") && "function".equals(
+                    toolChoice.has("type") ? toolChoice.get("type").asText() : "")) {
+                // Responses 扁平格式 → Chat 嵌套格式
+                ObjectNode chatToolChoice = mapper.createObjectNode();
+                chatToolChoice.put("type", "function");
+                ObjectNode func = mapper.createObjectNode();
+                func.put("name", toolChoice.get("name").asText());
+                chatToolChoice.set("function", func);
+                return chatToolChoice;
+            }
+        }
+        return toolChoice;
     }
 
     private ObjectNode convertInputItem(JsonNode item) {
         String type = item.has("type") ? item.get("type").asText() : "";
 
         switch (type) {
+            case "reasoning" -> {
+                return null;
+            }
             case "function_call" -> {
                 // function_call → assistant message with tool_calls
                 ObjectNode msg = mapper.createObjectNode();
                 msg.put("role", "assistant");
                 msg.putNull("content");
                 ArrayNode toolCalls = mapper.createArrayNode();
-                ObjectNode tc = mapper.createObjectNode();
-                tc.put("id", item.has("call_id") ? item.get("call_id").asText() : "");
-                tc.put("type", "function");
-                ObjectNode func = mapper.createObjectNode();
-                func.put("name", item.has("name") ? item.get("name").asText() : "");
-                func.put("arguments", item.has("arguments") ? item.get("arguments").asText() : "");
-                tc.set("function", func);
-                toolCalls.add(tc);
+                toolCalls.add(convertFunctionCallToToolCall(item));
                 msg.set("tool_calls", toolCalls);
                 return msg;
             }
@@ -210,6 +267,10 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
             for (JsonNode choice : response.get("choices")) {
                 if (choice.has("message")) {
                     JsonNode message = choice.get("message");
+                    String reasoningContent = textValue(message, "reasoning_content");
+                    if (!reasoningContent.isBlank()) {
+                        output.add(buildReasoningOutputItem(reasoningContent, true));
+                    }
 
                     // 文本消息
                     if (message.has("content") && !message.get("content").isNull()) {
@@ -263,9 +324,11 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
         String responseId = "resp_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 24);
         java.util.concurrent.atomic.AtomicBoolean started = new java.util.concurrent.atomic.AtomicBoolean(false);
         java.util.concurrent.atomic.AtomicInteger outputIndex = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.concurrent.atomic.AtomicInteger textOutputIndex = new java.util.concurrent.atomic.AtomicInteger(-1);
         StringBuilder fullText = new StringBuilder();
         // 跟踪每个 tool_call 的状态: index → {id, name, arguments}
         java.util.concurrent.ConcurrentHashMap<Integer, ToolCallState> toolCallStates = new java.util.concurrent.ConcurrentHashMap<>();
+        ReasoningState reasoningState = new ReasoningState();
         java.util.concurrent.atomic.AtomicBoolean hasTextOutput = new java.util.concurrent.atomic.AtomicBoolean(false);
         java.util.concurrent.atomic.AtomicBoolean textItemStarted = new java.util.concurrent.atomic.AtomicBoolean(false);
 
@@ -274,7 +337,14 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
             if (data == null || data.isBlank()) return java.util.Collections.<ServerSentEvent<String>>emptyList();
 
             if ("[DONE]".equals(data)) {
-                return buildDoneEvents(responseId, fullText, hasTextOutput.get(), toolCallStates, outputIndex);
+                return buildDoneEvents(
+                        responseId,
+                        fullText,
+                        hasTextOutput.get(),
+                        textOutputIndex.get(),
+                        toolCallStates,
+                        reasoningState
+                );
             }
 
             try {
@@ -290,26 +360,50 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
                         if (!choice.has("delta")) continue;
                         JsonNode delta = choice.get("delta");
 
+                        // DeepSeek thinking mode streams reasoning_content before content.
+                        if (delta.has("reasoning_content") && !delta.get("reasoning_content").isNull()) {
+                            String reasoningDelta = delta.get("reasoning_content").asText();
+                            if (!reasoningDelta.isEmpty()) {
+                                if (!reasoningState.started) {
+                                    reasoningState.started = true;
+                                    reasoningState.outputIndex = outputIndex.getAndIncrement();
+                                    reasoningState.itemId = "rs_" + responseId.substring(Math.max(0, responseId.length() - 12));
+
+                                    ObjectNode itemAdded = mapper.createObjectNode();
+                                    itemAdded.put("type", "response.output_item.added");
+                                    itemAdded.put("output_index", reasoningState.outputIndex);
+                                    itemAdded.set("item", buildReasoningOutputItem("", false));
+                                    ((ObjectNode) itemAdded.get("item")).put("id", reasoningState.itemId);
+                                    events.add(sse("response.output_item.added", itemAdded.toString()));
+                                }
+                                reasoningState.content.append(reasoningDelta);
+                            }
+                        }
+
                         // 处理文本内容
                         if (delta.has("content") && !delta.get("content").isNull()) {
-                            if (!textItemStarted.getAndSet(true)) {
-                                hasTextOutput.set(true);
-                                events.addAll(buildTextItemStart(outputIndex.getAndIncrement()));
-                            }
                             String text = delta.get("content").asText();
-                            fullText.append(text);
+                            if (!text.isEmpty() && !textItemStarted.getAndSet(true)) {
+                                hasTextOutput.set(true);
+                                textOutputIndex.set(outputIndex.getAndIncrement());
+                                events.addAll(buildTextItemStart(textOutputIndex.get()));
+                            }
+                            if (!text.isEmpty()) {
+                                fullText.append(text);
 
-                            ObjectNode deltaEvent = mapper.createObjectNode();
-                            deltaEvent.put("type", "response.output_text.delta");
-                            deltaEvent.put("item_id", "msg_0");
-                            deltaEvent.put("output_index", 0);
-                            deltaEvent.put("content_index", 0);
-                            deltaEvent.put("delta", text);
-                            events.add(sse("response.output_text.delta", deltaEvent.toString()));
+                                ObjectNode deltaEvent = mapper.createObjectNode();
+                                deltaEvent.put("type", "response.output_text.delta");
+                                deltaEvent.put("item_id", "msg_0");
+                                deltaEvent.put("output_index", textOutputIndex.get());
+                                deltaEvent.put("content_index", 0);
+                                deltaEvent.put("delta", text);
+                                events.add(sse("response.output_text.delta", deltaEvent.toString()));
+                            }
                         }
 
                         // 处理 tool_calls
                         if (delta.has("tool_calls") && delta.get("tool_calls").isArray()) {
+                            reasoningState.hasToolCall = true;
                             for (JsonNode tc : delta.get("tool_calls")) {
                                 int tcIndex = tc.has("index") ? tc.get("index").asInt() : 0;
                                 ToolCallState state = toolCallStates.computeIfAbsent(tcIndex, k -> new ToolCallState());
@@ -378,6 +472,14 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
         StringBuilder arguments = new StringBuilder();
     }
 
+    private static class ReasoningState {
+        String itemId;
+        int outputIndex;
+        boolean started = false;
+        boolean hasToolCall = false;
+        StringBuilder content = new StringBuilder();
+    }
+
     private java.util.List<ServerSentEvent<String>> buildStartEvents(String responseId) {
         java.util.List<ServerSentEvent<String>> events = new java.util.ArrayList<>();
 
@@ -428,18 +530,30 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
     }
 
     private java.util.List<ServerSentEvent<String>> buildDoneEvents(
-            String responseId, StringBuilder fullText, boolean hasText,
+            String responseId, StringBuilder fullText, boolean hasText, int textOutputIdx,
             java.util.concurrent.ConcurrentHashMap<Integer, ToolCallState> toolCallStates,
-            java.util.concurrent.atomic.AtomicInteger outputIndex) {
+            ReasoningState reasoningState) {
 
         java.util.List<ServerSentEvent<String>> endEvents = new java.util.ArrayList<>();
+
+        if (reasoningState.started) {
+            ObjectNode reasoningDone = mapper.createObjectNode();
+            reasoningDone.put("type", "response.output_item.done");
+            reasoningDone.put("output_index", reasoningState.outputIndex);
+            boolean includeContent = reasoningState.content.length() > 0;
+            ObjectNode item = buildReasoningOutputItem(reasoningState.content.toString(), includeContent);
+            item.put("id", reasoningState.itemId);
+            item.put("status", "completed");
+            reasoningDone.set("item", item);
+            endEvents.add(sse("response.output_item.done", reasoningDone.toString()));
+        }
 
         // 关闭文本 output item
         if (hasText) {
             ObjectNode textDone = mapper.createObjectNode();
             textDone.put("type", "response.output_text.done");
             textDone.put("item_id", "msg_0");
-            textDone.put("output_index", 0);
+            textDone.put("output_index", textOutputIdx);
             textDone.put("content_index", 0);
             textDone.put("text", fullText.toString());
             endEvents.add(sse("response.output_text.done", textDone.toString()));
@@ -447,7 +561,7 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
             ObjectNode partDone = mapper.createObjectNode();
             partDone.put("type", "response.content_part.done");
             partDone.put("item_id", "msg_0");
-            partDone.put("output_index", 0);
+            partDone.put("output_index", textOutputIdx);
             partDone.put("content_index", 0);
             ObjectNode partObj = mapper.createObjectNode();
             partObj.put("type", "output_text");
@@ -457,7 +571,7 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
 
             ObjectNode itemDone = mapper.createObjectNode();
             itemDone.put("type", "response.output_item.done");
-            itemDone.put("output_index", 0);
+            itemDone.put("output_index", textOutputIdx);
             ObjectNode itemObj = mapper.createObjectNode();
             itemObj.put("id", "msg_0");
             itemObj.put("type", "message");
@@ -515,5 +629,145 @@ public class ResponsesToOpenAiChatConverter implements ProtocolConverter {
 
     private ServerSentEvent<String> sse(String eventType, String data) {
         return ServerSentEvent.<String>builder().event(eventType).data(data).build();
+    }
+
+    private boolean isReasoningItem(JsonNode item) {
+        return item.has("type") && "reasoning".equals(item.get("type").asText());
+    }
+
+    private boolean isFunctionCallItem(JsonNode item) {
+        return item.has("type") && "function_call".equals(item.get("type").asText());
+    }
+
+    private ObjectNode buildAssistantToolCallsMessage(ArrayNode toolCalls, String reasoningContent) {
+        ObjectNode msg = mapper.createObjectNode();
+        msg.put("role", "assistant");
+        msg.putNull("content");
+        attachReasoningContent(msg, reasoningContent);
+        msg.set("tool_calls", toolCalls);
+        return msg;
+    }
+
+    private void attachReasoningContent(ObjectNode msg, String reasoningContent) {
+        if (!"assistant".equals(msg.path("role").asText())) return;
+        if (reasoningContent == null || reasoningContent.isBlank()) return;
+        msg.put("reasoning_content", reasoningContent);
+    }
+
+    private ObjectNode convertFunctionCallToToolCall(JsonNode item) {
+        ObjectNode tc = mapper.createObjectNode();
+        tc.put("id", item.has("call_id") ? item.get("call_id").asText() : "");
+        tc.put("type", "function");
+        ObjectNode func = mapper.createObjectNode();
+        func.put("name", item.has("name") ? item.get("name").asText() : "");
+        func.put("arguments", item.has("arguments") ? item.get("arguments").asText() : "");
+        tc.set("function", func);
+        return tc;
+    }
+
+    private String mergeReasoningContent(String current, String next) {
+        if (next == null || next.isBlank()) return current;
+        if (current == null || current.isBlank()) return next;
+        return current + next;
+    }
+
+    private String extractReasoningContent(JsonNode item) {
+        String rawReasoning = textValue(item, "reasoning_content");
+        if (!rawReasoning.isBlank()) return rawReasoning;
+
+        String encoded = textValue(item, "encrypted_content");
+        if (encoded.startsWith(DEEPSEEK_REASONING_PREFIX)) {
+            return decodeReasoningContent(encoded);
+        }
+
+        StringBuilder fallback = new StringBuilder();
+        appendReasoningTextParts(item.get("summary"), fallback);
+        appendReasoningTextParts(item.get("content"), fallback);
+        return fallback.toString();
+    }
+
+    private void appendReasoningTextParts(JsonNode node, StringBuilder target) {
+        if (node == null || node.isNull()) return;
+        if (node.isTextual()) {
+            target.append(node.asText());
+            return;
+        }
+        if (!node.isArray()) return;
+        for (JsonNode part : node) {
+            if (part.isTextual()) {
+                target.append(part.asText());
+            } else if (part.has("text")) {
+                target.append(part.get("text").asText());
+            }
+        }
+    }
+
+    private ObjectNode buildReasoningOutputItem(String reasoningContent, boolean includeContent) {
+        ObjectNode item = mapper.createObjectNode();
+        item.put("id", "rs_" + UUID.randomUUID().toString().replace("-", "").substring(0, 24));
+        item.put("type", "reasoning");
+        item.put("status", includeContent ? "completed" : "in_progress");
+        item.set("summary", mapper.createArrayNode());
+        if (includeContent && reasoningContent != null && !reasoningContent.isBlank()) {
+            item.put("encrypted_content", encodeReasoningContent(reasoningContent));
+        }
+        return item;
+    }
+
+    private String encodeReasoningContent(String reasoningContent) {
+        String payload = Base64.getEncoder().encodeToString(reasoningContent.getBytes(StandardCharsets.UTF_8));
+        return DEEPSEEK_REASONING_PREFIX + payload;
+    }
+
+    private String decodeReasoningContent(String encoded) {
+        try {
+            String payload = encoded.substring(DEEPSEEK_REASONING_PREFIX.length());
+            return new String(Base64.getDecoder().decode(payload), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return "";
+        }
+    }
+
+    private String textValue(JsonNode node, String fieldName) {
+        if (node == null || !node.has(fieldName) || node.get(fieldName).isNull()) return "";
+        return node.get(fieldName).asText();
+    }
+
+    private JsonNode convertResponsesContentToChatContent(JsonNode content) {
+        StringBuilder textOnly = new StringBuilder();
+        ArrayNode chatParts = mapper.createArrayNode();
+        boolean hasNonText = false;
+
+        for (JsonNode part : content) {
+            String text = textValue(part, "text");
+            if (text.isBlank()) text = textValue(part, "input_text");
+            if (text.isBlank()) text = textValue(part, "output_text");
+            if (!text.isBlank()) {
+                textOnly.append(text);
+                ObjectNode textPart = mapper.createObjectNode();
+                textPart.put("type", "text");
+                textPart.put("text", text);
+                chatParts.add(textPart);
+                continue;
+            }
+
+            if (part.has("image_url")) {
+                String imageUrl = part.get("image_url").asText();
+                if (!imageUrl.isBlank()) {
+                    hasNonText = true;
+                    ObjectNode imagePart = mapper.createObjectNode();
+                    imagePart.put("type", "image_url");
+                    ObjectNode imageUrlObject = mapper.createObjectNode();
+                    imageUrlObject.put("url", imageUrl);
+                    imagePart.set("image_url", imageUrlObject);
+                    chatParts.add(imagePart);
+                }
+            }
+        }
+
+        if (!hasNonText) {
+            return mapper.getNodeFactory().textNode(textOnly.toString());
+        }
+        return chatParts;
     }
 }

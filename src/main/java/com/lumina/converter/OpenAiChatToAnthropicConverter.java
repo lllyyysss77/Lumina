@@ -241,16 +241,7 @@ public class OpenAiChatToAnthropicConverter implements ProtocolConverter {
     private void convertUserMessage(JsonNode msg, ArrayNode messages) {
         ObjectNode anthropicMsg = mapper.createObjectNode();
         anthropicMsg.put("role", "user");
-        if (msg.has("content")) {
-            JsonNode content = msg.get("content");
-            if (content.isTextual()) {
-                anthropicMsg.put("content", content.asText());
-            } else if (content.isArray()) {
-                anthropicMsg.set("content", content);
-            } else {
-                anthropicMsg.put("content", content.asText());
-            }
-        }
+        anthropicMsg.set("content", convertOpenAiContentToAnthropicContent(msg.get("content")));
         messages.add(anthropicMsg);
     }
 
@@ -411,6 +402,7 @@ public class OpenAiChatToAnthropicConverter implements ProtocolConverter {
         ConcurrentHashMap<Integer, String> blockTypes = new ConcurrentHashMap<>();
         ConcurrentHashMap<Integer, String> toolCallIds = new ConcurrentHashMap<>();
         ConcurrentHashMap<Integer, String> toolCallNames = new ConcurrentHashMap<>();
+        ConcurrentHashMap<Integer, Integer> blockToToolCallIndex = new ConcurrentHashMap<>();
 
         return upstream.flatMapIterable(event -> {
             String data = event.data();
@@ -442,6 +434,7 @@ public class OpenAiChatToAnthropicConverter implements ProtocolConverter {
                             String tcName = contentBlock.has("name") ? contentBlock.get("name").asText() : "";
                             toolCallIds.put(index, tcId);
                             toolCallNames.put(index, tcName);
+                            blockToToolCallIndex.put(index, tcIdx);
 
                             // 发送 tool_calls 开始 chunk
                             ObjectNode chunk = buildToolCallStartChunk(chatId, tcIdx, tcId, tcName);
@@ -460,7 +453,7 @@ public class OpenAiChatToAnthropicConverter implements ProtocolConverter {
                             yield List.of(ServerSentEvent.<String>builder().data(chunk.toString()).build());
                         } else if ("tool_use".equals(blockType) || "input_json_delta".equals(delta != null ? delta.has("type") ? delta.get("type").asText() : "" : "")) {
                             String partialJson = delta != null && delta.has("partial_json") ? delta.get("partial_json").asText() : "";
-                            int tcIdx = toolCallIndex.get();
+                            int tcIdx = blockToToolCallIndex.getOrDefault(index, toolCallIndex.get());
                             ObjectNode chunk = buildToolCallDeltaChunk(chatId, tcIdx, partialJson);
                             yield List.of(ServerSentEvent.<String>builder().data(chunk.toString()).build());
                         }
@@ -600,10 +593,91 @@ public class OpenAiChatToAnthropicConverter implements ProtocolConverter {
             StringBuilder sb = new StringBuilder();
             for (JsonNode part : content) {
                 if (part.has("text")) sb.append(part.get("text").asText());
+                else if (part.has("input_text")) sb.append(part.get("input_text").asText());
+                else if (part.has("output_text")) sb.append(part.get("output_text").asText());
             }
             return sb.toString();
         }
         return content.asText();
+    }
+
+    private ArrayNode convertOpenAiContentToAnthropicContent(JsonNode content) {
+        ArrayNode result = mapper.createArrayNode();
+        if (content == null || content.isNull()) {
+            addAnthropicText(result, "");
+            return result;
+        }
+        if (content.isTextual()) {
+            addAnthropicText(result, content.asText());
+            return result;
+        }
+        if (!content.isArray()) {
+            addAnthropicText(result, content.asText());
+            return result;
+        }
+        for (JsonNode part : content) {
+            String type = part.path("type").asText();
+            if ("text".equals(type) || "input_text".equals(type) || "output_text".equals(type)) {
+                addAnthropicText(result, part.path("text").asText());
+            } else if ("image_url".equals(type)) {
+                ObjectNode imageBlock = convertOpenAiImagePart(part);
+                if (imageBlock != null) result.add(imageBlock);
+            } else if ("image".equals(type) && part.has("source")) {
+                result.add(part);
+            }
+        }
+        if (result.size() == 0) {
+            addAnthropicText(result, "");
+        }
+        return result;
+    }
+
+    private void addAnthropicText(ArrayNode result, String text) {
+        ObjectNode textBlock = mapper.createObjectNode();
+        textBlock.put("type", "text");
+        textBlock.put("text", text);
+        result.add(textBlock);
+    }
+
+    private ObjectNode convertOpenAiImagePart(JsonNode part) {
+        String url = extractImageUrl(part.get("image_url"));
+        if (url.isBlank()) return null;
+
+        ObjectNode imageBlock = mapper.createObjectNode();
+        imageBlock.put("type", "image");
+        ObjectNode source = mapper.createObjectNode();
+        if (url.startsWith("data:")) {
+            DataUrl dataUrl = parseDataUrl(url);
+            if (dataUrl == null) return null;
+            source.put("type", "base64");
+            source.put("media_type", dataUrl.mediaType);
+            source.put("data", dataUrl.data);
+        } else {
+            source.put("type", "url");
+            source.put("url", url);
+        }
+        imageBlock.set("source", source);
+        return imageBlock;
+    }
+
+    private String extractImageUrl(JsonNode imageUrl) {
+        if (imageUrl == null || imageUrl.isNull()) return "";
+        if (imageUrl.isTextual()) return imageUrl.asText();
+        return imageUrl.path("url").asText("");
+    }
+
+    private DataUrl parseDataUrl(String url) {
+        int comma = url.indexOf(',');
+        if (comma < 0) return null;
+        String metadata = url.substring(5, comma);
+        String data = url.substring(comma + 1);
+        if (!metadata.endsWith(";base64") || data.isBlank()) return null;
+        String mediaType = metadata.substring(0, metadata.length() - ";base64".length());
+        if (mediaType.isBlank()) mediaType = "image/png";
+        return new DataUrl(mediaType, data);
+    }
+
+    private record DataUrl(String mediaType, String data) {
     }
 
     private String mapStopReason(String anthropicReason) {

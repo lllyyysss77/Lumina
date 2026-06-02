@@ -117,7 +117,7 @@ public class AnthropicToOpenAiChatConverter implements ProtocolConverter {
                 String tcType = tc.get("type").asText();
                 switch (tcType) {
                     case "auto" -> result.put("tool_choice", "auto");
-                    case "any" -> result.put("tool_choice", "required");
+                    case "any" -> result.put("tool_choice", "auto"); // "required" 部分供应商不支持，降级为 auto
                     case "tool" -> {
                         ObjectNode openAiChoice = mapper.createObjectNode();
                         openAiChoice.put("type", "function");
@@ -219,14 +219,17 @@ public class AnthropicToOpenAiChatConverter implements ProtocolConverter {
         if (content.isArray()) {
             // 分离 tool_result 和普通内容
             List<JsonNode> toolResults = new ArrayList<>();
-            StringBuilder textContent = new StringBuilder();
+            ArrayNode userContent = mapper.createArrayNode();
 
             for (JsonNode block : content) {
                 String blockType = block.has("type") ? block.get("type").asText() : "";
                 if ("tool_result".equals(blockType)) {
                     toolResults.add(block);
                 } else if ("text".equals(blockType) && block.has("text")) {
-                    textContent.append(block.get("text").asText());
+                    addOpenAiTextPart(userContent, block.get("text").asText());
+                } else if ("image".equals(blockType)) {
+                    ObjectNode imagePart = convertAnthropicImageBlock(block);
+                    if (imagePart != null) userContent.add(imagePart);
                 }
             }
 
@@ -256,10 +259,14 @@ public class AnthropicToOpenAiChatConverter implements ProtocolConverter {
             }
 
             // 普通文本内容 → user message
-            if (textContent.length() > 0) {
+            if (userContent.size() > 0) {
                 ObjectNode userMsg = mapper.createObjectNode();
                 userMsg.put("role", "user");
-                userMsg.put("content", textContent.toString());
+                if (hasOnlyTextParts(userContent)) {
+                    userMsg.put("content", concatenateTextParts(userContent));
+                } else {
+                    userMsg.set("content", userContent);
+                }
                 messages.add(userMsg);
             }
         }
@@ -547,10 +554,59 @@ public class AnthropicToOpenAiChatConverter implements ProtocolConverter {
             StringBuilder sb = new StringBuilder();
             for (JsonNode part : content) {
                 if (part.has("text")) sb.append(part.get("text").asText());
+                else if (part.has("input_text")) sb.append(part.get("input_text").asText());
+                else if (part.has("output_text")) sb.append(part.get("output_text").asText());
             }
             return sb.toString();
         }
         return content.asText();
+    }
+
+    private void addOpenAiTextPart(ArrayNode content, String text) {
+        ObjectNode textPart = mapper.createObjectNode();
+        textPart.put("type", "text");
+        textPart.put("text", text);
+        content.add(textPart);
+    }
+
+    private boolean hasOnlyTextParts(ArrayNode content) {
+        if (content.size() == 0) return false;
+        for (JsonNode part : content) {
+            if (!"text".equals(part.path("type").asText())) return false;
+        }
+        return true;
+    }
+
+    private String concatenateTextParts(ArrayNode content) {
+        StringBuilder text = new StringBuilder();
+        for (JsonNode part : content) {
+            text.append(part.path("text").asText());
+        }
+        return text.toString();
+    }
+
+    private ObjectNode convertAnthropicImageBlock(JsonNode block) {
+        JsonNode source = block.get("source");
+        if (source == null || source.isNull()) return null;
+
+        String url = "";
+        String sourceType = source.path("type").asText();
+        if ("base64".equals(sourceType)) {
+            String mediaType = source.path("media_type").asText("image/png");
+            String data = source.path("data").asText("");
+            if (data.isBlank()) return null;
+            url = "data:" + mediaType + ";base64," + data;
+        } else if ("url".equals(sourceType)) {
+            url = source.path("url").asText("");
+        }
+        if (url.isBlank()) return null;
+
+        ObjectNode imagePart = mapper.createObjectNode();
+        imagePart.put("type", "image_url");
+        ObjectNode imageUrl = mapper.createObjectNode();
+        imageUrl.put("url", url);
+        imagePart.set("image_url", imageUrl);
+        return imagePart;
     }
 
     private String mapFinishReason(String openAiReason) {

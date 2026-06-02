@@ -9,7 +9,9 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class OpenAiChatToResponsesConverter implements ProtocolConverter {
 
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final String DEEPSEEK_REASONING_PREFIX = "deepseek-reasoning:";
 
     @Override
     public ProtocolType sourceType() {
@@ -60,8 +63,17 @@ public class OpenAiChatToResponsesConverter implements ProtocolConverter {
                         }
                     }
                     case "assistant" -> {
+                        boolean hasToolCalls = msg.has("tool_calls") && msg.get("tool_calls").isArray()
+                                && msg.get("tool_calls").size() > 0;
+                        if (msg.has("reasoning_content") && !msg.get("reasoning_content").isNull()) {
+                            String reasoningContent = msg.get("reasoning_content").asText();
+                            if (!reasoningContent.isBlank()) {
+                                input.add(buildReasoningItem(reasoningContent));
+                            }
+                        }
+
                         // assistant with tool_calls → function_call items
-                        if (msg.has("tool_calls") && msg.get("tool_calls").isArray()) {
+                        if (hasToolCalls) {
                             for (JsonNode tc : msg.get("tool_calls")) {
                                 ObjectNode fcItem = mapper.createObjectNode();
                                 fcItem.put("type", "function_call");
@@ -102,12 +114,7 @@ public class OpenAiChatToResponsesConverter implements ProtocolConverter {
                         ObjectNode item = mapper.createObjectNode();
                         item.put("type", "message");
                         item.put("role", "user");
-                        ArrayNode content = mapper.createArrayNode();
-                        ObjectNode textPart = mapper.createObjectNode();
-                        textPart.put("type", "input_text");
-                        textPart.put("text", getContentText(msg));
-                        content.add(textPart);
-                        item.set("content", content);
+                        item.set("content", convertChatContentToResponsesContent(msg.get("content"), "input_text"));
                         input.add(item);
                     }
                 }
@@ -144,7 +151,7 @@ public class OpenAiChatToResponsesConverter implements ProtocolConverter {
             }
         }
 
-        if (request.has("tool_choice")) result.set("tool_choice", request.get("tool_choice"));
+        if (request.has("tool_choice")) result.set("tool_choice", convertToolChoice(request.get("tool_choice")));
 
         log.debug("Chat→Responses converted request: {}", result);
         return result;
@@ -171,11 +178,14 @@ public class OpenAiChatToResponsesConverter implements ProtocolConverter {
         StringBuilder textContent = new StringBuilder();
         ArrayNode toolCalls = mapper.createArrayNode();
         int toolCallIndex = 0;
+        String reasoningContent = "";
 
         if (response.has("output") && response.get("output").isArray()) {
             for (JsonNode outputItem : response.get("output")) {
                 String itemType = outputItem.has("type") ? outputItem.get("type").asText() : "";
-                if ("message".equals(itemType) && outputItem.has("content") && outputItem.get("content").isArray()) {
+                if ("reasoning".equals(itemType)) {
+                    reasoningContent = mergeText(reasoningContent, extractReasoningContent(outputItem));
+                } else if ("message".equals(itemType) && outputItem.has("content") && outputItem.get("content").isArray()) {
                     for (JsonNode contentPart : outputItem.get("content")) {
                         if (contentPart.has("text")) {
                             textContent.append(contentPart.get("text").asText());
@@ -202,6 +212,9 @@ public class OpenAiChatToResponsesConverter implements ProtocolConverter {
         }
         if (toolCalls.size() > 0) {
             message.set("tool_calls", toolCalls);
+        }
+        if (!reasoningContent.isBlank()) {
+            message.put("reasoning_content", reasoningContent);
         }
 
         choice.set("message", message);
@@ -390,6 +403,25 @@ public class OpenAiChatToResponsesConverter implements ProtocolConverter {
         return chunk;
     }
 
+    /**
+     * 将 Chat Completions 的 tool_choice 转换为 Responses API 格式。
+     * Chat:      {"type":"function","function":{"name":"x"}}
+     * Responses: {"type":"function","name":"x"}
+     */
+    private JsonNode convertToolChoice(JsonNode toolChoice) {
+        if (toolChoice.isTextual()) return toolChoice; // "auto", "none", "required"
+        if (toolChoice.isObject()) {
+            if (!toolChoice.has("function")) return toolChoice; // 已是 Responses 扁平格式
+            // Chat 嵌套格式 → Responses 扁平格式
+            JsonNode func = toolChoice.get("function");
+            ObjectNode responsesChoice = mapper.createObjectNode();
+            responsesChoice.put("type", "function");
+            if (func.has("name")) responsesChoice.put("name", func.get("name").asText());
+            return responsesChoice;
+        }
+        return toolChoice;
+    }
+
     private String getContentText(JsonNode msg) {
         if (!msg.has("content")) return "";
         JsonNode content = msg.get("content");
@@ -399,9 +431,98 @@ public class OpenAiChatToResponsesConverter implements ProtocolConverter {
             StringBuilder sb = new StringBuilder();
             for (JsonNode part : content) {
                 if (part.has("text")) sb.append(part.get("text").asText());
+                else if (part.has("input_text")) sb.append(part.get("input_text").asText());
+                else if (part.has("output_text")) sb.append(part.get("output_text").asText());
             }
             return sb.toString();
         }
         return content.asText();
+    }
+
+    private ObjectNode buildReasoningItem(String reasoningContent) {
+        ObjectNode item = mapper.createObjectNode();
+        item.put("type", "reasoning");
+        item.set("summary", mapper.createArrayNode());
+        item.put("encrypted_content", encodeReasoningContent(reasoningContent));
+        return item;
+    }
+
+    private ArrayNode convertChatContentToResponsesContent(JsonNode content, String textType) {
+        ArrayNode result = mapper.createArrayNode();
+        if (content == null || content.isNull()) {
+            addResponsesTextPart(result, textType, "");
+            return result;
+        }
+        if (content.isTextual()) {
+            addResponsesTextPart(result, textType, content.asText());
+            return result;
+        }
+        if (!content.isArray()) {
+            addResponsesTextPart(result, textType, content.asText());
+            return result;
+        }
+        for (JsonNode part : content) {
+            String type = part.path("type").asText();
+            if ("text".equals(type) || "input_text".equals(type) || "output_text".equals(type)) {
+                addResponsesTextPart(result, textType, part.path("text").asText());
+            } else if ("image_url".equals(type)) {
+                String url = extractImageUrl(part.get("image_url"));
+                if (!url.isBlank()) {
+                    ObjectNode imagePart = mapper.createObjectNode();
+                    imagePart.put("type", "input_image");
+                    imagePart.put("image_url", url);
+                    result.add(imagePart);
+                }
+            } else if ("input_image".equals(type)) {
+                result.add(part);
+            }
+        }
+        if (result.size() == 0) {
+            addResponsesTextPart(result, textType, "");
+        }
+        return result;
+    }
+
+    private void addResponsesTextPart(ArrayNode result, String textType, String text) {
+        ObjectNode textPart = mapper.createObjectNode();
+        textPart.put("type", textType);
+        textPart.put("text", text);
+        result.add(textPart);
+    }
+
+    private String extractImageUrl(JsonNode imageUrl) {
+        if (imageUrl == null || imageUrl.isNull()) return "";
+        if (imageUrl.isTextual()) return imageUrl.asText();
+        return imageUrl.path("url").asText("");
+    }
+
+    private String extractReasoningContent(JsonNode item) {
+        String rawReasoning = item.path("reasoning_content").asText("");
+        if (!rawReasoning.isBlank()) return rawReasoning;
+        String encrypted = item.path("encrypted_content").asText("");
+        if (encrypted.startsWith(DEEPSEEK_REASONING_PREFIX)) {
+            return decodeReasoningContent(encrypted);
+        }
+        return "";
+    }
+
+    private String mergeText(String current, String next) {
+        if (next == null || next.isBlank()) return current;
+        if (current == null || current.isBlank()) return next;
+        return current + next;
+    }
+
+    private String encodeReasoningContent(String reasoningContent) {
+        String payload = Base64.getEncoder().encodeToString(reasoningContent.getBytes(StandardCharsets.UTF_8));
+        return DEEPSEEK_REASONING_PREFIX + payload;
+    }
+
+    private String decodeReasoningContent(String encoded) {
+        try {
+            String payload = encoded.substring(DEEPSEEK_REASONING_PREFIX.length());
+            return new String(Base64.getDecoder().decode(payload), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return "";
+        }
     }
 }

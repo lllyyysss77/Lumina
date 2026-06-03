@@ -383,6 +383,11 @@ public class AnthropicToOpenAiChatConverter implements ProtocolConverter {
 
                         // 文本内容
                         if (delta.has("content") && !delta.get("content").isNull()) {
+                            String textDelta = delta.get("content").asText();
+                            if (textDelta.isEmpty()) {
+                                continue;
+                            }
+
                             if (!textBlockStarted.getAndSet(true)) {
                                 // 发送 content_block_start (text)
                                 ObjectNode blockStart = mapper.createObjectNode();
@@ -400,7 +405,7 @@ public class AnthropicToOpenAiChatConverter implements ProtocolConverter {
                             deltaEvent.put("index", blockIndex.get());
                             ObjectNode deltaObj = mapper.createObjectNode();
                             deltaObj.put("type", "text_delta");
-                            deltaObj.put("text", delta.get("content").asText());
+                            deltaObj.put("text", textDelta);
                             deltaEvent.set("delta", deltaObj);
                             events.add(sse("content_block_delta", deltaEvent.toString()));
                         }
@@ -512,7 +517,9 @@ public class AnthropicToOpenAiChatConverter implements ProtocolConverter {
             }
             // 关闭所有 tool_call blocks
             if (!toolCallBlockIndex.isEmpty()) {
-                for (int anthropicIdx : toolCallBlockIndex.values()) {
+                List<Integer> anthropicIndexes = new ArrayList<>(toolCallBlockIndex.values());
+                Collections.sort(anthropicIndexes);
+                for (int anthropicIdx : anthropicIndexes) {
                     ObjectNode blockStop = mapper.createObjectNode();
                     blockStop.put("type", "content_block_stop");
                     blockStop.put("index", anthropicIdx);

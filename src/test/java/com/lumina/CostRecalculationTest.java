@@ -7,17 +7,19 @@ import com.lumina.entity.RequestLog;
 import com.lumina.service.LlmModelService;
 import com.lumina.service.RequestLogService;
 import com.lumina.stats.StatsRebuildJob;
+import com.lumina.util.CostCalculator;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @SpringBootTest
+@Disabled("Manual maintenance task: recalculates and updates persisted request_logs costs.")
 public class CostRecalculationTest {
 
     @Autowired
@@ -72,27 +74,19 @@ public class CostRecalculationTest {
                     return m;
                 });
 
-                if (model == null || model.getInputPrice() == null || model.getOutputPrice() == null) {
+                if (model == null) {
                     totalSkipped++;
                     continue;
                 }
 
-                BigDecimal inputCost = BigDecimal.ZERO;
-                BigDecimal outputCost = BigDecimal.ZERO;
-
-                if (log.getInputTokens() != null && log.getInputTokens() > 0) {
-                    inputCost = model.getInputPrice()
-                            .multiply(BigDecimal.valueOf(log.getInputTokens()))
-                            .divide(BigDecimal.valueOf(1_000_000), 6, RoundingMode.HALF_UP);
-                }
-
-                if (log.getOutputTokens() != null && log.getOutputTokens() > 0) {
-                    outputCost = model.getOutputPrice()
-                            .multiply(BigDecimal.valueOf(log.getOutputTokens()))
-                            .divide(BigDecimal.valueOf(1_000_000), 6, RoundingMode.HALF_UP);
-                }
-
-                BigDecimal newCost = inputCost.add(outputCost).setScale(4, RoundingMode.HALF_UP);
+                BigDecimal newCost = CostCalculator.calculate(
+                        model,
+                        log.getRequestType(),
+                        log.getInputTokens(),
+                        log.getOutputTokens(),
+                        log.getCacheReadTokens(),
+                        log.getCacheCreationTokens()
+                );
                 BigDecimal oldCost = log.getCost() != null ? log.getCost() : BigDecimal.ZERO;
 
                 if (newCost.compareTo(oldCost) != 0) {

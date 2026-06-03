@@ -12,6 +12,7 @@ import com.lumina.logging.RequestLogContext;
 import com.lumina.service.LlmModelService;
 import com.lumina.service.LlmRequestExecutor;
 import com.lumina.service.ProviderWebClientFactory;
+import com.lumina.util.CostCalculator;
 import com.lumina.util.SnowflakeIdGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,8 +20,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
@@ -167,26 +166,14 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
                 return;
             }
 
-            BigDecimal inputCost = BigDecimal.ZERO;
-            BigDecimal outputCost = BigDecimal.ZERO;
-
-            // 计算输入费用（价格单位为每百万Token）
-            if (ctx.getInputTokens() != null && ctx.getInputTokens() > 0) {
-                inputCost = model.getInputPrice()
-                        .multiply(BigDecimal.valueOf(ctx.getInputTokens()))
-                        .divide(BigDecimal.valueOf(1_000_000), 6, RoundingMode.HALF_UP);
-            }
-
-            // 计算输出费用（价格单位为每百万Token）
-            if (ctx.getOutputTokens() != null && ctx.getOutputTokens() > 0) {
-                outputCost = model.getOutputPrice()
-                        .multiply(BigDecimal.valueOf(ctx.getOutputTokens()))
-                        .divide(BigDecimal.valueOf(1_000_000), 6, RoundingMode.HALF_UP);
-            }
-
-            // 总费用保留4位小数
-            BigDecimal totalCost = inputCost.add(outputCost).setScale(4, RoundingMode.HALF_UP);
-            ctx.setCost(totalCost);
+            ctx.setCost(CostCalculator.calculate(
+                    model,
+                    ctx.getRequestType(),
+                    ctx.getInputTokens(),
+                    ctx.getOutputTokens(),
+                    ctx.getCacheReadTokens(),
+                    ctx.getCacheCreationTokens()
+            ));
         } catch (Exception e) {
             log.error("计算费用失败: model={}, error={}", ctx.getActualModel(), e.getMessage());
         }

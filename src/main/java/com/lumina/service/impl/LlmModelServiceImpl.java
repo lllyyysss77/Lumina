@@ -20,9 +20,12 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,14 +52,82 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModel> i
             return;
         }
 
-        // Use a map to deduplicate by (model_name, provider)
-        Map<String, LlmModel> modelMap = new java.util.LinkedHashMap<>();
         LocalDateTime now = LocalDateTime.now();
+        List<LlmModel> models = buildModels(response, now);
 
+        if (!models.isEmpty()) {
+            transactionTemplate.executeWithoutResult(status -> {
+                Map<String, LlmModel> existingByKey = this.list(new LambdaQueryWrapper<LlmModel>()
+                                .select(LlmModel::getId, LlmModel::getModelName, LlmModel::getProvider,
+                                        LlmModel::getIsActive, LlmModel::getCreatedAt))
+                        .stream()
+                        .collect(Collectors.toMap(
+                                m -> uniqueKey(m.getModelName(), m.getProvider()),
+                                Function.identity(),
+                                (first, ignored) -> first
+                        ));
+
+                List<LlmModel> toInsert = new ArrayList<>();
+                List<LlmModel> toUpdate = new ArrayList<>();
+                Set<String> seenInBatch = new HashSet<>();
+
+                for (LlmModel m : models) {
+                    String key = uniqueKey(m.getModelName(), m.getProvider());
+                    LlmModel existing = existingByKey.get(key);
+                    if (existing != null) {
+                        m.setId(existing.getId());
+                        m.setIsActive(existing.getIsActive()); // preserve active flag
+                        m.setCreatedAt(existing.getCreatedAt());
+                        toUpdate.add(m);
+                    } else if (seenInBatch.add(key)) {
+                        // New record, default is_active = false (user must explicitly select)
+                        m.setIsActive(false);
+                        toInsert.add(m);
+                    }
+                }
+
+                if (!toInsert.isEmpty()) {
+                    Map<String, LlmModel> freshExistingByKey = this.list(new LambdaQueryWrapper<LlmModel>()
+                                    .select(LlmModel::getModelName, LlmModel::getProvider))
+                            .stream()
+                            .collect(Collectors.toMap(
+                                    m -> uniqueKey(m.getModelName(), m.getProvider()),
+                                    Function.identity(),
+                                    (first, ignored) -> first
+                            ));
+                    toInsert.removeIf(m -> freshExistingByKey.containsKey(uniqueKey(m.getModelName(), m.getProvider())));
+
+                    if (!toInsert.isEmpty()) {
+                        this.saveBatch(toInsert);
+                    }
+                    // Auto-activate if this model_name has no active record yet
+                    for (LlmModel m : toInsert) {
+                        long activeCount = this.count(new LambdaQueryWrapper<LlmModel>()
+                                .eq(LlmModel::getModelName, m.getModelName())
+                                .eq(LlmModel::getIsActive, true));
+                        if (activeCount == 0) {
+                            m.setIsActive(true);
+                            this.updateById(m);
+                        }
+                    }
+                }
+                if (!toUpdate.isEmpty()) {
+                    this.updateBatchById(toUpdate);
+                }
+            });
+            hotPathCacheService.invalidateAllModelPrices();
+        }
+    }
+
+    static List<LlmModel> buildModels(Map<String, ModelDevDTO> response, LocalDateTime now) {
+        Map<String, LlmModel> modelMap = new LinkedHashMap<>();
         for (Map.Entry<String, ModelDevDTO> provider : response.entrySet()) {
-            if (provider.getValue().getModels() != null) {
+            if (provider.getValue() != null && provider.getValue().getModels() != null) {
                 for (ModelDevDTO.ModelData modelData : provider.getValue().getModels().values()) {
-                    String dedupeKey = modelData.getId() + "|" + provider.getKey();
+                    if (modelData == null || !hasText(modelData.getId()) || !hasText(provider.getKey())) {
+                        continue;
+                    }
+                    String dedupeKey = uniqueKey(modelData.getId(), provider.getKey());
                     if (modelMap.containsKey(dedupeKey)) {
                         continue; // skip duplicate
                     }
@@ -103,70 +174,19 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModel> i
             }
         }
 
-        List<LlmModel> models = new ArrayList<>(modelMap.values());
+        return new ArrayList<>(modelMap.values());
+    }
 
-        if (!models.isEmpty()) {
-            transactionTemplate.executeWithoutResult(status -> {
-                // Get existing model_name+provider combinations to determine which are new
-                Set<String> existingKeys = this.list(new LambdaQueryWrapper<LlmModel>()
-                        .select(LlmModel::getModelName, LlmModel::getProvider))
-                        .stream()
-                        .map(m -> m.getModelName() + "|" + m.getProvider())
-                        .collect(Collectors.toSet());
+    private static String uniqueKey(String modelName, String provider) {
+        return normalizeUniqueKeyPart(modelName) + "|" + normalizeUniqueKeyPart(provider);
+    }
 
-                List<LlmModel> toInsert = new ArrayList<>();
-                List<LlmModel> toUpdate = new ArrayList<>();
-                Set<String> seenInBatch = new HashSet<>();
+    private static String normalizeUniqueKeyPart(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
 
-                for (LlmModel m : models) {
-                    String key = m.getModelName() + "|" + m.getProvider();
-                    if (existingKeys.contains(key)) {
-                        // Find existing record and set its id for update
-                        LlmModel existing = this.getOne(new LambdaQueryWrapper<LlmModel>()
-                                .eq(LlmModel::getModelName, m.getModelName())
-                                .eq(LlmModel::getProvider, m.getProvider()));
-                        if (existing != null) {
-                            m.setId(existing.getId());
-                            m.setIsActive(existing.getIsActive()); // preserve active flag
-                            m.setCreatedAt(existing.getCreatedAt());
-                            toUpdate.add(m);
-                        }
-                    } else if (seenInBatch.add(key)) {
-                        // New record, default is_active = false (user must explicitly select)
-                        m.setIsActive(false);
-                        toInsert.add(m);
-                    }
-                }
-
-                if (!toInsert.isEmpty()) {
-                    // Re-check existingKeys after dedup to avoid race-condition duplicates
-                    Set<String> freshExistingKeys = this.list(new LambdaQueryWrapper<LlmModel>()
-                            .select(LlmModel::getModelName, LlmModel::getProvider))
-                            .stream()
-                            .map(m2 -> m2.getModelName() + "|" + m2.getProvider())
-                            .collect(Collectors.toSet());
-                    toInsert.removeIf(m -> freshExistingKeys.contains(m.getModelName() + "|" + m.getProvider()));
-
-                    if (!toInsert.isEmpty()) {
-                        this.saveBatch(toInsert);
-                    }
-                    // Auto-activate if this model_name has no active record yet
-                    for (LlmModel m : toInsert) {
-                        long activeCount = this.count(new LambdaQueryWrapper<LlmModel>()
-                                .eq(LlmModel::getModelName, m.getModelName())
-                                .eq(LlmModel::getIsActive, true));
-                        if (activeCount == 0) {
-                            m.setIsActive(true);
-                            this.updateById(m);
-                        }
-                    }
-                }
-                if (!toUpdate.isEmpty()) {
-                    this.updateBatchById(toUpdate);
-                }
-            });
-            hotPathCacheService.invalidateAllModelPrices();
-        }
+    private static boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 
     @Override

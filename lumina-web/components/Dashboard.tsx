@@ -270,6 +270,11 @@ export const Dashboard: React.FC = () => {
     });
   };
 
+  const getRankingRowKey = (provider: ProviderStats, index: number) => {
+    const providerIdentity = provider.providerId ?? 'unknown';
+    return `${metric}-${providerIdentity}-${provider.providerName}-${index}`;
+  };
+
   const formatRankingValue = (item: ProviderStats) => {
     switch (metric) {
       case 'calls':
@@ -960,7 +965,7 @@ export const Dashboard: React.FC = () => {
                 sortedData.map((provider, index) => {
                   const statusInfo = getRankingStatusInfo(provider, metric);
                   return (
-                    <tr key={provider.providerId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+                    <tr key={getRankingRowKey(provider, index)} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
                       <td className="px-6 py-4 font-mono text-xs text-gray-400 dark:text-gray-500">#{index + 1}</td>
                       <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{provider.providerName}</td>
                       <td className="px-6 py-4 text-gray-600 dark:text-gray-300">

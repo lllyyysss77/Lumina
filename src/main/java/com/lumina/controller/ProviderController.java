@@ -50,6 +50,7 @@ public class ProviderController {
         if (provider.getType() == null) {
             provider.setType("");
         }
+        prepareProviderForSave(provider);
         providerService.save(provider);
         saveEndpoints(provider);
         return ApiResponse.success("供应商创建成功", provider);
@@ -66,6 +67,7 @@ public class ProviderController {
         if (!StringUtils.hasText(provider.getApiKey())) {
             provider.setApiKey(existing.getApiKey());
         }
+        prepareProviderForSave(provider);
         providerService.updateById(provider);
         saveEndpoints(provider);
         fillEndpoints(provider);
@@ -141,5 +143,49 @@ public class ProviderController {
                 endpointMapper.insert(ep);
             }
         }
+    }
+
+    private void prepareProviderForSave(Provider provider) {
+        validateEndpoints(provider);
+        if (!StringUtils.hasText(provider.getBaseUrl())) {
+            provider.setBaseUrl(resolveDefaultBaseUrl(provider));
+        }
+    }
+
+    private void validateEndpoints(Provider provider) {
+        List<ProviderEndpoint> endpoints = provider.getEndpoints();
+        if (endpoints == null || endpoints.isEmpty()) {
+            if (!StringUtils.hasText(provider.getBaseUrl())) {
+                throw new IllegalArgumentException("API 基础地址不能为空");
+            }
+            return;
+        }
+
+        for (ProviderEndpoint endpoint : endpoints) {
+            if (endpoint.getProtocolType() == null) {
+                throw new IllegalArgumentException("协议类型不能为空");
+            }
+            if (!StringUtils.hasText(endpoint.getBaseUrl())) {
+                throw new IllegalArgumentException("API 基础地址不能为空");
+            }
+        }
+    }
+
+    private String resolveDefaultBaseUrl(Provider provider) {
+        List<ProviderEndpoint> endpoints = provider.getEndpoints();
+        if (endpoints == null || endpoints.isEmpty()) {
+            throw new IllegalArgumentException("API 基础地址不能为空");
+        }
+
+        if (StringUtils.hasText(provider.getType())) {
+            String primaryType = provider.getType().split(",")[0].trim();
+            for (ProviderEndpoint endpoint : endpoints) {
+                if (primaryType.equals(String.valueOf(endpoint.getProtocolType()))) {
+                    return endpoint.getBaseUrl();
+                }
+            }
+        }
+
+        return endpoints.get(0).getBaseUrl();
     }
 }

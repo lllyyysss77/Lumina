@@ -25,7 +25,6 @@ public class Provider {
     @NotNull(message = "请选择是否启用")
     private Boolean isEnabled;
 
-    @NotEmpty(message = "API 基础地址不能为空")
     private String baseUrl;
 
     @NotEmpty(message = "模型名称不能为空")

@@ -97,7 +97,38 @@ Lumina 是一个面向多模型、多供应商场景的 LLM API Gateway。它提
 
 ### 方式一：Docker Compose
 
-#### SQLite 零依赖启动
+#### 使用本机 MySQL 启动
+
+推荐直接执行部署脚本：
+
+```bash
+./deploy-docker.sh
+```
+
+脚本会自动完成：
+
+- 检查 Docker / Docker Compose
+- 检查并确认本机 MySQL 数据库可用
+- 检查宿主机 Redis
+- 创建日志目录
+- 构建镜像并启动容器
+- 验证应用端口是否就绪
+- 输出容器自启和 Docker 日志轮转配置
+
+默认使用：
+
+- MySQL：`127.0.0.1:3306/lumina`
+- MySQL 用户名/密码：`root` / `root123`
+- Redis：`127.0.0.1:6379`
+- 后台端口：`8080`
+
+如需覆盖数据库账号：
+
+```bash
+LUMINA_MYSQL_USER=root LUMINA_MYSQL_PASSWORD=your_password ./deploy-docker.sh
+```
+
+也可以手动使用 Compose：
 
 ```bash
 docker compose up -d
@@ -106,8 +137,16 @@ docker compose up -d
 默认会：
 
 - 构建 `lumina:0.4.0`
-- 将 SQLite 数据库存到宿主机挂载目录
-- 在应用容器内通过 `startup.sh` 启动本地 Redis
+- 使用宿主机 `127.0.0.1:3306/lumina` MySQL 数据库
+- 默认读取 MySQL 用户名/密码：`root` / `root123`
+- 设置 `restart: unless-stopped`，Docker 服务启动后自动拉起 Lumina
+- 复用宿主机 `127.0.0.1:6379` Redis；如果 Redis 不存在，启动脚本会启动容器内 Redis
+
+如需覆盖数据库账号：
+
+```bash
+LUMINA_MYSQL_USER=root LUMINA_MYSQL_PASSWORD=your_password docker compose up -d
+```
 
 #### MySQL 部署
 

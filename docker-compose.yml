@@ -1,21 +1,25 @@
-version: '3.8'
-
 services:
   app:
     build: .
     image: lumina:0.4.0
     container_name: lumina
-    ports:
-      - "8080:8080"
+    restart: unless-stopped
+    network_mode: host
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     environment:
-      # 使用 SQLite 数据库（零依赖）
-      SPRING_DATASOURCE_DRIVER: org.sqlite.JDBC
-      SPRING_DATASOURCE_URL: jdbc:sqlite:/app/data/lumina.db
-      SPRING_DATASOURCE_USERNAME: ""
-      SPRING_DATASOURCE_PASSWORD: ""
-      # Redis 配置（容器内 Redis）
-      SPRING_DATA_REDIS_HOST: 127.0.0.1
-      SPRING_DATA_REDIS_PORT: 6379
+      # 使用宿主机本地 MySQL。由于本机 MySQL 只监听 127.0.0.1，
+      # 这里使用 host 网络，让容器内的 127.0.0.1 指向宿主机。
+      SPRING_DATASOURCE_DRIVER: com.mysql.cj.jdbc.Driver
+      SPRING_DATASOURCE_URL: jdbc:mysql://${LUMINA_MYSQL_HOST:-127.0.0.1}:${LUMINA_MYSQL_PORT:-3306}/${LUMINA_MYSQL_DB:-lumina}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${LUMINA_MYSQL_USER:-root}
+      SPRING_DATASOURCE_PASSWORD: ${LUMINA_MYSQL_PASSWORD:-root123}
+      # 复用宿主机 Redis；如果没有运行，startup.sh 会启动容器内 Redis。
+      SPRING_DATA_REDIS_HOST: ${LUMINA_REDIS_HOST:-127.0.0.1}
+      SPRING_DATA_REDIS_PORT: ${LUMINA_REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_PASSWORD: ${LUMINA_REDIS_PASSWORD:-}
     volumes:
-      # 持久化 SQLite 数据库文件
-      - /home/jojo/docker-data/lumina:/app/data
+      - ${LUMINA_DATA_DIR:-/home/jojo/docker-data/lumina}/logs:/app/logs

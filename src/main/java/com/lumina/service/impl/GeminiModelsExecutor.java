@@ -47,7 +47,7 @@ public class GeminiModelsExecutor extends AbstractRequestExecutor {
 
     @Override
     public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
-        log.info("调用流式接口，供应商：{},请求地址：{},模型：{}", provider.getProviderName(), provider.getBaseUrl(), provider.getModelName());
+        log.debug("Gemini stream request: provider={}, model={}", provider.getProviderName(), provider.getModelName());
         RequestLogContext ctx = createLogContext(request, provider, type, true, queryParams);
         Flux<ServerSentEvent<String>> result = createWebClient(provider).post()
                 .uri(uriBuilder -> {
@@ -59,8 +59,7 @@ public class GeminiModelsExecutor extends AbstractRequestExecutor {
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .bodyValue(request)
                 .retrieve()
-                .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {})
-                .log("SSE-FLOW");
+                .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {});
 
         return applyTimeout(result, timeoutMs)
                 .doOnNext(event -> {

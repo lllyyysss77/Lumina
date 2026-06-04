@@ -64,7 +64,7 @@ public class RelayServiceImpl implements RelayService {
     @Override
     public Mono<ResponseEntity<?>> relay(String type, ObjectNode params, Map<String, String> queryParams, String apiKey) {
         String modelGroupName = params.get("model").asText();
-        log.info("Relaying request for model group: {}", modelGroupName);
+        log.debug("Relaying request for model group: {}", modelGroupName);
         Map<String, String> enrichedParams = new java.util.HashMap<>(queryParams);
         if (apiKey != null) {
             enrichedParams.put("_lumina_api_key", apiKey);
@@ -96,7 +96,8 @@ public class RelayServiceImpl implements RelayService {
 
                                     Map<String, String> execParams = new java.util.HashMap<>(enrichedParams);
                                     if (converter.isPresent()) {
-                                        log.debug("协议转换 [{}→{}], 转换后请求: {}", inboundType, outboundType, finalRequest);
+                                        log.debug("Protocol conversion applied: {}→{}, modelGroup={}, stream=true",
+                                                inboundType, outboundType, modelGroupName);
                                         execParams.put("_lumina_protocol_conversion", inboundType.name() + "→" + outboundType.name());
                                     }
 
@@ -130,7 +131,8 @@ public class RelayServiceImpl implements RelayService {
 
                                 Map<String, String> execParams = new java.util.HashMap<>(enrichedParams);
                                 if (converter.isPresent()) {
-                                    log.debug("协议转换 [{}→{}], 转换后请求: {}", inboundType, outboundType, finalRequest);
+                                    log.debug("Protocol conversion applied: {}→{}, modelGroup={}, stream=false",
+                                            inboundType, outboundType, modelGroupName);
                                     execParams.put("_lumina_protocol_conversion", inboundType.name() + "→" + outboundType.name());
                                 }
 

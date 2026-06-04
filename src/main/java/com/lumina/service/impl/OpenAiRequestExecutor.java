@@ -33,11 +33,7 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
     @Override
     public Mono<ObjectNode> executeNormal(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
         prepareRequestForProvider(request, provider, type);
-        log.info("[DEBUG-RELAY] 非流式转发，供应商：{}, 请求地址：{}, 模型：{}", provider.getProviderName(), provider.getBaseUrl(), provider.getModelName());
-        log.info("[DEBUG-RELAY] 转发请求头: Authorization={}, providerType={}",
-                provider.getApiKey() != null ? "Bearer " + provider.getApiKey().substring(0, Math.min(8, provider.getApiKey().length())) + "..." : "null",
-                provider.getProviderType());
-        log.info("[DEBUG-RELAY] 转发请求体: {}", request.toString());
+        logRelayRequest(request, provider, type, false);
         RequestLogContext ctx = createLogContext(request, provider, type, false, queryParams);
         Mono<ObjectNode> result = createWebClient(provider).post()
                 .uri(uriBuilder -> {
@@ -52,10 +48,10 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
                 .onStatus(HttpStatusCode::isError, response ->
                         response.bodyToMono(String.class)
                                 .flatMap(body -> {
-                                    log.error("[DEBUG-RELAY] 上游错误响应 {} from {}: {}",
-                                            response.statusCode(), provider.getBaseUrl(), body);
+                                    log.error("Upstream OpenAI-compatible request failed: status={}, provider={}, model={}, bodyLength={}",
+                                            response.statusCode(), provider.getProviderName(), provider.getModelName(), body == null ? 0 : body.length());
                                     return Mono.error(new RuntimeException(
-                                            "HTTP " + response.statusCode() + " from " + provider.getBaseUrl() + ": " + body));
+                                            "HTTP " + response.statusCode() + " from provider " + provider.getProviderName()));
                                 }))
                 .bodyToMono(ObjectNode.class);
 
@@ -70,11 +66,7 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
     @Override
     public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
         prepareRequestForProvider(request, provider, type);
-        log.info("调用流式接口，供应商：{},请求地址：{},模型：{}", provider.getProviderName(), provider.getBaseUrl(), provider.getModelName());
-        log.info("[DEBUG-RELAY] 转发请求头: Authorization={}, providerType={}",
-                provider.getApiKey() != null ? "Bearer " + provider.getApiKey().substring(0, Math.min(8, provider.getApiKey().length())) + "..." : "null",
-                provider.getProviderType());
-        log.info("[DEBUG-RELAY] 转发请求体: {}", request.toString());
+        logRelayRequest(request, provider, type, true);
         RequestLogContext ctx = createLogContext(request, provider, type, true, queryParams);
         Flux<ServerSentEvent<String>> result = createWebClient(provider).post()
                 .uri(uriBuilder -> {
@@ -88,16 +80,15 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
                 .onStatus(HttpStatusCode::isError, response ->
                         response.bodyToMono(String.class)
                                 .flatMap(body -> {
-                                    log.error("[DEBUG-RELAY] 上游错误响应(流式) {} from {}: {}",
-                                            response.statusCode(), provider.getBaseUrl(), body);
+                                    log.error("Upstream OpenAI-compatible stream request failed: status={}, provider={}, model={}, bodyLength={}",
+                                            response.statusCode(), provider.getProviderName(), provider.getModelName(), body == null ? 0 : body.length());
                                     return Mono.error(new RuntimeException(
-                                            "HTTP " + response.statusCode() + " from " + provider.getBaseUrl() + ": " + body));
+                                            "HTTP " + response.statusCode() + " from provider " + provider.getProviderName()));
                                 }))
                 .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {});
 
         return applyTimeout(result, timeoutMs)
                 .doOnNext(event -> {
-                    log.debug("[SSE] raw event: {}", event);
                     String data = event.data();
                     if (data == null) return;
                     if (ctx.getFirstTokenArrived().compareAndSet(false, true)) {
@@ -132,7 +123,7 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
 
         ObjectNode thinking = request.putObject("thinking");
         thinking.put("type", "disabled");
-        log.info("[DEBUG-RELAY] DeepSeek assistant history is missing reasoning_content; disabling thinking mode for this request.");
+        log.debug("DeepSeek assistant history is missing reasoning_content; disabling thinking mode for this request.");
     }
 
     private static boolean isDeepSeekRequest(ObjectNode request, ModelGroupConfigItem provider) {
@@ -181,5 +172,18 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
 
     private static boolean containsIgnoreCase(String value, String expected) {
         return value != null && value.toLowerCase(Locale.ROOT).contains(expected);
+    }
+
+    private void logRelayRequest(ObjectNode request, ModelGroupConfigItem provider, String type, boolean stream) {
+        if (!log.isDebugEnabled()) {
+            return;
+        }
+        log.debug("OpenAI-compatible upstream request: provider={}, model={}, type={}, stream={}, providerType={}, messageCount={}",
+                provider.getProviderName(),
+                provider.getModelName(),
+                type,
+                stream,
+                provider.getProviderType(),
+                request.path("messages").isArray() ? request.path("messages").size() : null);
     }
 }

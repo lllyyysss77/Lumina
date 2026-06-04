@@ -47,7 +47,7 @@ public class AnthropicRequestExecutor extends AbstractRequestExecutor {
 
     @Override
     public Flux<ServerSentEvent<String>> executeStream(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams, String modelAction, String type, Integer timeoutMs) {
-        log.info("调用流式接口，供应商：{},请求地址：{},模型：{}", provider.getProviderName(), provider.getBaseUrl(), provider.getModelName());
+        log.debug("Anthropic stream request: provider={}, model={}", provider.getProviderName(), provider.getModelName());
         RequestLogContext ctx = createLogContext(request, provider, type, true, queryParams);
         Flux<ServerSentEvent<String>> result = createWebClient(provider).post()
                 .uri(uriBuilder -> {

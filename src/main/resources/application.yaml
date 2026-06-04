@@ -215,4 +215,4 @@ lumina:
     queue-capacity: 5000
     batch-size: 100
     flush-interval-ms: 500
-    success-payload-sample-rate: 1.0
+    success-payload-sample-rate: ${LUMINA_LOGGING_SUCCESS_PAYLOAD_SAMPLE_RATE:1.0}

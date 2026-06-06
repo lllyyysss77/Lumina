@@ -324,20 +324,32 @@ export const Logs: React.FC = () => {
                </div>
             ) : (
                 <>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+                <div className="overflow-hidden">
+                    <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
+                        <colgroup>
+                            <col style={{ width: '6%' }} />
+                            <col style={{ width: '14%' }} />
+                            <col style={{ width: '10%' }} />
+                            <col style={{ width: '17%' }} />
+                            <col style={{ width: '9%' }} />
+                            <col style={{ width: '18%' }} />
+                            <col style={{ width: '7%' }} />
+                            <col style={{ width: '7%' }} />
+                            <col style={{ width: '7%' }} />
+                            <col style={{ width: '5%' }} />
+                        </colgroup>
                         <thead className="bg-gray-50/50 dark:bg-gray-900/30">
                             <tr>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.status')}</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.time')}</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.requestModel')}</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.actualModel')}</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.provider')}</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.requestIp')}</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.latency')}</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.tokens')}</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.cost')}</th>
-                                <th scope="col" className="relative px-6 py-4">
+                                <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.status')}</th>
+                                <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.time')}</th>
+                                <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.requestModel')}</th>
+                                <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.actualModel')}</th>
+                                <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.provider')}</th>
+                                <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.requestIp')}</th>
+                                <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.latency')}</th>
+                                <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.tokens')}</th>
+                                <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('logs.table.cost')}</th>
+                                <th scope="col" className="relative px-2 py-4">
                                     <span className="sr-only">{t('common.details')}</span>
                                 </th>
                             </tr>
@@ -356,42 +368,57 @@ export const Logs: React.FC = () => {
                             ) : (
                                 logs.map((log) => (
                                     <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors animate-fade-in group">
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-3 py-4 whitespace-nowrap">
                                             <Badge tone={log.status === 'SUCCESS' ? 'success' : 'danger'} size="xs">
                                               {log.status === 'SUCCESS' ? t('common.success') : t('common.fail')}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-mono">
-                                            {log.timestamp}
+                                        <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400 font-mono">
+                                            <div className="truncate" title={log.timestamp}>
+                                                {log.timestamp}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
-                                            {log.requestModel}
+                                        <td className="px-3 py-4 text-sm font-semibold text-gray-900 dark:text-white">
+                                            <div className="truncate" title={log.requestModel}>
+                                                {log.requestModel}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                                            {log.actualModel}
+                                        <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                            <div className="truncate" title={log.actualModel}>
+                                                {log.actualModel}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                                            {log.providerName}
+                                        <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                            <div className="truncate" title={log.providerName}>
+                                                {log.providerName}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-mono">
-                                            {log.requestIp || '-'}
+                                        <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400 font-mono">
+                                            <div className="truncate" title={log.requestIp || '-'}>
+                                                {log.requestIp || '-'}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            <span className={`font-mono ${log.latency > 5000 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                                            <span className={`block truncate font-mono ${log.latency > 5000 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-600 dark:text-gray-400'}`} title={`${log.latency}ms`}>
                                                 {log.latency}ms
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-mono">
-                                            {log.tokens}
+                                        <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400 font-mono">
+                                            <div className="truncate" title={String(log.tokens)}>
+                                                {log.tokens}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-700 dark:text-gray-300">
-                                            {log.cost > 0 ? `$${log.cost.toFixed(5)}` : '-'}
+                                        <td className="px-3 py-4 text-sm font-bold text-gray-700 dark:text-gray-300">
+                                            <div className="truncate" title={log.cost > 0 ? `$${log.cost.toFixed(5)}` : '-'}>
+                                                {log.cost > 0 ? `$${log.cost.toFixed(5)}` : '-'}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <td className="px-2 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <Button
                                                 onClick={() => handleViewLog(log.id)}
                                                 variant="ghost"
-                                                className="opacity-0 group-hover:opacity-100 px-2"
+                                                size="sm"
+                                                className="h-8 w-8 px-0 opacity-0 group-hover:opacity-100"
                                                 title={t('common.view')}
                                             >
                                                 <Eye size={18} />

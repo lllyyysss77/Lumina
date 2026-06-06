@@ -42,6 +42,7 @@ export const getProviderLabel = (type: ProviderType): string => {
     case ProviderType.OPENAI_RESPONSE: return 'OpenAI Response';
     case ProviderType.ANTHROPIC: return 'Anthropic';
     case ProviderType.GEMINI: return 'Gemini';
+    case ProviderType.OPENAI_IMAGES: return 'OpenAI Images';
     default: return 'Unknown';
   }
 };
@@ -279,6 +280,7 @@ export const Providers: React.FC = () => {
     switch (type) {
       case ProviderType.OPENAI_CHAT:
       case ProviderType.OPENAI_RESPONSE:
+      case ProviderType.OPENAI_IMAGES:
         return 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30';
       case ProviderType.ANTHROPIC:
         return 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30';

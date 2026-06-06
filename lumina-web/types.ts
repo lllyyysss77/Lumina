@@ -12,6 +12,7 @@ export enum ProviderType {
   OPENAI_RESPONSE = 1,
   ANTHROPIC = 2,
   GEMINI = 3,
+  OPENAI_IMAGES = 4,
 }
 
 export interface ProviderEndpoint {

@@ -17,7 +17,7 @@ Lumina 是一个面向多模型、多供应商场景的 LLM API Gateway。它提
 
 ## 核心能力
 
-- 统一中继 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages、Gemini Models API
+- 统一中继 OpenAI Chat Completions、OpenAI Responses、OpenAI Images Generations、Anthropic Messages、Gemini Models API
 - 协议互转：OpenAI Chat / Responses / Anthropic Messages 双向转换，上游可用一种协议调用另一种协议的模型
 - 按"对外模型名"做模型分组，将请求路由到一组 Provider
 - 在组内基于 SAPR / Top-K Softmax 做加权选择，并接入 weight
@@ -52,6 +52,7 @@ Lumina 是一个面向多模型、多供应商场景的 LLM API Gateway。它提
 - `GET /v1/models` — 列出可用模型（含真实模型元数据）
 - `POST /v1/chat/completions` — OpenAI Chat Completions
 - `POST /v1/responses` — OpenAI Responses
+- `POST /v1/images/generations` — OpenAI Images Generations
 - `POST /v1/messages` — Anthropic Messages
 - `POST /v1/messages/count_tokens` — Token 计数
 - `POST /v1beta/models/{modelAction}` — Gemini Models API

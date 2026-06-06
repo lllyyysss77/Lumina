@@ -72,10 +72,14 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
 
     protected void applyQueryParams(org.springframework.web.util.UriBuilder uriBuilder, Map<String, String> queryParams) {
         queryParams.forEach((k, v) -> {
-            if (!INTERNAL_API_KEY_PARAM.equals(k)) {
+            if (!isInternalQueryParam(k)) {
                 uriBuilder.queryParam(k, v);
             }
         });
+    }
+
+    private boolean isInternalQueryParam(String key) {
+        return key != null && key.startsWith("_lumina_");
     }
 
     protected void handleUsage(RequestLogContext ctx, JsonNode node) {

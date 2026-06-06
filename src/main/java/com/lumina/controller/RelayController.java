@@ -79,6 +79,19 @@ public class RelayController {
     }
 
     @PostMapping(
+            value = "/v1/images/generations",
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    public Mono<ResponseEntity<?>> createImageGenerations(
+            @RequestBody ObjectNode params,
+            @RequestParam Map<String, String> allParams,
+            ServerWebExchange exchange) {
+        String apiKey = exchange.getAttribute("API_KEY");
+        allParams.put("_lumina_request_ip", extractClientIp(exchange));
+        return relayService.relay("openai_images_generations", params, allParams, apiKey);
+    }
+
+    @PostMapping(
             value = "/v1beta/models/{modelAction}",
             consumes = MediaType.APPLICATION_JSON_VALUE
     )

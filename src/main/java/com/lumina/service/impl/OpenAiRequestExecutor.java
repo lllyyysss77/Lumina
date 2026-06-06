@@ -22,7 +22,8 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
 
     private static final Map<String, String> URI_MAP = Map.of(
             "openai_chat_completions", "/v1/chat/completions",
-            "openai_responses", "/v1/responses"
+            "openai_responses", "/v1/responses",
+            "openai_images_generations", "/v1/images/generations"
     );
 
     @Override

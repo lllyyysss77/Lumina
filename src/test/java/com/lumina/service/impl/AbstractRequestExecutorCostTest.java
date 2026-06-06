@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -58,6 +59,21 @@ class AbstractRequestExecutorCostTest {
         executor.calculateCost(ctx);
 
         assertEquals(new BigDecimal("0.0100"), ctx.getCost());
+    }
+
+    @Test
+    void doesNotForwardInternalLuminaQueryParams() {
+        org.springframework.web.util.UriComponentsBuilder builder =
+                org.springframework.web.util.UriComponentsBuilder.fromPath("/v1/images/generations");
+
+        executor.applyQueryParams(builder, Map.of(
+                "_lumina_api_key", "sk-client",
+                "_lumina_request_ip", "127.0.0.1",
+                "_lumina_protocol_conversion", "OPENAI_IMAGES_TO_OPENAI_CHAT",
+                "api-version", "2024-02-01"
+        ));
+
+        assertEquals("/v1/images/generations?api-version=2024-02-01", builder.build().toUriString());
     }
 
     private RequestLogContext context(String requestType, int inputTokens, int outputTokens,

@@ -7,10 +7,18 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OpenAiRequestExecutorTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
+
+    @Test
+    void supportsOpenAiImagesGenerationsPassthroughType() {
+        OpenAiRequestExecutor executor = new OpenAiRequestExecutor();
+
+        assertTrue(executor.supports("openai_images_generations"));
+    }
 
     @Test
     void disablesDeepSeekThinkingWhenToolCallHistoryLacksReasoning() throws Exception {

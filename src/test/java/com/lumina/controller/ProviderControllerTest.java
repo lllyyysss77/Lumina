@@ -36,8 +36,9 @@ class ProviderControllerTest {
     void createProviderDerivesBaseUrlFromPrimaryEndpoint() {
         Provider provider = validProvider();
         provider.setBaseUrl("");
-        provider.setType("0,2");
+        provider.setType("4,0,2");
         provider.setEndpoints(List.of(
+                endpoint(4, "https://api.openai.com"),
                 endpoint(0, "https://api.minimaxi.com"),
                 endpoint(2, "https://api.minimaxi.com/anthropic")
         ));
@@ -51,12 +52,14 @@ class ProviderControllerTest {
         ApiResponse<Provider> response = providerController.createProvider(provider);
 
         assertEquals(200, response.getCode());
-        assertEquals("https://api.minimaxi.com", response.getData().getBaseUrl());
+        assertEquals("https://api.openai.com", response.getData().getBaseUrl());
         assertEquals(42L, response.getData().getEndpoints().get(0).getProviderId());
         assertEquals(42L, response.getData().getEndpoints().get(1).getProviderId());
+        assertEquals(42L, response.getData().getEndpoints().get(2).getProviderId());
         verify(providerService).save(provider);
         verify(endpointMapper).insert(provider.getEndpoints().get(0));
         verify(endpointMapper).insert(provider.getEndpoints().get(1));
+        verify(endpointMapper).insert(provider.getEndpoints().get(2));
     }
 
     @Test

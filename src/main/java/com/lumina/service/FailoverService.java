@@ -137,8 +137,7 @@ public class FailoverService {
 
     public ModelGroupConfigItem selectAvailableProvider(ModelGroupConfig modelGroupConfig, Set<String> excludeIds, int requestHash) {
         // 轮询模式：直接轮询，不做熔断过滤
-        Integer balanceMode = modelGroupConfig.getBalanceMode();
-        if (balanceMode != null && balanceMode == 1) {
+        if (isRoundRobinMode(modelGroupConfig)) {
             return selectByRoundRobin(modelGroupConfig.getItems(), excludeIds, modelGroupConfig.getId());
         }
 
@@ -271,6 +270,7 @@ public class FailoverService {
         // 解析 Group 级别配置获取 maxFailoverAttempts
         EffectiveCircuitBreakerConfig groupConfig = configResolver.resolve(
                 group.getId(), group.getCircuitBreakerConfig());
+        boolean updateHealthState = shouldUpdateHealthState(group);
 
         // 检查 Failover 次数限制
         if (attemptCount >= groupConfig.getMaxFailoverAttempts()) {
@@ -328,10 +328,13 @@ public class FailoverService {
                 .doOnSuccess(response -> {
                     releaseBulkhead.run();
                     long duration = System.currentTimeMillis() - startTime;
-                    scoreCalculator.update(state, FailureType.SUCCESS, duration);
-                    circuitBreaker.onSuccess(state, effectiveConfig);
+                    if (updateHealthState) {
+                        scoreCalculator.update(state, FailureType.SUCCESS, duration);
+                        circuitBreaker.onSuccess(state, effectiveConfig);
+                    }
                     relayMetrics.recordFailoverDepth(attemptCount);
-                    log.debug("Provider {} 调用成功，耗时: {}ms, 新评分: {}", providerId, duration, state.getScore());
+                    log.debug("Provider {} 调用成功，耗时: {}ms, 健康状态更新: {}, 当前评分: {}",
+                            providerId, duration, updateHealthState, state.getScore());
                 })
                 .doOnError(error -> releaseBulkhead.run())
                 .doOnCancel(releaseBulkhead)
@@ -350,8 +353,10 @@ public class FailoverService {
                                 providerId, error.getMessage(), failureType, duration, responseBody);
                     }
 
-                    scoreCalculator.update(state, failureType, duration);
-                    circuitBreaker.onFailure(state, failureType, effectiveConfig);
+                    if (updateHealthState) {
+                        scoreCalculator.update(state, failureType, duration);
+                        circuitBreaker.onFailure(state, failureType, effectiveConfig);
+                    }
 
                     if (!failureType.shouldFailover()) {
                         log.debug("错误类型 {} 不触发 Failover，直接返回错误", failureType);
@@ -384,6 +389,7 @@ public class FailoverService {
     ) {
         EffectiveCircuitBreakerConfig groupConfig = configResolver.resolve(
                 group.getId(), group.getCircuitBreakerConfig());
+        boolean updateHealthState = shouldUpdateHealthState(group);
 
         if (attemptCount >= groupConfig.getMaxFailoverAttempts()) {
             relayMetrics.recordMaxFailoverExceeded(true);
@@ -442,10 +448,13 @@ public class FailoverService {
                 .doOnComplete(() -> {
                     releaseBulkhead.run();
                     long duration = System.currentTimeMillis() - startTime;
-                    scoreCalculator.update(state, FailureType.SUCCESS, duration);
-                    circuitBreaker.onSuccess(state, effectiveConfig);
+                    if (updateHealthState) {
+                        scoreCalculator.update(state, FailureType.SUCCESS, duration);
+                        circuitBreaker.onSuccess(state, effectiveConfig);
+                    }
                     relayMetrics.recordFailoverDepth(attemptCount);
-                    log.debug("Provider {} 流式调用完成，耗时: {}ms, 新评分: {}", providerId, duration, state.getScore());
+                    log.debug("Provider {} 流式调用完成，耗时: {}ms, 健康状态更新: {}, 当前评分: {}",
+                            providerId, duration, updateHealthState, state.getScore());
                 })
                 .doOnCancel(releaseBulkhead)
                 .onErrorResume(error -> {
@@ -465,8 +474,10 @@ public class FailoverService {
                                     providerId, error.getMessage(), failureType, duration, responseBody);
                         }
 
-                        scoreCalculator.update(state, failureType, duration);
-                        circuitBreaker.onFailure(state, failureType, effectiveConfig);
+                        if (updateHealthState) {
+                            scoreCalculator.update(state, failureType, duration);
+                            circuitBreaker.onFailure(state, failureType, effectiveConfig);
+                        }
 
                         if (!failureType.shouldFailover()) {
                             log.debug("错误类型 {} 不触发 Failover，直接返回错误", failureType);
@@ -479,8 +490,10 @@ public class FailoverService {
                         return executeWithFailoverFlux(callFunction, group, tried, timeoutMs, attemptCount + 1, requestHash);
                     } else {
                         log.error("Provider {} 流式传输中途失败: {} (类型: {})", providerId, error.getMessage(), failureType);
-                        scoreCalculator.update(state, failureType, duration);
-                        circuitBreaker.onFailure(state, failureType, effectiveConfig);
+                        if (updateHealthState) {
+                            scoreCalculator.update(state, failureType, duration);
+                            circuitBreaker.onFailure(state, failureType, effectiveConfig);
+                        }
                         relayMetrics.recordFailoverDepth(attemptCount);
                         // 中断传输的降级提示
                         String errorMessage = "{\"error\": {\"message\": \"网关传输中途发生网络异常中断，请稍后重试。\"}}";
@@ -497,5 +510,13 @@ public class FailoverService {
                 item.getBaseUrl(),
                 item.getApiKey() != null ? item.getApiKey().hashCode() : "null",
                 item.getModelName());
+    }
+
+    private boolean shouldUpdateHealthState(ModelGroupConfig group) {
+        return !isRoundRobinMode(group);
+    }
+
+    private boolean isRoundRobinMode(ModelGroupConfig group) {
+        return group != null && Integer.valueOf(1).equals(group.getBalanceMode());
     }
 }

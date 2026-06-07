@@ -1,6 +1,7 @@
 package com.lumina.mapper;
 
 import com.lumina.dto.DashboardOverviewDto;
+import com.lumina.dto.HealthHeatmapDto;
 import com.lumina.dto.ModelTokenUsageDto;
 import com.lumina.dto.ProviderStatsDto;
 import com.lumina.dto.RequestTrafficDto;
@@ -36,4 +37,10 @@ public interface DashboardMapper {
      * 获取供应商统计排名
      */
     List<ProviderStatsDto> getProviderStats(@Param("limit") Integer limit);
+
+    /**
+     * 获取 15 分钟粒度的健康热力图数据
+     */
+    List<HealthHeatmapDto.HeatmapBucket> getHealthHeatmapBuckets(@Param("startTime") String startTime,
+                                                                 @Param("endTime") String endTime);
 }

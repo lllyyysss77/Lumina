@@ -26,4 +26,14 @@ public class HealthHeatmapDto {
         private long successRequests;
         private double successRate;
     }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class HeatmapBucket {
+        private String bucketStart;
+        private Long totalRequests;
+        private Long successRequests;
+    }
 }

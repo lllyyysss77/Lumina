@@ -22,13 +22,16 @@ import io.micrometer.core.instrument.Timer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class DashboardService {
@@ -51,8 +54,11 @@ public class DashboardService {
     @Autowired
     private CircuitBreakerManagementService circuitBreakerManagementService;
 
+    private Clock clock = Clock.systemDefaultZone();
+
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter HOUR_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:00:00");
+    private static final DateTimeFormatter BUCKET_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     /**
@@ -492,19 +498,19 @@ public class DashboardService {
             days = 7;
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime start = now.minusDays(days).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime now = LocalDateTime.now(clock).withNano(0);
+        LocalDateTime start = alignToQuarterHour(now.minusDays(days));
+        LocalDateTime endExclusive = now.plusSeconds(1);
 
-        String startHour = start.format(HOUR_FMT);
-        String endHour = now.format(HOUR_FMT);
+        List<HealthHeatmapDto.HeatmapBucket> buckets = dashboardMapper.getHealthHeatmapBuckets(
+                start.format(BUCKET_FMT),
+                endExclusive.format(BUCKET_FMT));
 
-        List<StatsHourly> hourlyData = statsHourlyMapper.selectAggregatedByHourRange(startHour, endHour);
-
-        java.util.Map<String, StatsHourly> dataMap = new java.util.HashMap<>();
-        if (hourlyData != null) {
-            for (StatsHourly h : hourlyData) {
-                if (h.getStatHour() != null) {
-                    dataMap.put(h.getStatHour().format(HOUR_FMT), h);
+        Map<String, HealthHeatmapDto.HeatmapBucket> dataMap = new HashMap<>();
+        if (buckets != null) {
+            for (HealthHeatmapDto.HeatmapBucket bucket : buckets) {
+                if (bucket.getBucketStart() != null) {
+                    dataMap.put(bucket.getBucketStart(), bucket);
                 }
             }
         }
@@ -515,14 +521,12 @@ public class DashboardService {
 
         LocalDateTime cursor = start;
         while (!cursor.isAfter(now)) {
-            String hourKey = cursor.withMinute(0).format(HOUR_FMT);
-            long timestamp = cursor.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            String bucketKey = cursor.format(BUCKET_FMT);
+            long timestamp = cursor.atZone(clock.getZone()).toInstant().toEpochMilli();
 
-            StatsHourly stats = dataMap.get(hourKey);
-            long hourReqs = stats != null && stats.getTotalRequests() != null ? stats.getTotalRequests() : 0;
-            long hourSuccess = stats != null && stats.getSuccessCount() != null ? stats.getSuccessCount() : 0;
-            long reqs = hourReqs / 4;
-            long success = hourSuccess / 4;
+            HealthHeatmapDto.HeatmapBucket bucket = dataMap.get(bucketKey);
+            long reqs = bucket != null && bucket.getTotalRequests() != null ? bucket.getTotalRequests() : 0;
+            long success = bucket != null && bucket.getSuccessRequests() != null ? bucket.getSuccessRequests() : 0;
 
             cells.add(HealthHeatmapDto.HeatmapCell.builder()
                     .timestamp(timestamp)
@@ -541,6 +545,12 @@ public class DashboardService {
                 .days(days)
                 .cells(cells)
                 .build();
+    }
+
+    private LocalDateTime alignToQuarterHour(LocalDateTime time) {
+        return time.withMinute((time.getMinute() / 15) * 15)
+                .withSecond(0)
+                .withNano(0);
     }
 
     private DashboardObservabilityDto.CacheMetric buildCacheMetric(String cacheName) {

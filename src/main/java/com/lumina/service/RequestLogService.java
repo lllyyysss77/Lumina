@@ -10,6 +10,8 @@ import java.util.Collection;
 public interface RequestLogService extends IService<RequestLog> {
     void saveBatchLogs(Collection<RequestLog> logs);
 
+    void updateBatchLogs(Collection<RequestLog> logs);
+
     RequestLogDetailDto getDetailMetaById(String id);
 
     RequestLogPayloadDto getPayloadsById(String id);

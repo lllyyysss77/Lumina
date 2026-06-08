@@ -26,6 +26,15 @@ public class RequestLogServiceImpl extends ServiceImpl<RequestLogMapper, Request
     }
 
     @Override
+    @Transactional
+    public void updateBatchLogs(Collection<RequestLog> logs) {
+        if (logs == null || logs.isEmpty()) {
+            return;
+        }
+        this.saveOrUpdateBatch(new ArrayList<>(logs), 200);
+    }
+
+    @Override
     public RequestLogDetailDto getDetailMetaById(String id) {
         RequestLog log = this.getOne(new LambdaQueryWrapper<RequestLog>()
                 .eq(RequestLog::getId, id)

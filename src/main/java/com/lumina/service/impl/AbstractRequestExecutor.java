@@ -58,17 +58,34 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
         ctx.setRequestTime(System.currentTimeMillis() / 1000);
         ctx.setRequestType(type);
         ctx.setStream(stream);
-        ctx.setRequestModel(provider.getModelName());
+        ctx.setRequestModel(resolveRequestModel(request, provider, queryParams));
+        ctx.setActualModel(provider.getModelName());
         ctx.setRequestContent(request.toPrettyString());
         if (queryParams != null) {
             ctx.setApiKey(queryParams.get("_lumina_api_key"));
             ctx.setRequestIp(queryParams.get("_lumina_request_ip"));
             ctx.setProtocolConversion(queryParams.get("_lumina_protocol_conversion"));
         }
+        logWriter.recordStart(ctx);
         return ctx;
     }
 
     protected static final String INTERNAL_API_KEY_PARAM = "_lumina_api_key";
+    protected static final String INTERNAL_REQUEST_MODEL_PARAM = "_lumina_request_model";
+
+    private String resolveRequestModel(ObjectNode request, ModelGroupConfigItem provider, Map<String, String> queryParams) {
+        if (queryParams != null) {
+            String requestModel = queryParams.get(INTERNAL_REQUEST_MODEL_PARAM);
+            if (requestModel != null && !requestModel.isBlank()) {
+                return requestModel;
+            }
+        }
+        String bodyModel = request.path("model").asText(null);
+        if (bodyModel != null && !bodyModel.isBlank()) {
+            return bodyModel;
+        }
+        return provider.getModelName();
+    }
 
     protected void applyQueryParams(org.springframework.web.util.UriBuilder uriBuilder, Map<String, String> queryParams) {
         queryParams.forEach((k, v) -> {
@@ -184,6 +201,9 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
     }
 
     protected void recordError(RequestLogContext ctx, Throwable err) {
+        if (!markLogSubmitted(ctx)) {
+            return;
+        }
         ctx.setStatus("FAIL");
         ctx.setErrorStage("HTTP");
         ctx.setErrorMessage(err.getMessage());
@@ -192,10 +212,34 @@ public abstract class AbstractRequestExecutor implements LlmRequestExecutor {
     }
 
     protected void recordSuccess(RequestLogContext ctx, String content) {
+        if (!markLogSubmitted(ctx)) {
+            return;
+        }
+        ctx.setStatus("SUCCESS");
         ctx.setTotalTimeMs((int) ((System.nanoTime() - ctx.getStartNano()) / 1_000_000));
         ctx.setResponseContent(content);
         calculateCost(ctx);
         logWriter.submit(ctx);
+    }
+
+    protected void recordStreamCancel(RequestLogContext ctx) {
+        if (ctx.getFirstTokenArrived().get() || ctx.getResponseBuffer().length() > 0) {
+            recordSuccess(ctx, ctx.getResponseBuffer().toString());
+            return;
+        }
+
+        if (!markLogSubmitted(ctx)) {
+            return;
+        }
+        ctx.setStatus("FAIL");
+        ctx.setErrorStage("CLIENT");
+        ctx.setErrorMessage("Client cancelled stream before upstream response completed");
+        ctx.setTotalTimeMs((int) ((System.nanoTime() - ctx.getStartNano()) / 1_000_000));
+        logWriter.submit(ctx);
+    }
+
+    private boolean markLogSubmitted(RequestLogContext ctx) {
+        return ctx.getLogSubmitted().compareAndSet(false, true);
     }
 
     protected WebClient createWebClient(ModelGroupConfigItem provider) {

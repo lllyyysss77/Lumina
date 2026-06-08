@@ -34,7 +34,7 @@ public class RequestLogContext {
 
     private BigDecimal cost = BigDecimal.ZERO;
 
-    private String status = "SUCCESS";
+    private String status = "PROCESSING";
     private String errorStage;
     private String errorMessage;
 
@@ -48,5 +48,6 @@ public class RequestLogContext {
     private String protocolConversion;
 
     private AtomicBoolean firstTokenArrived = new AtomicBoolean(false);
+    private AtomicBoolean logSubmitted = new AtomicBoolean(false);
     private StringBuilder responseBuffer = new StringBuilder();
 }

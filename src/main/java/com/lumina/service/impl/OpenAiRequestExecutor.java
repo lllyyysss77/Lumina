@@ -12,6 +12,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 
 import java.util.Locale;
 import java.util.Map;
@@ -101,6 +102,8 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
                             handleUsage(ctx, objectMapper.readTree(data));
                         } catch (Exception ignored) {
                         }
+                    } else {
+                        recordSuccess(ctx, ctx.getResponseBuffer().toString());
                     }
                 })
                 .onErrorResume(err -> {
@@ -111,7 +114,12 @@ public class OpenAiRequestExecutor extends AbstractRequestExecutor {
                             .build())
                             .concatWith(Flux.error(err));
                 })
-                .doOnComplete(() -> recordSuccess(ctx, ctx.getResponseBuffer().toString()));
+                .doOnComplete(() -> recordSuccess(ctx, ctx.getResponseBuffer().toString()))
+                .doFinally(signalType -> {
+                    if (signalType == SignalType.CANCEL) {
+                        recordStreamCancel(ctx);
+                    }
+                });
     }
 
     static void prepareRequestForProvider(ObjectNode request, ModelGroupConfigItem provider, String type) {

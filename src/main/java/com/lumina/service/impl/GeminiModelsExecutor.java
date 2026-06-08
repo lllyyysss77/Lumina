@@ -10,6 +10,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 
 import java.util.Map;
 
@@ -76,6 +77,11 @@ public class GeminiModelsExecutor extends AbstractRequestExecutor {
                     }
                 })
                 .doOnError(err -> recordError(ctx, err))
-                .doOnComplete(() -> recordSuccess(ctx, ctx.getResponseBuffer().toString()));
+                .doOnComplete(() -> recordSuccess(ctx, ctx.getResponseBuffer().toString()))
+                .doFinally(signalType -> {
+                    if (signalType == SignalType.CANCEL) {
+                        recordStreamCancel(ctx);
+                    }
+                });
     }
 }

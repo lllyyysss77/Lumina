@@ -69,11 +69,18 @@ public class RelayServiceImpl implements RelayService {
         if (apiKey != null) {
             enrichedParams.put("_lumina_api_key", apiKey);
         }
+        enrichedParams.put("_lumina_request_model", modelGroupName);
         return groupService.getModelGroupConfigAsync(modelGroupName)
-                .switchIfEmpty(Mono.error(new RuntimeException("模型分组不存在")))
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.warn("Model group not found: modelGroupName={}, requestType={}, requestIp={}",
+                            modelGroupName, type, enrichedParams.get("_lumina_request_ip"));
+                    return Mono.error(new RuntimeException("模型分组不存在: " + modelGroupName));
+                }))
                 .flatMap(modelGroupConfig -> {
                     if (modelGroupConfig == null) {
-                        return Mono.error(new RuntimeException("模型分组不存在"));
+                        log.warn("Model group config is null: modelGroupName={}, requestType={}, requestIp={}",
+                                modelGroupName, type, enrichedParams.get("_lumina_request_ip"));
+                        return Mono.error(new RuntimeException("模型分组不存在: " + modelGroupName));
                     }
 
                     Integer timeoutMs = modelGroupConfig.getFirstTokenTimeout();
@@ -155,6 +162,7 @@ public class RelayServiceImpl implements RelayService {
         if (apiKey != null) {
             enrichedParams.put("_lumina_api_key", apiKey);
         }
+        enrichedParams.put("_lumina_request_model", modelGroupName);
 
         return groupService.getModelGroupConfigAsync(modelGroupName)
                 .switchIfEmpty(Mono.error(new RuntimeException("模型分组不存在")))

@@ -68,15 +68,43 @@ public class LogWriter {
         );
     }
 
+    public void recordStart(RequestLogContext ctx) {
+        try {
+            RequestLog logEntry = convert(ctx, false);
+            logEntry.setRequestContent(null);
+            logEntry.setResponseContent(null);
+            requestLogService.save(logEntry);
+        } catch (Exception e) {
+            log.error("初始化请求日志失败: requestId={}, provider={}, model={}",
+                    ctx.getRequestId(), ctx.getProviderName(), ctx.getRequestModel(), e);
+        }
+    }
+
     public void submit(RequestLogContext ctx) {
-        RequestLog logEntry = convert(ctx);
+        RequestLog logEntry = convert(ctx, true);
+        if (queue == null) {
+            writeFinalLogImmediately(logEntry);
+            return;
+        }
         if (!queue.offer(logEntry)) {
+            meterRegistry.counter("lumina_log_queue_full_events_total").increment();
+            log.warn("请求日志最终态队列已满，切换为同步更新: requestId={}", logEntry.getRequestId());
+            writeFinalLogImmediately(logEntry);
+        }
+    }
+
+    private void writeFinalLogImmediately(RequestLog logEntry) {
+        try {
+            List<RequestLog> batch = List.of(logEntry);
+            writeFinalLogs(batch);
+        } catch (Exception e) {
             droppedLogs.increment();
             meterRegistry.counter("lumina_log_drop_events_total").increment();
             long dropped = droppedLogs.sum();
             if (dropped == 1 || dropped % 100 == 0) {
                 log.warn("请求日志队列已满，累计丢弃 {} 条日志", dropped);
             }
+            log.error("同步更新请求日志最终态失败: requestId={}", logEntry.getRequestId(), e);
         }
     }
 
@@ -102,11 +130,15 @@ public class LogWriter {
         }
 
         batchSizeSummary.record(batch.size());
-        requestLogService.saveBatchLogs(batch);
+        writeFinalLogs(batch);
+    }
+
+    private void writeFinalLogs(List<RequestLog> batch) {
+        requestLogService.updateBatchLogs(batch);
         statsAccumulator.accumulate(batch);
     }
 
-    private RequestLog convert(RequestLogContext ctx) {
+    private RequestLog convert(RequestLogContext ctx, boolean includePayloads) {
         RequestLog logEntry = new RequestLog();
         logEntry.setId(ctx.getId());
         logEntry.setRequestId(ctx.getRequestId());
@@ -134,7 +166,7 @@ public class LogWriter {
         logEntry.setRequestIp(ctx.getRequestIp());
         logEntry.setProtocolConversion(ctx.getProtocolConversion());
 
-        boolean keepPayloads = shouldKeepPayloads(ctx);
+        boolean keepPayloads = includePayloads && shouldKeepPayloads(ctx);
         logEntry.setRequestContent(keepPayloads ? ctx.getRequestContent() : null);
         logEntry.setResponseContent(keepPayloads ? ctx.getResponseContent() : null);
 

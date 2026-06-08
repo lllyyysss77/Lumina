@@ -11,6 +11,20 @@ import { Button } from './ui/Button';
 export const Logs: React.FC = () => {
   const { t } = useLanguage();
 
+  const getLogStatusTone = (status?: string) => {
+    if (status === 'SUCCESS') return 'success' as const;
+    if (status === 'PROCESSING') return 'warning' as const;
+    if (status === 'FAIL') return 'danger' as const;
+    return 'neutral' as const;
+  };
+
+  const getLogStatusLabel = (status?: string) => {
+    if (status === 'SUCCESS') return t('common.success');
+    if (status === 'PROCESSING') return t('common.processing');
+    if (status === 'FAIL') return t('common.fail');
+    return status || '-';
+  };
+
   // State
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -300,6 +314,7 @@ export const Logs: React.FC = () => {
                     >
                         <option value="ALL">{t('common.all')}</option>
                         <option value="SUCCESS">{t('common.success')}</option>
+                        <option value="PROCESSING">{t('common.processing')}</option>
                         <option value="FAIL">{t('common.fail')}</option>
                     </select>
                 </div>
@@ -369,8 +384,8 @@ export const Logs: React.FC = () => {
                                 logs.map((log) => (
                                     <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors animate-fade-in group">
                                         <td className="px-3 py-4 whitespace-nowrap">
-                                            <Badge tone={log.status === 'SUCCESS' ? 'success' : 'danger'} size="xs">
-                                              {log.status === 'SUCCESS' ? t('common.success') : t('common.fail')}
+                                            <Badge tone={getLogStatusTone(log.status)} size="xs">
+                                              {getLogStatusLabel(log.status)}
                                             </Badge>
                                         </td>
                                         <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400 font-mono">
@@ -493,8 +508,8 @@ export const Logs: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <span className="text-xl">{t('logs.detail.title')}</span>
                     {selectedLog && (
-                        <Badge tone={selectedLog.status === 'SUCCESS' ? 'success' : 'danger'} size="sm">
-                          {selectedLog.status}
+                        <Badge tone={getLogStatusTone(selectedLog.status)} size="sm">
+                          {getLogStatusLabel(selectedLog.status)}
                         </Badge>
                     )}
                 </div>

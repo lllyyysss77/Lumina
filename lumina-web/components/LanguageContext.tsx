@@ -33,6 +33,7 @@ const translations = {
       close: '关闭',
       success: '成功',
       fail: '失败',
+      processing: '处理中',
       copied: '已复制'
     },
     nav: {
@@ -581,6 +582,7 @@ const translations = {
       close: 'Close',
       success: 'Success',
       fail: 'Failure',
+      processing: 'Processing',
       copied: 'Copied'
     },
     nav: {

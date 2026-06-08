@@ -69,6 +69,7 @@ class AbstractRequestExecutorCostTest {
         executor.applyQueryParams(builder, Map.of(
                 "_lumina_api_key", "sk-client",
                 "_lumina_request_ip", "127.0.0.1",
+                "_lumina_request_model", "client-facing-group",
                 "_lumina_protocol_conversion", "OPENAI_IMAGES_TO_OPENAI_CHAT",
                 "api-version", "2024-02-01"
         ));
